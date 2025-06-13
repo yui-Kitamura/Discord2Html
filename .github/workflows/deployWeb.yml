@@ -3,6 +3,8 @@ name: deployWeb.yml
 on:
   push:
     branches: ["main"]
+    paths:
+      - 'gh_pages/*'
   workflow_dispatch:
 
 jobs:
