@@ -1,0 +1,34 @@
+name: Markdown to PDF
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'docs/design/*.md'
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.1
+      - name: Markdown to PDF
+        uses: BaileyJM02/markdown-to-pdf@v1.2.0
+        with:
+          input_path: docs/design
+          output_dir: docs/design/
+          build_html: false
+      - name: Commit and push PDF files
+        shell: bash
+        run: |
+          find docs/design -name "*.pdf"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          find docs/design -name "*.pdf" -exec git add "{}" \;
+          git commit -m "Add generated PDF files [skip ci]"
+          git push origin "${GITHUB_REF#refs/heads/}"
+        continue-on-error: true
+      - name: Store PDF artifact
+        uses: actions/upload-artifact@v4.3.1
+        with:
+          name: PDF
+          path: docs/design/**/*.pdf
