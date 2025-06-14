@@ -1,8 +1,8 @@
 package pro.eng.yui.oss.d2h.db.field;
 
-public class ChannelId extends AbstIds{
+public class UserId extends AbstIds {
     
-    public ChannelId(long value){
+    public UserId(long value){
         super(value);
     }
 
@@ -26,4 +26,5 @@ public class ChannelId extends AbstIds{
     public String toString() {
         return super.toString();
     }
+
 }

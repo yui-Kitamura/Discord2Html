@@ -19,6 +19,11 @@ class ChannelIdTest {
         ChannelId c2 = new ChannelId(12345L);
         assertEquals(c1, c2);
     }
-    
-    //TODO 異なる型但し共通extendへのequals
+
+    @Test
+    void testEqualsWithDifferentType() {
+        ChannelId channelId = new ChannelId(12345L);
+        UserId userId = new UserId(12345L);
+        assertNotEquals(channelId, userId);
+    }
 }
