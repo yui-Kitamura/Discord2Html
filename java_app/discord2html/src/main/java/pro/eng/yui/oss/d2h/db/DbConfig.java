@@ -1,12 +1,12 @@
 package pro.eng.yui.oss.d2h.db;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.stereotype.Component;
 
-@Configuration
 @PropertySource("classpath:discordBot.properties")
 @ConfigurationProperties(prefix = "database")
+@Component
 public class DbConfig {
 
     private Host host;
