@@ -24,14 +24,22 @@ jobs:
           mkdir -p java_app/discord2html/src/main/resources
           echo "discord.auth=${DISCORD_TOKEN}" > java_app/discord2html/src/main/resources/secret.properties
           mvn -B package --file java_app/discord2html/pom.xml
-
-      - name: Deploy to VPS
+          
+      - name: Upload jar to VPS
+        uses: appleboy/scp-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: "target/discord2html.jar"
+          target: "/home/ubuntu/discord2html.jar"
+        
+      - name: Run on VPS
         uses: appleboy/ssh-action@v1.2.2
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
-          port: '22'
           script: |
             sudo systemctl restart discord2html
           
