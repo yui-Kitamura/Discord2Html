@@ -17,7 +17,8 @@ public class DbConfig {
         return host;
     }
     public static class Host {
-        private String address;
+        /** db address. by default <code>localhost</code> */
+        private String address = "localhost";
         public void setAddress(String address) {
             this.address = address;
         }
@@ -25,15 +26,19 @@ public class DbConfig {
             return address;
         }
 
-        private int port;
+        /** db port number. usually 3036, but Dev uses 3006.
+         * by default <code>3036</code> */
+        private int port = 3036;
         public void setPort(int port) {
             this.port = port;
         }
         public int getPort() {
             return port;
         }
-        
-        private String schema;
+
+        /** database schema name. by default <code>discord2html</code>
+         */
+        private String schema = "discord2html";
         public void setSchema(String schema) {
             this.schema = schema;
         }
@@ -84,7 +89,8 @@ public class DbConfig {
         }
         
         public static class Connection {
-            private int max;
+            /** max connection amount. by default <code>5</code> */
+            private int max = 5;
             public void setMax(int max) {
                 this.max = max;
             }
@@ -92,7 +98,8 @@ public class DbConfig {
                 return max;
             }
             
-            private int timeout;
+            /** connection timeout in seconds. by default <code>10</code> */
+            private int timeout = 10;
             public void setTimeout(int timeout) {
                 this.timeout = timeout;
             }
