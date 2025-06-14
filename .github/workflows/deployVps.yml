@@ -33,5 +33,5 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: '22'
           script: |
-            systemctl restart discord2html
+            sudo systemctl restart discord2html
           
