@@ -1,10 +1,10 @@
 package pro.eng.yui.oss.d2h.db.field;
 
-import java.sql.Date;
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 
 public class LastRecorded {
     
@@ -14,12 +14,12 @@ public class LastRecorded {
     public Timestamp getValue(){
         return timestamp;
     }
-    
-    public LastRecorded(Timestamp ts){
-        this.timestamp = ts;
-    }
+
     public LastRecorded(Date date){
         this.timestamp = new Timestamp(date.getTime());
+    }
+    public LastRecorded(Timestamp ts){
+        this.timestamp = ts;
     }
     public LastRecorded(Calendar c){
         this.timestamp = new Timestamp(c.getTimeInMillis());
@@ -38,7 +38,7 @@ public class LastRecorded {
         if(obj == null){ return false; }
         if(!(obj.getClass().equals(this.getClass()))){ return false; }
         LastRecorded other = (LastRecorded) obj;
-        if(this.timestamp != other.timestamp){ return false; }
+        if(!this.timestamp.equals(other.timestamp)){ return false; }
         return true;
     }
 
