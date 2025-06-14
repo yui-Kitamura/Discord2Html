@@ -33,9 +33,8 @@ public class GitUtil {
      * リベースでリモート追従
      */
     public void pullRebase() throws Exception {
-        final String remote = config.getRepo().getOwner()+"/"+config.getRepo().getName();
         final String branch = config.getRepo().getMain();
-        runGitCommand("pull", "--rebase", remote, branch);
+        runGitCommand("pull", "--rebase", "origin", branch);
     }
 
     /**
@@ -58,9 +57,16 @@ public class GitUtil {
      * push
      */
     public void push() throws Exception {
-        final String remote = config.getRepo().getOwner()+"/"+config.getRepo().getName();
         final String branch = config.getRepo().getMain();
-        runGitCommand("push", remote, branch);
+        final String originUrl = getRemoteUrl();
+        final String authUrl = insertTokenToUrl(originUrl);
+        try {
+            runGitCommand("remote", "set-url", "origin", authUrl);
+            runGitCommand("push", "origin", branch);
+        }finally {
+            //必ず元に戻す
+            runGitCommand("remote", "set-url", "origin", originUrl);
+        }
     }
 
     /**
@@ -74,20 +80,56 @@ public class GitUtil {
         pb.directory(new File(config.getLocal().getDir()));
         pb.redirectErrorStream(true);
         Process process = pb.start();
+        
+        String maskId = config.getUser().getId();
+        if(maskId == null){ maskId = ""; }
+        String maskToken = config.getUser().getToken();
+        if(maskToken == null){ maskToken = ""; }
 
         // 出力をログに吐く、または集めておく
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
+                line = line.replaceAll(maskId, "**user**");
+                line = line.replaceAll(maskToken, "**token**");
                 System.out.println(line);
             }
         }
         int exitCode = process.waitFor();
         if (exitCode != 0) {
-            throw new RuntimeException("コマンド失敗: " + String.join(" ", command));
+            String outputCommand = String.join(" ", gitCommand);
+            outputCommand = outputCommand.replaceAll(maskId, "**user**");
+            outputCommand = outputCommand.replaceAll(maskToken, "**token**");
+            throw new RuntimeException("コマンド失敗: " + outputCommand);
         }
     }
 
+    /**
+     * 現在のリモートURL取得
+     */
+    private String getRemoteUrl() throws Exception {
+        ProcessBuilder pb = new ProcessBuilder("git", "remote", "get-url", "origin");
+        pb.directory(new File(config.getLocal().getDir()));
+        Process process = pb.start();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream()))) {
+            return reader.readLine();
+        }
+    }
+
+    /**
+     * URL部分に認証情報を挿入
+     */
+    private String insertTokenToUrl(String url) {
+        final String HTTPS_PROTOCOL = "https://";
+        if (url.startsWith(HTTPS_PROTOCOL)) {
+            return  HTTPS_PROTOCOL 
+                    + config.getUser().getId() + ":" + config.getUser().getToken() + "@"
+                    + url.substring(HTTPS_PROTOCOL.length());
+        } else {
+            throw new IllegalArgumentException("HTTPS URLのみ対応: " + url);
+        }
+    }
 
 }
