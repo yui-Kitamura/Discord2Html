@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
-@PropertySource("classpath:discordBot.properties")
+@PropertySource("classpath:database.properties")
 @ConfigurationProperties(prefix = "database")
 @Component
 public class DbConfig {
