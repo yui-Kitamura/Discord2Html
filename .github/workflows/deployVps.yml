@@ -26,15 +26,12 @@ jobs:
           mvn -B package --file java_app/discord2html/pom.xml
 
       - name: Deploy to VPS
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          VPS_HOST: ${{ secrets.VPS_HOST }}
-          VPS_USERNAME: ${{ secrets.VPS_USERNAME }}
-        run: |
-          echo "$SSH_PRIVATE_KEY" > ssh_key
-          chmod 600 ssh_key
-          scp -i ssh_key -o StrictHostKeyChecking=no \
-            java_app/discord2html/target/*.jar \
-            $VPS_USERNAME@$VPS_HOST:/opt/discord2html/
-          ssh -i ssh_key -o StrictHostKeyChecking=no $VPS_USERNAME@$VPS_HOST \
-            'systemctl restart discord2html'
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          port: '22'
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            systemctl restart discord2html
+          
