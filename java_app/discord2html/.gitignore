@@ -1,0 +1,17 @@
+# OSごとの不要ファイル
+.DS_Store
+Thumbs.db
+
+# ログ・キャッシュ
+*.log
+logs/
+.cache/
+
+# Maven/Gradleビルドキャッシュ
+target/
+out/
+build/
+
+# 設定・秘密情報
+secret.properties
+.env
