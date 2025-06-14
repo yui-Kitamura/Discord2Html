@@ -41,5 +41,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
+            cd /home/ubuntu/java_app/discord2html/target
+            sudo ln -sf discord2html-*.jar discord2html-latest.jar
             sudo systemctl restart discord2html
           

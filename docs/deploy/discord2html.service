@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 WorkingDirectory=/home/ubuntu
-ExecStart=/user/bin/java -jar /home/ubuntu/discord2html.jar
+ExecStart=java -jar ExecStart=java -jar /home/ubuntu/java_app/discord2html/target/discord2html-latest.jar
 User=ubuntu
 Restart=always
 SuccessExitStatus=143
