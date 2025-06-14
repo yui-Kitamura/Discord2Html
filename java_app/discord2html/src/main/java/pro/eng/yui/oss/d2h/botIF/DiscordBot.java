@@ -1,4 +1,47 @@
 package pro.eng.yui.oss.d2h.botIF;
 
-public class DiscordBot {
+import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.config.Secrets;
+
+@Component
+public class DiscordBot extends ListenerAdapter {
+
+    private final Secrets secrets;
+
+    @Autowired
+    public DiscordBot(Secrets secrets) {
+        this.secrets = secrets;
+    }
+
+    public static void main(String[] args) throws Exception {
+        ConfigurableApplicationContext context = SpringApplication.run(DiscordBot.class, args);
+        DiscordBot bot = context.getBean(DiscordBot.class);
+        JDABuilder.createDefault(bot.secrets.getDiscordToken())
+                .addEventListeners(bot)
+                .build();
+    }
+
+    @Override
+    public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
+        super.onSlashCommandInteraction(event);
+    }
+
+    @Override
+    public void onMessageReceived(@NotNull MessageReceivedEvent event) {
+        Message msg = event.getMessage();
+        final String msgBody = msg.getContentRaw();
+        
+        if(msgBody.contains("D2H")) {
+            event.getChannel().sendMessage("yes, I`m here.");
+        }
+    }
 }
