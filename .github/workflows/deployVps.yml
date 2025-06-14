@@ -31,7 +31,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
-          source: "target/discord2html.jar"
+          source: "java_app/discord2html/target/discord2html-*.jar"
           target: "/home/ubuntu/discord2html.jar"
         
       - name: Run on VPS
