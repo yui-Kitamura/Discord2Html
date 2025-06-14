@@ -32,7 +32,7 @@ jobs:
           username: ${{ secrets.VPS_USERNAME }}
           password: ${{ secrets.VPS_PASSWORD }}
           source: "java_app/discord2html/target/discord2html-*.jar"
-          target: "/home/ubuntu/discord2html.jar"
+          target: "/home/ubuntu"
         
       - name: Run on VPS
         uses: appleboy/ssh-action@v1.2.2
