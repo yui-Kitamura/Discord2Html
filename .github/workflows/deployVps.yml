@@ -23,7 +23,8 @@ jobs:
           DATABASE_PASS: ${{ secrets.DATABASE_PASS }}
         run: |
           mkdir -p java_app/discord2html/src/main/resources
-          echo "discord.auth=${DISCORD_TOKEN}\ndatabase.pass=${DATABASE_PASS}" > java_app/discord2html/src/main/resources/secret.properties
+          echo "discord.auth=${DISCORD_TOKEN}" > java_app/discord2html/src/main/resources/secret.properties
+          echo "database.pass=${DATABASE_PASS}" >> java_app/discord2html/src/main/resources/secret.properties
           mvn -B package --file java_app/discord2html/pom.xml
           
       - name: Upload jar to VPS
