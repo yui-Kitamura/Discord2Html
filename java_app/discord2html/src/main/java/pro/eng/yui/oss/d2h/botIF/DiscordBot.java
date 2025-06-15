@@ -10,6 +10,8 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
@@ -18,14 +20,17 @@ import pro.eng.yui.oss.d2h.config.Secrets;
 import java.util.EnumSet;
 
 @Component
-public class DiscordBot extends ListenerAdapter {
+public class DiscordBot extends ListenerAdapter implements ApplicationRunner {
 
     private final Secrets secrets;
 
     @Autowired
     public DiscordBot(Secrets secrets) {
         this.secrets = secrets;
-        
+    }
+
+    @Override
+    public void run(ApplicationArguments args) {
         initialize();
     }
 
