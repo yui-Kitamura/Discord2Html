@@ -20,23 +20,19 @@ public class DbConnection {
     
     @Bean
     public PooledDataSource dataSource(){
-        String uri = String.format("jdbc:mariadb://%s:%d/%s",
-                config.getHost().getAddress(),
-                config.getHost().getPort(),
-                config.getHost().getSchema()
-        );
+        String uri = config.getUrl();
         System.out.println(uri);
         PooledDataSource dataSource;
         dataSource = new PooledDataSource(
                 "org.mariadb.jdbc.Driver", uri,
-                config.getUser().getId(),
+                config.getUserId(),
                 secrets.getDatabasePass()
         );
         dataSource.setPoolMaximumActiveConnections(
-                config.getServer().getConnection().getMax()
+                config.getServerConnectionMax()
         );
         dataSource.setPoolTimeToWait(
-                config.getServer().getConnection().getTimeout() * 1000
+                config.getServerConnectionTimeout() * 1000
         );
         return dataSource;
     }
