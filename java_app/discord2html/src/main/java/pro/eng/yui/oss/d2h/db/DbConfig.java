@@ -2,10 +2,8 @@ package pro.eng.yui.oss.d2h.db;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
-@PropertySource("classpath:database.properties")
 @Configuration
 @Component
 public class DbConfig {
