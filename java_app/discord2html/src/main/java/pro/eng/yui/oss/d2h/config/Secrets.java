@@ -14,6 +14,12 @@ public class Secrets {
         return discord_token;
     }
     
+    @Value("discord.client.secret")
+    private String discord_secret;
+    public String getDiscordSecret(){
+        return discord_secret;
+    }
+    
     @Value("database.pass")
     private String database_pass;
     public String getDatabasePass() {
