@@ -62,14 +62,6 @@ public class DbConfig {
         public String getId() {
             return id;
         }
-
-        private String password;
-        public void setPassword(String password) {
-            this.password = password;
-        }
-        public String getPassword() {
-            return password;
-        }
     }
 
     private Server server;
