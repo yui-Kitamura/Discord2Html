@@ -31,10 +31,10 @@ public class DiscordBot extends ListenerAdapter implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        initialize();
+        initialize(args.getSourceArgs());
     }
 
-    public void initialize() {
+    public void initialize(String[] args) {
         ConfigurableApplicationContext context = SpringApplication.run(DiscordBot.class, args);
         DiscordBot bot = context.getBean(DiscordBot.class);
         JDA jda = JDABuilder.create(
