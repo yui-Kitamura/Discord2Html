@@ -19,4 +19,10 @@ public class Secrets {
     public String getDatabasePass() {
         return database_pass;
     }
+    
+    @Value("github.token")
+    private String github_token;
+    public String getGitHubToken(){
+        return github_token;
+    }
 }

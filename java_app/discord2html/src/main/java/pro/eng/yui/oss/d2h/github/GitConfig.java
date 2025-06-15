@@ -59,17 +59,6 @@ public class GitConfig {
         public String getId() {
             return id;
         }
-
-        private String token;
-        public void setToken(String token) {
-            if (!token.matches("^gh[ps]_[A-Za-z0-9]{36}$")) {
-                throw new IllegalArgumentException("Invalid GitHub token format");
-            }
-            this.token = token;
-        }
-        public String getToken() {
-            return token;
-        }
     }
     
     private Local local;

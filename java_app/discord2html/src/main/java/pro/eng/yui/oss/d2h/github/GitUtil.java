@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.github;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.config.Secrets;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -16,10 +17,12 @@ import java.util.List;
 public class GitUtil {
 
     private final GitConfig config;
+    private final Secrets secrets;
     
     @Autowired
-    public GitUtil(GitConfig gitConfig){
-        config = gitConfig;
+    public GitUtil(GitConfig gitConfig, Secrets secrets){
+        this.config = gitConfig;
+        this.secrets = secrets;
     }
     
     /**
@@ -83,7 +86,7 @@ public class GitUtil {
         
         String maskId = config.getUser().getId();
         if(maskId == null){ maskId = ""; }
-        String maskToken = config.getUser().getToken();
+        String maskToken = secrets.getGitHubToken();
         if(maskToken == null){ maskToken = ""; }
 
         // 出力をログに吐く、または集めておく
@@ -125,7 +128,7 @@ public class GitUtil {
         final String HTTPS_PROTOCOL = "https://";
         if (url.startsWith(HTTPS_PROTOCOL)) {
             return  HTTPS_PROTOCOL 
-                    + config.getUser().getId() + ":" + config.getUser().getToken() + "@"
+                    + config.getUser().getId() + ":" + secrets.getGitHubToken() + "@"
                     + url.substring(HTTPS_PROTOCOL.length());
         } else {
             throw new IllegalArgumentException("HTTPS URLのみ対応: " + url);
