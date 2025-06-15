@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.botIF;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -32,11 +33,13 @@ public class DiscordBot extends ListenerAdapter {
         JDA jda = JDABuilder.create(
                     bot.secrets.getDiscordToken(),
                         EnumSet.of(
+                                GatewayIntent.GUILD_PRESENCES,
                                 GatewayIntent.GUILD_MEMBERS,
                                 GatewayIntent.GUILD_MESSAGES,
                                 GatewayIntent.MESSAGE_CONTENT
                         )
                 )
+                .setStatus(OnlineStatus.IDLE)
                 .addEventListeners(bot)
                 .build();
         jda.awaitReady();
