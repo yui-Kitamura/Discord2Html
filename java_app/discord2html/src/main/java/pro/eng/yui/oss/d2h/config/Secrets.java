@@ -20,7 +20,7 @@ public class Secrets {
         return discord_secret;
     }
     
-    @Value("database.pass")
+    @Value("spring.datasource.password")
     private String database_pass;
     public String getDatabasePass() {
         return database_pass;
