@@ -40,9 +40,10 @@
             <optional>true</optional>
         </dependency>
         <dependency>
+            <!-- https://mvnrepository.com/artifact/org.mariadb.jdbc/mariadb-java-client -->
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>
-            <scope>runtime</scope>
+            <version>3.5.3</version>
         </dependency>
         <dependency>
             <!-- https://mvnrepository.com/artifact/org.mybatis/mybatis -->
