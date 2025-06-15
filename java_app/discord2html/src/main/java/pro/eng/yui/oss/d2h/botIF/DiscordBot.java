@@ -25,9 +25,11 @@ public class DiscordBot extends ListenerAdapter {
     @Autowired
     public DiscordBot(Secrets secrets) {
         this.secrets = secrets;
+        
+        initialize();
     }
 
-    public static void main(String[] args) throws Exception {
+    public void initialize() {
         ConfigurableApplicationContext context = SpringApplication.run(DiscordBot.class, args);
         DiscordBot bot = context.getBean(DiscordBot.class);
         JDA jda = JDABuilder.create(
@@ -42,7 +44,11 @@ public class DiscordBot extends ListenerAdapter {
                 .setStatus(OnlineStatus.IDLE)
                 .addEventListeners(bot)
                 .build();
-        jda.awaitReady();
+        try {
+            jda.awaitReady();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
