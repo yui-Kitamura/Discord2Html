@@ -38,7 +38,7 @@ public class DiscordBot extends ListenerAdapter implements ApplicationRunner {
         ConfigurableApplicationContext context = SpringApplication.run(DiscordBot.class, args);
         DiscordBot bot = context.getBean(DiscordBot.class);
         JDA jda = JDABuilder.create(
-                    bot.secrets.getDiscordToken(),
+                    bot.secrets.getDiscordAuth(),
                         EnumSet.of(
                                 GatewayIntent.GUILD_PRESENCES,
                                 GatewayIntent.GUILD_MEMBERS,

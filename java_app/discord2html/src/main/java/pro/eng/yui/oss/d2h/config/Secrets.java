@@ -8,25 +8,25 @@ import org.springframework.stereotype.Component;
 @PropertySource("classpath:secret.properties")
 public class Secrets {
     
-    @Value("discord.token")
-    private String discord_token;
-    public String getDiscordToken() {
-        return discord_token;
+    @Value("${discord.auth｝")
+    private String discord_auth;
+    public String getDiscordAuth() {
+        return discord_auth;
     }
     
-    @Value("discord.client.secret")
+    @Value("${discord.client.secret}")
     private String discord_secret;
     public String getDiscordSecret(){
         return discord_secret;
     }
     
-    @Value("spring.datasource.password")
+    @Value("${spring.datasource.password}")
     private String database_pass;
     public String getDatabasePass() {
         return database_pass;
     }
     
-    @Value("github.token")
+    @Value("${github.token}")
     private String github_token;
     public String getGitHubToken(){
         return github_token;
