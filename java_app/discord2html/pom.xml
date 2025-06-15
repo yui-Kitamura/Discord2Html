@@ -6,7 +6,7 @@
 
     <groupId>pro.eng.yui.oss</groupId>
     <artifactId>discord2html</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
