@@ -62,6 +62,9 @@ public class OAuthController {
         // レスポンス内容によって分岐
         if (response.getStatusCode().is2xxSuccessful()) {
             model.addAttribute("tokenResponse", response.getBody());
+            
+            //TODO DBへの鯖情報登録
+            
             return "success";
         } else {
             model.addAttribute("error", "Failed to exchange code for token");
