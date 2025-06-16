@@ -25,3 +25,16 @@ CREATE TABLE user_role (
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (role_id) REFERENCES roles(role_id)
 );
+
+CREATE TABLE discord_oauth_token (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    discord_user_id BIGINT UNSIGNED NOT NULL,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT NOT NULL,
+    token_type VARCHAR(32),
+    scope TEXT,
+    expires_at DATETIME,
+    issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) 
