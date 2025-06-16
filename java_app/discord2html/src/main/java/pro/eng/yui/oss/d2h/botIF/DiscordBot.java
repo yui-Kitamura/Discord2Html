@@ -10,35 +10,25 @@ import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
-import org.springframework.boot.SpringApplication;
-import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.config.Secrets;
 
 import java.util.EnumSet;
 
 @Component
-public class DiscordBot extends ListenerAdapter implements ApplicationRunner {
+public class DiscordBot extends ListenerAdapter {
 
     private final Secrets secrets;
 
     @Autowired
     public DiscordBot(Secrets secrets) {
         this.secrets = secrets;
+        initialize();
     }
 
-    @Override
-    public void run(ApplicationArguments args) {
-        initialize(args.getSourceArgs());
-    }
-
-    public void initialize(String[] args) {
-        ConfigurableApplicationContext context = SpringApplication.run(DiscordBot.class, args);
-        DiscordBot bot = context.getBean(DiscordBot.class);
+    public void initialize() {
         JDA jda = JDABuilder.create(
-                    bot.secrets.getDiscordAuth(),
+                    secrets.getDiscordAuth(),
                         EnumSet.of(
                                 GatewayIntent.GUILD_PRESENCES,
                                 GatewayIntent.GUILD_MEMBERS,
@@ -47,7 +37,7 @@ public class DiscordBot extends ListenerAdapter implements ApplicationRunner {
                         )
                 )
                 .setStatus(OnlineStatus.IDLE)
-                .addEventListeners(bot)
+                .addEventListeners(this)
                 .build();
         try {
             jda.awaitReady();
