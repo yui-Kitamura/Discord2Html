@@ -1,6 +1,8 @@
 package pro.eng.yui.oss.d2h.db;
 
+import org.apache.ibatis.datasource.pooled.PooledDataSource;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
