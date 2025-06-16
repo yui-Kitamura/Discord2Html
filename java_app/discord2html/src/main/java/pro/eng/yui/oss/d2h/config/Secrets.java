@@ -1,14 +1,12 @@
 package pro.eng.yui.oss.d2h.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 
 @Component
-@PropertySource("classpath:secret.properties")
 public class Secrets {
     
-    @Value("${discord.auth｝")
+    @Value("${discord.auth}")
     private String discord_auth;
     public String getDiscordAuth() {
         return discord_auth;
