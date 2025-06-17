@@ -28,7 +28,7 @@ CREATE TABLE user_role (
 
 CREATE TABLE discord_oauth_token (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    discord_user_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED NOT NULL,
     access_token TEXT NOT NULL,
     refresh_token TEXT NOT NULL,
     token_type VARCHAR(32),
