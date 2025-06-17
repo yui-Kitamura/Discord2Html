@@ -1,52 +1,30 @@
 package pro.eng.yui.oss.d2h.db.field;
 
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
-public class LastRecorded {
+public class LastRecorded extends AbstTimestamp {
     
-    public static DateFormat format = new SimpleDateFormat("yy/MM/dd HH:mm:ss.SSS");
-    
-    private final Timestamp timestamp;
-    public Timestamp getValue(){
-        return timestamp;
-    }
-
     public LastRecorded(Date date){
-        this.timestamp = new Timestamp(date.getTime());
+        super(date);
     }
     public LastRecorded(Timestamp ts){
-        this.timestamp = ts;
+        super(ts);
     }
     public LastRecorded(Calendar c){
-        this.timestamp = new Timestamp(c.getTimeInMillis());
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 17;
-        hash = hash * 31 + timestamp.hashCode();
-        return hash;
+        super(c);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if(this == obj){ return true; }
-        if(obj == null){ return false; }
-        if(!(obj.getClass().equals(this.getClass()))){ return false; }
-        LastRecorded other = (LastRecorded) obj;
-        if(!this.timestamp.equals(other.timestamp)){ return false; }
-        return true;
+        boolean s = super.equals(obj);
+        if(s) {
+            //追加要素あればここで検証
+            return true;
+        }else {
+            return false;
+        }
     }
-
-    @Override
-    public String toString() {
-        return format.format(timestamp);
-    }
-
-
 
 }
