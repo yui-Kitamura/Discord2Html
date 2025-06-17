@@ -26,7 +26,7 @@ jobs:
         run: |
           mkdir -p java_app/discord2html/src/main/resources
           echo "discord.auth=${DISCORD_TOKEN}" > java_app/discord2html/src/main/resources/secret.properties
-          echo "discord.client.secret=${DISCORD_SECRET}" >> java_app/discord2html/src/main/resources/secret.properties
+          echo "spring.security.oauth2.client.registration.discord.client-secret=${DISCORD_SECRET}" >> java_app/discord2html/src/main/resources/secret.properties
           echo "spring.datasource.password=${DATABASE_PASS}" >> java_app/discord2html/src/main/resources/secret.properties
           echo "github.token=${GH_TOKEN}" >> java_app/discord2html/src/main/resources/secret.properties
           mvn -B package --file java_app/discord2html/pom.xml
