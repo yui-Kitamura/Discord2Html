@@ -24,6 +24,9 @@ public class DiscordOauthTokenDAO {
             dbParam.setUserId(Objects.requireNonNull(newRecord.getUserId()));
             dbParam.setAccessToken(Objects.requireNonNull(newRecord.getAccessToken()));
             dbParam.setRefreshToken(Objects.requireNonNull(newRecord.getRefreshToken()));
+            dbParam.setTokenType(newRecord.getTokenType());
+            dbParam.setScope(newRecord.getScope());
+            dbParam.setExpireAt(newRecord.getExpireAt());
         }catch(NullPointerException npe) {
             throw new IllegalArgumentException(npe);
         }
@@ -41,11 +44,18 @@ public class DiscordOauthTokenDAO {
         }
         try {
             updateParam.setAccessToken(newRecord.getAccessToken());
+            updateParam.setExpireAt(newRecord.getExpireAt());
+            if(newRecord.getRefreshToken() != null) {
+                updateParam.setRefreshToken(newRecord.getRefreshToken());
+            }
+            if(newRecord.getScope() != null) {
+                updateParam.setScope(newRecord.getScope());
+            }
         }catch (NullPointerException npe) {
             throw new IllegalArgumentException(npe);
         }
-        
-        //TODO mapper.update
+
+        mapper.updateToken(updateKey, updateParam);
         return mapper.findByUserId(updateKey.getUserId());
     }
 
