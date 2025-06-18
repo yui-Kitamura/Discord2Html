@@ -8,17 +8,19 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
-import pro.eng.yui.oss.d2h.db.field.AccessToken;
-import pro.eng.yui.oss.d2h.db.field.RefreshToken;
 
 @Controller
 public class OAuthController {
 
     private final OAuth2AuthorizedClientService authClientService;
+    private final OAuthService service;
 
     @Autowired
-    public OAuthController(OAuth2AuthorizedClientService authClientService){
+    public OAuthController(
+            OAuth2AuthorizedClientService authClientService,
+            OAuthService service){
         this.authClientService = authClientService;
+        this.service = service;
     }
     
     @GetMapping("/success")
@@ -30,17 +32,11 @@ public class OAuthController {
         );
 
         if (client != null) {
-            AccessToken tokenValue = null;
-            RefreshToken refreshToken = null;
-            if (client.getAccessToken() != null) {
-                tokenValue = new AccessToken(client.getAccessToken().getTokenValue());
+            try {
+                service.registerOrUpdateNewToken(client);
+            }catch(Exception e) {
+                throw new IllegalStateException("authできましたが処理エラーです", e);
             }
-            if (client.getRefreshToken() != null) {
-                refreshToken = new RefreshToken(client.getRefreshToken().getTokenValue());
-            }
-            
-            //TODO DB-insert or update
-            
         } else {
             throw new IllegalStateException("authできましたがclientが取得できません");
         }
