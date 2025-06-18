@@ -33,6 +33,7 @@ public class OAuthController {
 
         if (client != null) {
             try {
+                //Token情報の登録
                 service.registerOrUpdateNewToken(client);
             }catch(Exception e) {
                 throw new IllegalStateException("authできましたが処理エラーです", e);
