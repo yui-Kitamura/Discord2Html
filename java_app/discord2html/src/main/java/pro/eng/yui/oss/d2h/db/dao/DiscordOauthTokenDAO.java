@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.db.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.mapper.DiscordOauthTokenMapper;
 import pro.eng.yui.oss.d2h.db.model.DiscordOauthToken;
@@ -34,7 +35,7 @@ public class DiscordOauthTokenDAO {
         return mapper.findByUserId(dbParam.getUserId());
     }
     
-    public DiscordOauthToken update(UserId key, DiscordOauthToken newRecord){
+    public DiscordOauthToken update(UserId key, DiscordOauthToken newRecord) throws DbRecordNotFoundException {
         DiscordOauthToken updateKey = new DiscordOauthToken();
         DiscordOauthToken updateParam = new DiscordOauthToken();
         try {
@@ -57,6 +58,11 @@ public class DiscordOauthTokenDAO {
 
         mapper.updateToken(updateKey, updateParam);
         return mapper.findByUserId(updateKey.getUserId());
+    }
+    
+    public DiscordOauthToken selectOne(UserId keyId) throws DbRecordNotFoundException {
+        //TODO implement
+        return null;
     }
 
 }
