@@ -10,9 +10,6 @@ public abstract class AbstIds {
     }
 
     public AbstIds(long value){
-        if(value < 0) {
-            throw new IllegalArgumentException();
-        }
         this.value = value;
     }
 
