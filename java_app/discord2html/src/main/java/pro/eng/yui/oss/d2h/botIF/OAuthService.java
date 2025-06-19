@@ -6,10 +6,8 @@ import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.stereotype.Service;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.dao.DiscordOauthTokenDAO;
-import pro.eng.yui.oss.d2h.db.field.AccessToken;
-import pro.eng.yui.oss.d2h.db.field.ExpireAt;
-import pro.eng.yui.oss.d2h.db.field.RefreshToken;
-import pro.eng.yui.oss.d2h.db.field.Scope;
+import pro.eng.yui.oss.d2h.db.field.*;
+import pro.eng.yui.oss.d2h.db.model.DiscordOauthToken;
 
 import java.util.Date;
 
@@ -17,10 +15,12 @@ import java.util.Date;
 public class OAuthService {
     
     private final DiscordOauthTokenDAO discordDao;
+    private final DiscordApiClient discordApi;
     
     @Autowired
-    public OAuthService(DiscordOauthTokenDAO dao){
+    public OAuthService(DiscordOauthTokenDAO dao, DiscordApiClient api){
         this.discordDao = dao;
+        this.discordApi = api;
     }
     
     public void registerOrUpdateNewToken(@NotNull OAuth2AuthorizedClient client){
@@ -39,12 +39,28 @@ public class OAuthService {
         if(client.getAccessToken().getExpiresAt() != null) {
             expire = new ExpireAt(Date.from(client.getAccessToken().getExpiresAt()));
         }
+        
+        UserId userId = discordApi.fetchUserId(tokenValue);
 
         try {
-            discordDao.selectOne(null); //FIXME use uid
+            discordDao.selectOne(userId);
         }catch(DbRecordNotFoundException nfe) {
-
+            //insert
+            DiscordOauthToken newRecord = new DiscordOauthToken();
+            newRecord.setUserId(userId);
+            newRecord.setAccessToken(tokenValue);
+            newRecord.setRefreshToken(refreshToken);
+            newRecord.setScope(scope);
+            newRecord.setExpireAt(expire);
+            discordDao.insert(newRecord);
+            return;
         }
-        //TODO DB-insert or update
+        {
+            //update
+            DiscordOauthToken newData = new DiscordOauthToken();
+            //TODO input
+            discordDao.update(userId, newData);
+            return;
+        }
     }
 }
