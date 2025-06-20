@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.client.authentication.OAuth2Authentic
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class OAuthController {
@@ -23,27 +24,23 @@ public class OAuthController {
         this.service = service;
     }
     
-    @GetMapping("/success")
-    public String success(@AuthenticationPrincipal OAuth2AuthenticationToken authentication, Model model) {
+    @GetMapping("/login/oauth2/code/discord")
+    public String oauth2redirect(@RequestParam("code") String code,
+                                 @RequestParam(value = "guild_id", required = false) String guildId,
+                                 Model model
+    ) {
 
-        OAuth2AuthorizedClient client = authClientService.loadAuthorizedClient(
-                authentication.getAuthorizedClientRegistrationId(),
-                authentication.getName()
-        );
-
-        if (client != null) {
-            try {
-                //Token情報の登録
-                service.registerOrUpdateNewToken(client);
-            }catch(Exception e) {
-                throw new IllegalStateException("authできましたが処理エラーです", e);
-            }
-        } else {
-            throw new IllegalStateException("authできましたがclientが取得できません");
+    
+        try {
+            System.out.println(code);
+            //Token情報の登録
+            //service.registerOrUpdateNewToken(client);
+        }catch(Exception e) {
+            throw new IllegalStateException("authできましたが処理エラーです", e);
         }
 
         //画面に返す
-        model.addAttribute("user", authentication.getPrincipal().getAttributes());
+        // model.addAttribute("user", authentication.getPrincipal().getAttributes());
         return "success";
     }
 
