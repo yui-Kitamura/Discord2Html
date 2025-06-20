@@ -31,4 +31,12 @@
             user_id = #{key.userId}
     </update>
     
+    <select id="findByUserId" parameterType="UserId" resultType="DiscordOauthToken">
+        SELECT
+            *
+        FROM discord_oauth_token
+        WHERE
+            user_id = #{userId}
+    </select> 
+    
 </mapper>
