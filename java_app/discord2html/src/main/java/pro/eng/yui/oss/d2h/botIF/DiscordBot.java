@@ -3,7 +3,9 @@ package pro.eng.yui.oss.d2h.botIF;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -44,6 +46,12 @@ public class DiscordBot extends ListenerAdapter {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
+    }
+    
+    @Override
+    public void onGuildJoin(@NotNull GuildJoinEvent joinEvent){
+        joinEvent.getJDA().getPresence().setStatus(OnlineStatus.IDLE);
+        joinEvent.getJDA().getPresence().setActivity(Activity.playing("Standby for log"));
     }
 
     @Override
