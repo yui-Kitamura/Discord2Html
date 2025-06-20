@@ -11,19 +11,7 @@ public class Secrets {
     public String getDiscordAuth() {
         return discord_auth;
     }
-    
-    @Value("${discord.client.secret}")
-    private String discord_secret;
-    public String getDiscordSecret(){
-        return discord_secret;
-    }
-    
-    @Value("${spring.datasource.password}")
-    private String database_pass;
-    public String getDatabasePass() {
-        return database_pass;
-    }
-    
+
     @Value("${github.token}")
     private String github_token;
     public String getGitHubToken(){

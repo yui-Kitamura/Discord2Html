@@ -4,15 +4,15 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Date;
 
-public class LastRecorded extends AbstTimestamp {
+public class CreatedAt extends AbstTimestamp {
     
-    public LastRecorded(Date date){
+    public CreatedAt(Date date){
         super(date);
     }
-    public LastRecorded(Timestamp ts){
+    public CreatedAt(Timestamp ts){
         super(ts);
     }
-    public LastRecorded(Calendar c){
+    public CreatedAt(Calendar c){
         super(c);
     }
 

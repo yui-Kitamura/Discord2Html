@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pro.eng.yui.oss.d2h.db.mapper.DiscordOauthTokenMapper">
+    
+    <insert id="insertToken" parameterType="DiscordOauthToken">
+        INSERT INTO discord_oauth_token (
+            user_id,
+            access_token, refresh_token,
+            token_type, scope, expires_at
+        )
+        VALUES (
+            #{userId},
+            #{accessToken}, #{refreshToken},
+            #{tokenType}, #{scope}, #{expiresAt}
+        )
+    </insert>
+    
+    <update id="updateToken" parameterType="map">
+        UPDATE discord_oauth_token
+        SET
+            access_token = #{token.accessToken},
+            expires_at = #{token.expiresAt}
+            <if test="token.refreshToken != null">
+                , refresh_token = #{token.refreshToken}
+            </if>
+            <if test="token.scope != null">
+                , scope = #{token.scope}
+            </if>
+        WHERE 
+            user_id = #{key.userId}
+    </update>
+    
+    <select id="findByUserId" parameterType="UserId" resultType="DiscordOauthToken">
+        SELECT
+            *
+        FROM discord_oauth_token
+        WHERE
+            user_id = #{userId}
+    </select> 
+    
+</mapper>

@@ -4,16 +4,20 @@ import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.Date;
 
-public class LastRecorded extends AbstTimestamp {
+public class ExpireAt extends AbstTimestamp {
     
-    public LastRecorded(Date date){
+    public ExpireAt(Date date){
         super(date);
     }
-    public LastRecorded(Timestamp ts){
+    public ExpireAt(Timestamp ts){
         super(ts);
     }
-    public LastRecorded(Calendar c){
+    public ExpireAt(Calendar c){
         super(c);
+    }
+    
+    public boolean isExpired(){
+        return getValue().getTime() < System.currentTimeMillis();
     }
 
     @Override

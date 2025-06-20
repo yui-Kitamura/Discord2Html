@@ -4,14 +4,12 @@ public abstract class AbstIds {
 
     protected final long value;
 
+    /** 文字列表現が欲しい時は toString() を直接用いること（unsigned） */
     public long getValue() {
         return value;
     }
 
     public AbstIds(long value){
-        if(value < 0) {
-            throw new IllegalArgumentException();
-        }
         this.value = value;
     }
 
@@ -34,6 +32,6 @@ public abstract class AbstIds {
 
     @Override
     public String toString() {
-        return Long.toString(value);
+        return Long.toUnsignedString(value);
     }
 }
