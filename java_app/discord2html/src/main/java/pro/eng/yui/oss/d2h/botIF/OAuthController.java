@@ -23,7 +23,7 @@ public class OAuthController {
         this.service = service;
     }
     
-    @GetMapping("/success")
+    @GetMapping("/oauth2/code/discord")
     public String success(@AuthenticationPrincipal OAuth2AuthenticationToken authentication, Model model) {
 
         OAuth2AuthorizedClient client = authClientService.loadAuthorizedClient(
