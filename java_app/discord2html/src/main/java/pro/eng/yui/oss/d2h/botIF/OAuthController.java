@@ -1,5 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -8,8 +9,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Controller
 public class OAuthController {
 
-    public OAuthController(){
-        // nothing to do
+    private final DiscordBot bot;
+    
+    @Autowired
+    public OAuthController(DiscordBot bot){
+        this.bot = bot;
     }
     
     @GetMapping("/login/oauth2/code/discord")
@@ -22,6 +26,8 @@ public class OAuthController {
             System.out.println(code);
             //Token情報の登録
             //service.registerOrUpdateNewToken(client);
+            bot.refreshToken();
+            
         }catch(Exception e) {
             throw new IllegalStateException("authできましたが処理エラーです", e);
         }

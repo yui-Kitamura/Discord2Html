@@ -64,5 +64,10 @@ public class DiscordOauthTokenDAO {
         //TODO implement
         return null;
     }
+    
+    public DiscordOauthToken select() throws DbRecordNotFoundException {
+        //TODO implement
+        return new DiscordOauthToken();
+    }
 
 }
