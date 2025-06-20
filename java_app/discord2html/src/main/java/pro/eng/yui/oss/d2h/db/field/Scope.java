@@ -9,6 +9,6 @@ public class Scope extends AbstText {
     }
     
     public Scope(Set<String> scopes){
-        super(String.join("+", scopes));
+        super(String.join(" ", scopes));
     }
 }
