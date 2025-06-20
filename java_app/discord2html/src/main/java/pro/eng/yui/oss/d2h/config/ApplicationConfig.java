@@ -11,11 +11,4 @@ public class ApplicationConfig {
     public String getDiscordClientId() {
         return discordClientId;
     }
-
-    @Value("${discord.redirect.uri}")
-    private String discordRedirectUri;
-    public String getDiscordRedirectUri() {
-        return discordRedirectUri;
-    }
-
 }
