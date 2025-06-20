@@ -1,8 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF;
 
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.stereotype.Service;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.dao.DiscordOauthTokenDAO;
@@ -23,12 +21,12 @@ public class OAuthService {
         this.discordApi = api;
     }
     
-    public void registerOrUpdateNewToken(@NotNull OAuth2AuthorizedClient client){
+    public void registerOrUpdateNewToken(){
         AccessToken tokenValue = null;
         RefreshToken refreshToken = null;
         Scope scope = null;
         ExpireAt expire = null;
-
+/*
         if (client.getAccessToken() != null) {
             tokenValue = new AccessToken(client.getAccessToken().getTokenValue());
         }
@@ -40,6 +38,7 @@ public class OAuthService {
             expire = new ExpireAt(Date.from(client.getAccessToken().getExpiresAt()));
         }
         
+*/  
         UserId userId = discordApi.fetchUserId(tokenValue);
 
         try {
