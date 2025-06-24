@@ -36,7 +36,7 @@ public class OAuthService {
             }catch(DbRecordNotFoundException nfe) {
                 usersDao.insert(userInfo);
             }
-            discordDao.selectOne(userInfo.getUserId());
+            discordDao.select();
         }catch(DbRecordNotFoundException nfe) {
             discordDao.insert(newRecord);
             return;
