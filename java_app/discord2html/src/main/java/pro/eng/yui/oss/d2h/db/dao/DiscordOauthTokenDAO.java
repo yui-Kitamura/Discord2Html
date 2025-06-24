@@ -7,7 +7,9 @@ import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.mapper.DiscordOauthTokenMapper;
 import pro.eng.yui.oss.d2h.db.model.DiscordOauthToken;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -57,7 +59,10 @@ public class DiscordOauthTokenDAO {
             throw new IllegalArgumentException(npe);
         }
 
-        mapper.updateToken(updateKey, updateParam);
+        Map<String,Object> params = new HashMap<>();
+        params.put("key", updateKey);
+        params.put("token", updateParam);
+        mapper.updateToken(params);
         return mapper.findByUserId(updateKey.getUserId());
     }
     
