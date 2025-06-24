@@ -37,6 +37,10 @@
         FROM discord_oauth_token
         WHERE
             user_id = #{userId}
-    </select> 
+    </select>
+    
+    <select id="select" resultType="DiscordOauthToken">
+        SELECT * FROM discord_oauth_token
+    </select>
     
 </mapper>

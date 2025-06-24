@@ -7,6 +7,7 @@ import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.mapper.DiscordOauthTokenMapper;
 import pro.eng.yui.oss.d2h.db.model.DiscordOauthToken;
 
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -60,13 +61,11 @@ public class DiscordOauthTokenDAO {
         return mapper.findByUserId(updateKey.getUserId());
     }
     
-    public DiscordOauthToken selectOne(UserId keyId) throws DbRecordNotFoundException {
-        //TODO implement
-        return null;
-    }
-    
     public DiscordOauthToken select() throws DbRecordNotFoundException {
-        //TODO implement
+        List<DiscordOauthToken> data = mapper.select();
+        if(data == null || data.isEmpty()) {
+            throw new DbRecordNotFoundException("no record");
+        }
         return new DiscordOauthToken();
     }
 

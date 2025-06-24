@@ -5,6 +5,8 @@ import org.apache.ibatis.annotations.Param;
 import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.model.DiscordOauthToken;
 
+import java.util.List;
+
 @Mapper
 public interface DiscordOauthTokenMapper {
 
@@ -15,5 +17,7 @@ public interface DiscordOauthTokenMapper {
     DiscordOauthToken findByUserId(@Param("userId") UserId userId);
 
     void deleteToken(@Param("userId") UserId userId);
+    
+    List<DiscordOauthToken> select();
 
 }
