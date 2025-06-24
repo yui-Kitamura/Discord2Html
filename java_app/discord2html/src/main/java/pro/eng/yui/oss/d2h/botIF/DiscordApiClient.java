@@ -1,11 +1,14 @@
 package pro.eng.yui.oss.d2h.botIF;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import pro.eng.yui.oss.d2h.config.ApplicationConfig;
+import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.db.field.AccessToken;
 import pro.eng.yui.oss.d2h.db.field.UserId;
 
@@ -18,8 +21,14 @@ public class DiscordApiClient {
 
     private final RestTemplate restTemplate;
 
-    public DiscordApiClient() {
+    private final ApplicationConfig appConfig;
+    private final Secrets secrets;
+
+    @Autowired
+    public DiscordApiClient(ApplicationConfig appConfig, Secrets secrets) {
         this.restTemplate = new RestTemplate();
+        this.appConfig = appConfig;
+        this.secrets = secrets;
     }
 
     protected <T> T get(String endpoint, AccessToken accessToken, Class<T> responseType) {
