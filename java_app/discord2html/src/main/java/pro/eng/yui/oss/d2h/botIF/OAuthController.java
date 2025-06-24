@@ -26,19 +26,10 @@ public class OAuthController {
     ) {
     
         try {
-            System.out.println(code);
-
             ResponseToken tokenInfo = service.callApiGetAccessTokenByCode(code);
-
-            System.out.println(tokenInfo);
-            
             Users user = service.getUserByToken(tokenInfo.getAccessToken());
-
-            System.out.println(user);
-            
             //Token情報の登録
             service.registerOrUpdateNewToken(user, tokenInfo);
-            bot.refreshToken();
             
         }catch(Exception e) {
             throw new IllegalStateException("authできましたが処理エラーです", e);
