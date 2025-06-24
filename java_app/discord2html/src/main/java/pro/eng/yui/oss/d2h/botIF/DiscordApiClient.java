@@ -104,6 +104,8 @@ public class DiscordApiClient {
         postMap.add("client_id", appConfig.getDiscordClientId());
         postMap.add("client_secret", secrets.getDiscordAuth());
         postMap.add("redirect_uri", REDIRECT_URI);
+        
+        System.out.println(REDIRECT_URI);
 
         HttpEntity<MultiValueMap<String,String>> request = new HttpEntity<>(postMap, headers);
 
