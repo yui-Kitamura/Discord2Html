@@ -69,6 +69,7 @@ public class DiscordBot extends ListenerAdapter {
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
         Message msg = event.getMessage();
         final String msgBody = msg.getContentRaw();
+        System.out.println(msgBody);
         
         if(msgBody.contains("D2H")) {
             event.getChannel().sendMessage("yes, I`m here.");
