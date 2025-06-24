@@ -31,7 +31,10 @@ public class OAuthController {
 
             ResponseToken tokenInfo = service.callApiGetAccessTokenByCode(code);
             Users user = service.getUserByToken(tokenInfo.getAccessToken());
-                    
+
+            System.out.println(tokenInfo);
+            System.out.println(user);
+            
             //Token情報の登録
             service.registerOrUpdateNewToken(user, tokenInfo);
             bot.refreshToken();

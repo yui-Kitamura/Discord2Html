@@ -1,5 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF;
 
+import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.field.*;
 
 public class ResponseToken {
@@ -62,4 +63,8 @@ public class ResponseToken {
         return scope;
     }
 
+    @Override
+    public String toString() {
+        return StringConsts.gson.toJson(this);
+    }
 }
