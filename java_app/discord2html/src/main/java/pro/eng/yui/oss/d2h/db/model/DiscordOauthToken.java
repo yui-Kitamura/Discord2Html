@@ -1,5 +1,6 @@
 package pro.eng.yui.oss.d2h.db.model;
 
+import pro.eng.yui.oss.d2h.botIF.ResponseToken;
 import pro.eng.yui.oss.d2h.db.field.*;
 
 public class DiscordOauthToken {
@@ -82,6 +83,17 @@ public class DiscordOauthToken {
     }
     public UpdatedAt getUpdatedAt() {
         return updated_at;
+    }
+    
+    public DiscordOauthToken(){ /* nothing to do */ }
+    public DiscordOauthToken(UserId userId, ResponseToken apiRes){
+        super();
+        setUserId(userId);
+        setAccessToken(apiRes.getAccessToken());
+        setTokenType(apiRes.getTokenType());
+        setRefreshToken(apiRes.getRefreshToken());
+        setScope(apiRes.getScope());
+        setExpireAt(apiRes.getExpiresAt());
     }
 
 }
