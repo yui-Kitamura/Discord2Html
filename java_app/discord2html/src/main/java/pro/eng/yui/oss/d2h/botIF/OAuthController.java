@@ -6,6 +6,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import pro.eng.yui.oss.d2h.db.field.UserId;
+import pro.eng.yui.oss.d2h.db.model.Users;
 
 @Controller
 public class OAuthController {
@@ -29,10 +30,10 @@ public class OAuthController {
             System.out.println(code);
 
             ResponseToken tokenInfo = service.callApiGetAccessTokenByCode(code);
-            UserId userId = service.getUserIdByToken(tokenInfo.getAccessToken());
+            Users user = service.getUserByToken(tokenInfo.getAccessToken());
                     
             //Token情報の登録
-            service.registerOrUpdateNewToken(userId, tokenInfo);
+            service.registerOrUpdateNewToken(user, tokenInfo);
             bot.refreshToken();
             
         }catch(Exception e) {

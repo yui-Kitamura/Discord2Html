@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.config.Secrets;
-import pro.eng.yui.oss.d2h.db.field.AccessToken;
-import pro.eng.yui.oss.d2h.db.field.UserId;
+import pro.eng.yui.oss.d2h.db.field.*;
+import pro.eng.yui.oss.d2h.db.model.Users;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,9 +35,15 @@ public class DiscordApiClient {
         this.REDIRECT_URI = appConfig.getDiscordAuthRedirectUriHost() + REDIRECT_PATH;
     }
 
-    public UserId fetchUserId(AccessToken token){
+    public Users fetchUserByToken(AccessToken token){
         Map userInfo = get("/users/@me", token, Map.class);
-        return new UserId(Long.parseUnsignedLong(userInfo.get("id").toString()));
+        Users user = new Users();
+        user.setUserId(new UserId(Long.parseUnsignedLong(userInfo.get("id").toString())));
+        user.setNickname(new Nickname(userInfo.get("username").toString()));
+        user.setUserName(new UserName(userInfo.get("global_name").toString()));
+        user.setAvatar(new Avatar(userInfo.get("avatar").toString()));
+        
+        return user;
     }
 
     public ResponseToken exchangeCodeForToken(String code) {

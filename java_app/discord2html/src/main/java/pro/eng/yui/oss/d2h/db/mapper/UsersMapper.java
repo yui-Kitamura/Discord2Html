@@ -9,4 +9,6 @@ import pro.eng.yui.oss.d2h.db.model.Users;
 public interface UsersMapper {
     
     Users findById(@Param("user_id")UserId userId);
+
+    void insert(Users insertParam);
 }
