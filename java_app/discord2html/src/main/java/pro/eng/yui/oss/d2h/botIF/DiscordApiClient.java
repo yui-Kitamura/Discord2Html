@@ -3,6 +3,8 @@ package pro.eng.yui.oss.d2h.botIF;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.config.Secrets;
@@ -64,9 +66,9 @@ public class DiscordApiClient {
     }
     
     protected ResponseToken post(String code){
-        Map<String, String> postMap = new HashMap<>();
-        postMap.put("grant_type", "authorization_code");
-        postMap.put("code", code);
+        MultiValueMap<String, String> postMap = new LinkedMultiValueMap<>();
+        postMap.add("grant_type", "authorization_code");
+        postMap.add("code", code);
         return post("/oauth2/token", postMap, ResponseToken.class);
     }
     
@@ -76,9 +78,10 @@ public class DiscordApiClient {
         return post(endpoint, postMap, responseType);
     }
     
-    private <T> T post(String endpoint, Map<String, String> postMap, Class<T> responseType){
+    /** JSONデータエンドポイント用 */
+    private <T> T post(String endpoint, Map<String,String> postMap, Class<T> responseType){
         String url = DISCORD_API_BASE + endpoint;
-        
+
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -87,6 +90,22 @@ public class DiscordApiClient {
         postMap.put("redirect_uri", REDIRECT_URI);
 
         HttpEntity<Map<String,String>> request = new HttpEntity<>(postMap, headers);
+
+        ResponseEntity<T> response = restTemplate.postForEntity(url, request, responseType);
+        return response.getBody();
+    }
+    /** formデータ形式 */
+    private <T> T post(String endpoint, MultiValueMap<String, String> postMap, Class<T> responseType){
+        String url = DISCORD_API_BASE + endpoint;
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        postMap.add("client_id", appConfig.getDiscordClientId());
+        postMap.add("client_secret", secrets.getDiscordAuth());
+        postMap.add("redirect_uri", REDIRECT_URI);
+
+        HttpEntity<MultiValueMap<String,String>> request = new HttpEntity<>(postMap, headers);
 
         ResponseEntity<T> response = restTemplate.postForEntity(url, request, responseType);
         return response.getBody();
