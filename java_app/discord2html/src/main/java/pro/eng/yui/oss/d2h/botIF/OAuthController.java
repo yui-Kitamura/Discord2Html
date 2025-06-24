@@ -22,7 +22,6 @@ public class OAuthController {
     }
     
     @GetMapping(DiscordApiClient.REDIRECT_PATH)
-    @Transactional
     public String oauth2redirect(@RequestParam("code") String code,
                                  @RequestParam(value = "guild_id", required = false) String guildId,
                                  Model model
