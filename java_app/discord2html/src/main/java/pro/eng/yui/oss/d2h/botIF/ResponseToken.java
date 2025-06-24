@@ -1,10 +1,12 @@
 package pro.eng.yui.oss.d2h.botIF;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.field.*;
 
 public class ResponseToken {
     
+    @JsonProperty("access_token")
     private AccessToken accessToken;
     public void setAccessToken(String accessToken) {
         setAccessToken(new AccessToken(accessToken));
@@ -16,6 +18,7 @@ public class ResponseToken {
         return accessToken;
     }
 
+    @JsonProperty("refresh_token")
     private RefreshToken refreshToken;
     public void setRefreshToken(String refreshToken) {
         setRefreshToken(new RefreshToken(refreshToken));
@@ -27,6 +30,7 @@ public class ResponseToken {
         return refreshToken;
     }
     
+    @JsonProperty("token_type")
     private TokenType tokenType;
     public void setTokenType(String tokenType) {
         setTokenType(new TokenType(tokenType));
@@ -38,6 +42,7 @@ public class ResponseToken {
         return tokenType;
     }
     
+    @JsonProperty("expires_in")
     private ExpireAt expiresAt;
     public void setExpiresAt(long expireIn){
         setExpiresAt(new ExpireAt(expireIn));
