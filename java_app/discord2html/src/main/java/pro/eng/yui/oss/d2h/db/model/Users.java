@@ -11,7 +11,7 @@ public class Users {
     public void setUserId(UserId newValue){
         this.user_id = newValue;
     }
-    public UserId getUser_id(){
+    public UserId getUserId(){
         return user_id;
     }
     
