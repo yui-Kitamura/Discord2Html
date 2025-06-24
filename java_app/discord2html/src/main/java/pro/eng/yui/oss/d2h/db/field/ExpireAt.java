@@ -6,6 +6,13 @@ import java.util.Date;
 
 public class ExpireAt extends AbstTimestamp {
     
+    public ExpireAt(long expireIn){
+        this(new Date(new Date().toInstant().plusSeconds(expireIn).toEpochMilli()));
+    }
+    public ExpireAt(IssuedAt issued, long expireIn){
+        this(new Date(issued.getValue().toInstant().plusSeconds(expireIn).toEpochMilli()));
+    }
+    
     public ExpireAt(Date date){
         super(date);
     }
