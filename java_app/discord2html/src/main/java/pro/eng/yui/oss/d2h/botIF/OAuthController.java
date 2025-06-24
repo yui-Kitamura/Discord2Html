@@ -30,9 +30,11 @@ public class OAuthController {
             System.out.println(code);
 
             ResponseToken tokenInfo = service.callApiGetAccessTokenByCode(code);
-            Users user = service.getUserByToken(tokenInfo.getAccessToken());
 
             System.out.println(tokenInfo);
+            
+            Users user = service.getUserByToken(tokenInfo.getAccessToken());
+
             System.out.println(user);
             
             //Token情報の登録
