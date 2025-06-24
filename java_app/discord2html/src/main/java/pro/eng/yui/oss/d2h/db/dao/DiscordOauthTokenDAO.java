@@ -66,7 +66,7 @@ public class DiscordOauthTokenDAO {
         if(data == null || data.isEmpty()) {
             throw new DbRecordNotFoundException("no record");
         }
-        return data.getFirst(); //TODO 複数件取れる条件と対応を検討
+        return data.get(0); //TODO 複数件取れる条件と対応を検討
     }
 
 }
