@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class Secrets {
     
-    @Value("${discord.auth}")
+    @Value("${discord.client_secret}")
     private String discord_auth;
     public String getDiscordAuth() {
         return discord_auth;
