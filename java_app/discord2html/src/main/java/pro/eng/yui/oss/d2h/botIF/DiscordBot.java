@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEve
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
+import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -69,10 +70,10 @@ public class DiscordBot extends ListenerAdapter {
     public void onMessageReceived(@NotNull MessageReceivedEvent event) {
         Message msg = event.getMessage();
         final String msgBody = msg.getContentRaw();
-        System.out.println(msgBody);
         
         if(msgBody.contains("D2H")) {
-            event.getChannel().sendMessage("yes, I`m here.");
+            MessageCreateAction res = event.getChannel().sendMessage("yes, I`m here.");
+            res.queue();
         }
     }
 }
