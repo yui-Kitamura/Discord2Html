@@ -12,6 +12,7 @@ import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.db.field.AccessToken;
 import pro.eng.yui.oss.d2h.db.field.UserId;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -34,6 +35,15 @@ public class DiscordApiClient {
         this.REDIRECT_URI = appConfig.getDiscordAuthRedirectUriHost() + REDIRECT_PATH;
     }
 
+    public UserId fetchUserId(AccessToken token){
+        Map userInfo = get("/users/@me", token, Map.class);
+        return new UserId(Long.parseUnsignedLong(userInfo.get("id").toString()));
+    }
+
+    public ResponseToken exchangeCodeForToken(String code) {
+        return post(code);
+    }
+
     protected <T> T get(String endpoint, AccessToken accessToken, Class<T> responseType) {
         String url = DISCORD_API_BASE + endpoint;
         HttpHeaders headers = new HttpHeaders();
@@ -50,9 +60,34 @@ public class DiscordApiClient {
         return response.getBody();
     }
     
-    public UserId fetchUserId(AccessToken token){
-        Map userInfo = get("/users/@me", token, Map.class);
-        return new UserId(Long.parseUnsignedLong(userInfo.get("id").toString()));
+    protected ResponseToken post(String code){
+        Map<String, String> postMap = new HashMap<>();
+        postMap.put("grant_type", "authorization_code");
+        postMap.put("code", code);
+        return post("/oauth2/token", postMap, ResponseToken.class);
+    }
+    
+    protected <T> T post(String endpoint, AccessToken accessToken, Class<T> responseType){
+        Map<String, String> postMap = new HashMap<>();
+        postMap.put("access_token", accessToken.getValue());
+        return post(endpoint, postMap, responseType);
+    }
+    
+    private <T> T post(String endpoint, Map<String, String> postMap, Class<T> responseType){
+        String url = DISCORD_API_BASE + endpoint;
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
+
+        org.springframework.util.MultiValueMap<String, String> map = new org.springframework.util.LinkedMultiValueMap<>();
+        map.add("client_id", appConfig.getDiscordClientId());
+        map.add("client_secret", secrets.getDiscordAuth());
+        map.add("redirect_uri", REDIRECT_URI);
+
+        HttpEntity<org.springframework.util.MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+
+        ResponseEntity<T> response = restTemplate.postForEntity(url, request, responseType);
+        return response.getBody();
     }
 
 }

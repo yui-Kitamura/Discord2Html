@@ -5,15 +5,18 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import pro.eng.yui.oss.d2h.db.field.UserId;
 
 @Controller
 public class OAuthController {
 
     private final DiscordBot bot;
+    private final OAuthService service;
     
     @Autowired
-    public OAuthController(DiscordBot bot){
+    public OAuthController(DiscordBot bot, OAuthService service){
         this.bot = bot;
+        this.service = service;
     }
     
     @GetMapping(DiscordApiClient.REDIRECT_PATH)
@@ -24,8 +27,12 @@ public class OAuthController {
     
         try {
             System.out.println(code);
+
+            ResponseToken tokenInfo = service.callApiGetAccessTokenByCode(code);
+            UserId userId = service.getUserIdByToken(tokenInfo.getAccessToken());
+                    
             //Token情報の登録
-            //service.registerOrUpdateNewToken(client);
+            service.registerOrUpdateNewToken(userId, tokenInfo);
             bot.refreshToken();
             
         }catch(Exception e) {

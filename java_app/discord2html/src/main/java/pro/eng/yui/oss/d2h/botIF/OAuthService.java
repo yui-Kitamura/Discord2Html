@@ -7,8 +7,6 @@ import pro.eng.yui.oss.d2h.db.dao.DiscordOauthTokenDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.DiscordOauthToken;
 
-import java.util.Date;
-
 @Service
 public class OAuthService {
     
@@ -21,45 +19,25 @@ public class OAuthService {
         this.discordApi = api;
     }
     
-    public void registerOrUpdateNewToken(){
-        AccessToken tokenValue = null;
-        RefreshToken refreshToken = null;
-        Scope scope = null;
-        ExpireAt expire = null;
-/*
-        if (client.getAccessToken() != null) {
-            tokenValue = new AccessToken(client.getAccessToken().getTokenValue());
-        }
-        if (client.getRefreshToken() != null) {
-            refreshToken = new RefreshToken(client.getRefreshToken().getTokenValue());
-        }
-        scope = new Scope(client.getAccessToken().getScopes());
-        if(client.getAccessToken().getExpiresAt() != null) {
-            expire = new ExpireAt(Date.from(client.getAccessToken().getExpiresAt()));
-        }
-        
-*/  
-        UserId userId = discordApi.fetchUserId(tokenValue);
-
+    public ResponseToken callApiGetAccessTokenByCode(String code){
+        return discordApi.exchangeCodeForToken(code);
+    }
+    
+    public void registerOrUpdateNewToken(UserId userId, ResponseToken tokenInfo){
+        DiscordOauthToken newRecord = new DiscordOauthToken(userId, tokenInfo);
         try {
             discordDao.selectOne(userId);
         }catch(DbRecordNotFoundException nfe) {
-            //insert
-            DiscordOauthToken newRecord = new DiscordOauthToken();
-            newRecord.setUserId(userId);
-            newRecord.setAccessToken(tokenValue);
-            newRecord.setRefreshToken(refreshToken);
-            newRecord.setScope(scope);
-            newRecord.setExpireAt(expire);
             discordDao.insert(newRecord);
             return;
         }
         {
-            //update
-            DiscordOauthToken newData = new DiscordOauthToken();
-            //TODO input
-            discordDao.update(userId, newData);
+            discordDao.update(userId, newRecord);
             return;
         }
+    }
+    
+    public UserId getUserIdByToken(AccessToken accessToken){
+        return discordApi.fetchUserId(accessToken);
     }
 }
