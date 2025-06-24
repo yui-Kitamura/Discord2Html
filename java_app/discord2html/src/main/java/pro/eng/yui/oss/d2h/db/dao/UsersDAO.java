@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.db.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.mapper.UsersMapper;
 import pro.eng.yui.oss.d2h.db.model.Users;
@@ -19,7 +20,11 @@ public class UsersDAO {
     }
     
     public Users select(UserId keyId){
-        return mapper.findById(keyId);
+        Users res = mapper.findById(keyId);
+        if(res == null) {
+            throw new DbRecordNotFoundException(keyId.toString());
+        }
+        return res;
     }
     
     public Users insert(Users newRecord){
