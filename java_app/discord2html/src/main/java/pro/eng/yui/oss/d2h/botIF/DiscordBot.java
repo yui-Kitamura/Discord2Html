@@ -36,7 +36,8 @@ public class DiscordBot extends ListenerAdapter {
         try {
             token = discordDao.select().getAccessToken();
         }catch(DbRecordNotFoundException e) {
-            token = new AccessToken("");
+            System.err.println("no token is registered");
+            return; //skip initialization
         }
         JDA jda = JDABuilder.create(
                         token.getValue(),
