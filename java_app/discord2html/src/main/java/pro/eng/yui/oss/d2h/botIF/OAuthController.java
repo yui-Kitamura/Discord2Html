@@ -16,7 +16,7 @@ public class OAuthController {
         this.bot = bot;
     }
     
-    @GetMapping("/login/oauth2/code/discord")
+    @GetMapping(DiscordApiClient.REDIRECT_PATH)
     public String oauth2redirect(@RequestParam("code") String code,
                                  @RequestParam(value = "guild_id", required = false) String guildId,
                                  Model model

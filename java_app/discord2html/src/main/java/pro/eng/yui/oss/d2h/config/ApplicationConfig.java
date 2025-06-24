@@ -14,10 +14,10 @@ public class ApplicationConfig {
         return discordClientId;
     }
     
-    @Value("${discord.oauth2.redirectUri}")
-    private String discordAuthRedirectUri;
-    public String getDiscordAuthRedirectUri(){
-        return discordAuthRedirectUri;
+    @Value("${discord.oauth2.redirectUri.host}")
+    private String discordAuthRedirectUriHost;
+    public String getDiscordAuthRedirectUriHost(){
+        return discordAuthRedirectUriHost;
     }
     
     @Bean

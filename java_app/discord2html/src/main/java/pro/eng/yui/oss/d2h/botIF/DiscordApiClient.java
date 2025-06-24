@@ -17,7 +17,9 @@ import java.util.Map;
 @Service
 public class DiscordApiClient {
 
-    private static final String DISCORD_API_BASE = "https://discord.com/api";
+    public static final String REDIRECT_PATH = "/login/oauth2/code/discord";
+    private final String DISCORD_API_BASE = "https://discord.com/api";
+    private final String REDIRECT_URI;
 
     private final RestTemplate restTemplate;
 
@@ -29,6 +31,7 @@ public class DiscordApiClient {
         this.restTemplate = new RestTemplate();
         this.appConfig = appConfig;
         this.secrets = secrets;
+        this.REDIRECT_URI = appConfig.getDiscordAuthRedirectUriHost() + REDIRECT_PATH;
     }
 
     protected <T> T get(String endpoint, AccessToken accessToken, Class<T> responseType) {
