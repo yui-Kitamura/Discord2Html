@@ -30,7 +30,7 @@ public class DiscordOauthTokenDAO {
             dbParam.setRefreshToken(Objects.requireNonNull(newRecord.getRefreshToken()));
             dbParam.setTokenType(newRecord.getTokenType());
             dbParam.setScope(newRecord.getScope());
-            dbParam.setExpireAt(newRecord.getExpireAt());
+            dbParam.setExpiresAt(newRecord.getExpiresAt());
         }catch(NullPointerException npe) {
             throw new IllegalArgumentException(npe);
         }
@@ -48,7 +48,7 @@ public class DiscordOauthTokenDAO {
         }
         try {
             updateParam.setAccessToken(newRecord.getAccessToken());
-            updateParam.setExpireAt(newRecord.getExpireAt());
+            updateParam.setExpiresAt(newRecord.getExpiresAt());
             if(newRecord.getRefreshToken() != null) {
                 updateParam.setRefreshToken(newRecord.getRefreshToken());
             }
