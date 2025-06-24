@@ -14,6 +14,12 @@ public class ApplicationConfig {
         return discordClientId;
     }
     
+    @Value("${discord.oauth2.redirectUri}")
+    private String discordAuthRedirectUri;
+    public String getDiscordAuthRedirectUri(){
+        return discordAuthRedirectUri;
+    }
+    
     @Bean
     public ForwardedHeaderFilter forwardedHeaderFilter(){
         return new ForwardedHeaderFilter();
