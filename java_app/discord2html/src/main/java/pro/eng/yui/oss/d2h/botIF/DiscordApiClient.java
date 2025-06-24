@@ -18,7 +18,7 @@ import java.util.Map;
 public class DiscordApiClient {
 
     public static final String REDIRECT_PATH = "/login/oauth2/code/discord";
-    private final String DISCORD_API_BASE = "https://discord.com/api";
+    private final String DISCORD_API_BASE = "https://discord.com/api/v10";
     private final String REDIRECT_URI;
 
     private final RestTemplate restTemplate;
