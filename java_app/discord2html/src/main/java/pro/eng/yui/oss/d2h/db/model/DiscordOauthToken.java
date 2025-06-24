@@ -93,7 +93,7 @@ public class DiscordOauthToken {
         setTokenType(apiRes.getTokenType());
         setRefreshToken(apiRes.getRefreshToken());
         setScope(apiRes.getScope());
-        setExpireAt(apiRes.getExpiresAt());
+        setExpiresAt(apiRes.getExpiresAt());
     }
 
 }
