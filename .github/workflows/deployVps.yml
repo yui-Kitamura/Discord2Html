@@ -20,11 +20,13 @@ jobs:
       - name: Build with Maven
         env:
           DISCORD_SECRET: ${{ secrets.DISCORD_SECRET }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           DATABASE_PASS: ${{ secrets.DATABASE_PASS }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           mkdir -p java_app/discord2html/src/main/resources
           echo "discord.client_secret=${DISCORD_SECRET}" >> java_app/discord2html/src/main/resources/secret.properties
+          echo "discord.bot.token=${DISCORD_BOT_TOKEN}" >> java_app/discord2html/src/main/resources/secret.properties
           echo "spring.datasource.password=${DATABASE_PASS}" >> java_app/discord2html/src/main/resources/secret.properties
           echo "github.token=${GH_TOKEN}" >> java_app/discord2html/src/main/resources/secret.properties
           mvn -B package --file java_app/discord2html/pom.xml

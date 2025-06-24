@@ -11,6 +11,12 @@ public class Secrets {
     public String getDiscordAuth() {
         return discord_auth;
     }
+    
+    @Value("${discord.bot.token}")
+    private String discord_bot_token;
+    public String getDiscordBotToken(){
+        return discord_bot_token;
+    }
 
     @Value("${github.token}")
     private String github_token;

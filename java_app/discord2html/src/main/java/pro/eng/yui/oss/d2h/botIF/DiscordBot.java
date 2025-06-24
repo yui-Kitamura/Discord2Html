@@ -14,33 +14,24 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
-import pro.eng.yui.oss.d2h.db.dao.DiscordOauthTokenDAO;
-import pro.eng.yui.oss.d2h.db.field.AccessToken;
+import pro.eng.yui.oss.d2h.config.Secrets;
 
 import java.util.EnumSet;
 
 @Component
 public class DiscordBot extends ListenerAdapter {
 
-    private final DiscordOauthTokenDAO discordDao;
+    private final Secrets secrets;
 
     @Autowired
-    public DiscordBot(DiscordOauthTokenDAO discordDao) {
-        this.discordDao = discordDao;
+    public DiscordBot(Secrets secrets) {
+        this.secrets = secrets;
     }
 
     @PostConstruct
     public void initialize() {
-        AccessToken token;
-        try {
-            token = discordDao.select().getAccessToken();
-        }catch(DbRecordNotFoundException e) {
-            System.err.println("no token is registered");
-            return; //skip initialization
-        }
         JDA jda = JDABuilder.create(
-                        token.getValue(),
+                        secrets.getDiscordBotToken(),
                         EnumSet.of(
                                 GatewayIntent.GUILD_PRESENCES,
                                 GatewayIntent.GUILD_MEMBERS,
