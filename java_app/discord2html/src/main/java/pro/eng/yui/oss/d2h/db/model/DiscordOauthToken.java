@@ -54,10 +54,10 @@ public class DiscordOauthToken {
     }
 
     private ExpireAt expires_at;
-    public void setExpireAt(ExpireAt newValue) {
+    public void setExpiresAt(ExpireAt newValue) {
         this.expires_at = newValue;
     }
-    public ExpireAt getExpireAt() {
+    public ExpireAt getExpiresAt() {
         return expires_at;
     }
 
