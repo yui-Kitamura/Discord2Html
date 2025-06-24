@@ -85,12 +85,11 @@ public class DiscordApiClient {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
 
-        org.springframework.util.MultiValueMap<String, String> map = new org.springframework.util.LinkedMultiValueMap<>();
-        map.add("client_id", appConfig.getDiscordClientId());
-        map.add("client_secret", secrets.getDiscordAuth());
-        map.add("redirect_uri", REDIRECT_URI);
+        postMap.put("client_id", appConfig.getDiscordClientId());
+        postMap.put("client_secret", secrets.getDiscordAuth());
+        postMap.put("redirect_uri", REDIRECT_URI);
 
-        HttpEntity<org.springframework.util.MultiValueMap<String, String>> request = new HttpEntity<>(map, headers);
+        HttpEntity<Map<String,String>> request = new HttpEntity<>(postMap, headers);
 
         ResponseEntity<T> response = restTemplate.postForEntity(url, request, responseType);
         return response.getBody();
