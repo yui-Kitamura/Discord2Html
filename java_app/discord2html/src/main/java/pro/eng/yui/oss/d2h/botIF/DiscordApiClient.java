@@ -1,10 +1,7 @@
 package pro.eng.yui.oss.d2h.botIF;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
@@ -83,7 +80,7 @@ public class DiscordApiClient {
         String url = DISCORD_API_BASE + endpoint;
         
         HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
         postMap.put("client_id", appConfig.getDiscordClientId());
         postMap.put("client_secret", secrets.getDiscordAuth());
