@@ -62,7 +62,9 @@ public class DiscordBot extends ListenerAdapter {
         joinEvent.getJDA().getPresence().setStatus(OnlineStatus.IDLE);
         joinEvent.getJDA().getPresence().setActivity(Activity.playing("Standby for log"));
         
-        joinEvent.getGuild().createRole().setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY).queue();
+        joinEvent.getGuild().createRole()
+                .setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY)
+                .queue();
     }
 
     @Override
@@ -77,8 +79,8 @@ public class DiscordBot extends ListenerAdapter {
         
         if(msgBody.contains("D2H")) {
             event.getChannel().sendMessage("yes, I'm here.")
-            .setMessageReference(msg).mentionRepliedUser(false)
-            .queue();
+                .setMessageReference(msg).mentionRepliedUser(false)
+                .queue();
         }
     }
 }
