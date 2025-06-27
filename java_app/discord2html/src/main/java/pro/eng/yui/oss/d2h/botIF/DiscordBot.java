@@ -72,7 +72,7 @@ public class DiscordBot extends ListenerAdapter {
         final String msgBody = msg.getContentRaw();
         
         if(msgBody.contains("D2H")) {
-            event.getChannel().sendMessage("yes, I`m here.")
+            event.getChannel().sendMessage("yes, I'm here.")
             .setMessageReference(msg).mentionRepliedUser(false)
             .queue();
         }
