@@ -85,22 +85,22 @@ public class DiscordBot extends ListenerAdapter {
         
         if(msgBody.contains("/@D2H")) {
             event.getChannel().sendMessage("yes, I'm here.")
-                .setMessageReference(msg).mentionRepliedUser(false)
-                .queue();
-        }
+                    .setMessageReference(msg).mentionRepliedUser(false)
+                    .queue();
 
-        Member author = event.getMember();
-        if(author != null) {
-            for (Role r : author.getRoles()) {
-                if(r.getName().equals(StringConsts.ADMIN_ROLE)) {
-                    sendMessagePrivate(event);
-                    break;
+            Member author = event.getMember();
+            if (author != null) {
+                for (Role r : author.getRoles()) {
+                    if (r.getName().equals(StringConsts.ADMIN_ROLE)) {
+                        sendMessagePrivate(event);
+                        break;
+                    }
                 }
             }
+
+            event.getChannel().sendMessage("Call D2H with slash commands if needed!")
+                    .queue();
         }
-        
-        event.getChannel().sendMessage("Call D2H with slash commands if needed!")
-                .queue();
     }
         
     private void sendMessagePrivate(MessageReceivedEvent messageEvent){
