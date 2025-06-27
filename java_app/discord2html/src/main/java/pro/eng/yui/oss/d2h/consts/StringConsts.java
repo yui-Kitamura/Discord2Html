@@ -7,4 +7,6 @@ public class StringConsts {
     
     public static Gson gson = new GsonBuilder().create();
     
+    public static String ADMIN_ROLE = "D2H-admin";
+    
 }

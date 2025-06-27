@@ -16,6 +16,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.config.Secrets;
+import pro.eng.yui.oss.d2h.consts.StringConsts;
 
 import java.awt.*;
 import java.util.EnumSet;
@@ -61,7 +62,7 @@ public class DiscordBot extends ListenerAdapter {
         joinEvent.getJDA().getPresence().setStatus(OnlineStatus.IDLE);
         joinEvent.getJDA().getPresence().setActivity(Activity.playing("Standby for log"));
         
-        joinEvent.getGuild().createRole().setName("D2H-admin").setColor(Color.GRAY).queue();
+        joinEvent.getGuild().createRole().setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY).queue();
     }
 
     @Override
