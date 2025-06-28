@@ -3,6 +3,7 @@ package pro.eng.yui.oss.d2h.botIF;
 import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.IPermissionHolder;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
@@ -65,5 +66,9 @@ public class DiscordBotUtils {
         List<Role> adminRole = guild.getRolesByName(StringConsts.ADMIN_ROLE, false);
         if(adminRole.isEmpty()){ return null; }
         return adminRole.get(0);
+    }
+    
+    /* pkg-prv */ boolean isD2hAdmin(Member member){
+        return member.getRoles().contains(getD2hAdminRole(member.getGuild()));
     }
 }
