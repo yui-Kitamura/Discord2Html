@@ -3,8 +3,6 @@ package pro.eng.yui.oss.d2h.db.model;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
-import pro.eng.yui.oss.d2h.db.field.LastRecorded;
-import pro.eng.yui.oss.d2h.db.field.Status;
 
 import java.util.Objects;
 
