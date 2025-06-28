@@ -8,6 +8,8 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.events.channel.update.GenericChannelUpdateEvent;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
@@ -97,6 +99,27 @@ public class DiscordBot extends ListenerAdapter {
         if (adminRole.size() > 2 && event.getRole().getName().equalsIgnoreCase(StringConsts.ADMIN_ROLE)) {
             event.getRole().delete().reason("duplicate").queue();
         }
+    }
+
+    @Override
+    public void onGenericChannelUpdate(@NotNull GenericChannelUpdateEvent channelUpdateEvent){
+        Role adminRole = getH2dAdminRole(channelUpdateEvent.getGuild()); 
+        if(adminRole != null) {
+            for(GuildChannel gc : channelUpdateEvent.getGuild().getChannels()) {
+                if(gc.getId().equals(channelUpdateEvent.getChannel().getId())) {
+                    if(gc instanceof MessageChannel mc) {
+                        String msg = "(Channel update has detected) now this channel is logging " 
+                                + (isArchivableChannel(gc) ? "ON": "off");
+                        mc.sendMessage(msg).queue();
+                    }
+                    return;
+                }else {
+                    // nothing to do. skip to the next.
+                    continue;
+                }
+            }
+        }
+        
     }
 
     @Override
