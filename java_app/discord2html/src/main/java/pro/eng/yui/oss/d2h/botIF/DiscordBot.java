@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -31,6 +32,7 @@ import net.dv8tion.jda.api.Permission;
 public class DiscordBot extends ListenerAdapter {
 
     private final Secrets secrets;
+    private JDA jda;
 
     @Autowired
     public DiscordBot(Secrets secrets) {
@@ -39,7 +41,9 @@ public class DiscordBot extends ListenerAdapter {
 
     @PostConstruct
     public void initialize() {
-        JDA jda = JDABuilder.create(
+        shutdownJdaIfNeeded();
+        try {
+            jda = JDABuilder.create(
                         secrets.getDiscordBotToken(),
                         EnumSet.of(
                                 GatewayIntent.GUILD_PRESENCES,
@@ -52,7 +56,6 @@ public class DiscordBot extends ListenerAdapter {
                 .setStatus(OnlineStatus.IDLE)
                 .addEventListeners(this)
                 .build();
-        try {
             jda.awaitReady();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -63,6 +66,12 @@ public class DiscordBot extends ListenerAdapter {
         initialize();
     }
     
+    private void shutdownJdaIfNeeded(){
+        if(jda != null) {
+            jda.shutdownNow();
+        }
+    }
+    
     @Override
     public void onGuildJoin(@NotNull GuildJoinEvent joinEvent){
         joinEvent.getJDA().getPresence().setStatus(OnlineStatus.IDLE);
@@ -70,7 +79,16 @@ public class DiscordBot extends ListenerAdapter {
         
         joinEvent.getGuild().createRole()
                 .setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY)
+                .setMentionable(false)
                 .queue();
+        Role role = joinEvent.getGuild().getRolesByName(StringConsts.ADMIN_ROLE, false).get(0);
+        List<GuildChannel> ch = joinEvent.getGuild().getChannels();
+        for(GuildChannel gc : ch) {
+            gc.getPermissionContainer()
+                    .upsertPermissionOverride(role)
+                    .deny(Permission.VIEW_CHANNEL)
+                    .queue();
+        }
     }
 
     @Override
@@ -134,6 +152,7 @@ public class DiscordBot extends ListenerAdapter {
         if (!adminRole.isEmpty()) {
             IPermissionHolder holder = adminRole.get(0);
             for (GuildChannel channel : guild.getChannels()) {
+                if (channel instanceof Category) { continue; }
                 if (holder.hasPermission(channel, Permission.VIEW_CHANNEL)) {
                     result.add(channel);
                 }
