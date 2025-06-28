@@ -37,13 +37,13 @@ public class DiscordBotListener extends ListenerAdapter {
         joinEvent.getJDA().getPresence().setStatus(OnlineStatus.IDLE);
         joinEvent.getJDA().getPresence().setActivity(Activity.playing("Standby for log"));
 
-        if(bot.getH2dAdminRole(joinEvent.getGuild()) == null) {
+        if(bot.getD2hAdminRole(joinEvent.getGuild()) == null) {
             joinEvent.getGuild().createRole()
                     .setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY)
                     .setMentionable(false)
                     .queue();
         }
-        Role role = bot.getH2dAdminRole(joinEvent.getGuild());
+        Role role = bot.getD2hAdminRole(joinEvent.getGuild());
         if(role != null) {
             java.util.List<GuildChannel> ch = joinEvent.getGuild().getChannels();
             for (GuildChannel gc : ch) {
@@ -65,7 +65,7 @@ public class DiscordBotListener extends ListenerAdapter {
 
     @Override
     public void onGenericChannelUpdate(@NotNull GenericChannelUpdateEvent channelUpdateEvent){
-        Role adminRole = bot.getH2dAdminRole(channelUpdateEvent.getGuild());
+        Role adminRole = bot.getD2hAdminRole(channelUpdateEvent.getGuild());
         if(adminRole != null) {
             for(GuildChannel gc : channelUpdateEvent.getGuild().getChannels()) {
                 if(gc.getId().equals(channelUpdateEvent.getChannel().getId())) {

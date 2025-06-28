@@ -56,12 +56,12 @@ public class DiscordBotUtils {
     }
 
     /* pkg-prv */ boolean isArchivableChannel(GuildChannel channel){
-        Role adminRole = getH2dAdminRole(channel.getGuild());
+        Role adminRole = getD2hAdminRole(channel.getGuild());
         if(adminRole == null){ return false; }
         return getArchivableChannelList(channel.getGuild()).contains(channel);
     }
 
-    /* pkg-prv */ Role getH2dAdminRole(Guild guild){
+    /* pkg-prv */ Role getD2hAdminRole(Guild guild){
         List<Role> adminRole = guild.getRolesByName(StringConsts.ADMIN_ROLE, false);
         if(adminRole.isEmpty()){ return null; }
         return adminRole.get(0);
