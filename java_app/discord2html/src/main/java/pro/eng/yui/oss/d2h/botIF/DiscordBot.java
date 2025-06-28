@@ -87,7 +87,7 @@ public class DiscordBot extends ListenerAdapter {
             for (GuildChannel gc : ch) {
                 gc.getPermissionContainer()
                         .upsertPermissionOverride(role)
-                        .deny(Permission.VIEW_CHANNEL)
+                        .deny(Permission.MESSAGE_HISTORY)
                         .queue();
             }
         }
@@ -184,7 +184,7 @@ public class DiscordBot extends ListenerAdapter {
             IPermissionHolder holder = adminRole.get(0);
             for (GuildChannel channel : guild.getChannels()) {
                 if (channel instanceof Category) { continue; }
-                if (holder.hasPermission(channel, Permission.VIEW_CHANNEL)) {
+                if (holder.hasPermission(channel, Permission.MESSAGE_HISTORY)) {
                     result.add(channel);
                 }
             }
