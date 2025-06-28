@@ -92,6 +92,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         }
     }
     
+    /** 汎用Admin権限チェック。エラーメッセージのレスポンスつき */
     protected boolean hasAdminPermission(SlashCommandInteractionEvent event){
         if(bot.isD2hAdmin(event.getMember()) == false) {
             event.reply("you do NOT have required permission(role) to do this").queue();
