@@ -36,6 +36,7 @@ public class OAuthService {
             try {
                 usersDao.select(userInfo.getUserId());
             }catch(DbRecordNotFoundException nfe) {
+                userInfo.setIgnoreAnon(new IgnoreAnon(false)); //set default
                 usersDao.insert(userInfo);
             }
             discordDao.select();

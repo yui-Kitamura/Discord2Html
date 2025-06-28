@@ -34,6 +34,7 @@ public class UsersDAO {
             insertParam.setUserName(Objects.requireNonNull(newRecord.getUserName()));
             insertParam.setNickname(newRecord.getNickname());
             insertParam.setAvatar(newRecord.getAvatar());
+            insertParam.setIgnoreAnon(newRecord.getIgnoreAnon());
         }catch(NullPointerException npe) {
             throw new IllegalArgumentException(npe);
         }
