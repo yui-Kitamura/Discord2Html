@@ -25,10 +25,10 @@ import java.util.List;
 @Component
 public class DiscordBotListener extends ListenerAdapter {
     
-    private DiscordBot bot;
+    private final DiscordBotUtils bot;
     
     @Autowired
-    public DiscordBotListener(DiscordBot bot){
+    public DiscordBotListener(DiscordBotUtils bot){
         this.bot = bot;
     }
 
