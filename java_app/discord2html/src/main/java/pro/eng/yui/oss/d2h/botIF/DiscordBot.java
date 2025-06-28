@@ -78,7 +78,16 @@ public class DiscordBot extends ListenerAdapter {
         
         joinEvent.getGuild().createRole()
                 .setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY)
+                .setMentionable(false)
                 .queue();
+        Role role = joinEvent.getGuild().getRolesByName(StringConsts.ADMIN_ROLE, false).get(0);
+        List<GuildChannel> ch = joinEvent.getGuild().getChannels();
+        for(GuildChannel gc : ch) {
+            gc.getPermissionContainer()
+                    .upsertPermissionOverride(role)
+                    .deny(Permission.VIEW_CHANNEL)
+                    .queue();
+        }
     }
 
     @Override
