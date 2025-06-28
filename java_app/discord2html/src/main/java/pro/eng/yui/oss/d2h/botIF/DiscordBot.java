@@ -6,6 +6,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
@@ -151,6 +152,7 @@ public class DiscordBot extends ListenerAdapter {
         if (!adminRole.isEmpty()) {
             IPermissionHolder holder = adminRole.get(0);
             for (GuildChannel channel : guild.getChannels()) {
+                if (channel instanceof Category) { continue; }
                 if (holder.hasPermission(channel, Permission.VIEW_CHANNEL)) {
                     result.add(channel);
                 }
