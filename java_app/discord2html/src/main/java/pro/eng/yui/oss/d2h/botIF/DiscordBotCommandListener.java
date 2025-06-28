@@ -2,14 +2,56 @@ package pro.eng.yui.oss.d2h.botIF;
 
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
+import java.util.List;
 
 @Component
 public class DiscordBotCommandListener extends ListenerAdapter {
     
-    public DiscordBotCommandListener(){
-        // nothing to do
+    public static final List<String> commands = Arrays.asList("d2h");
+    public static final List<SubcommandData> D2H_SUB_COMMANDS = List.of(
+            new SubcommandData("archive", "change channel archive settings")
+                    .addOption(OptionType.CHANNEL, "channel", "target channel", true)
+                    .addOption(OptionType.BOOLEAN, "mode", "do archive", true)
+            ,
+            new SubcommandData("run", "run archive function now")
+                    .addOption(OptionType.CHANNEL, "target","target channel", false)
+            ,
+            new SubcommandData("role", "change role archive settings")
+                    .addOption(OptionType.ROLE, "target", "target role", true)
+                    .addOptions(new OptionData(
+                            OptionType.STRING, "role", "role", true
+                            )
+                            .addChoice("anonymous", "anonymous")
+                            .addChoice("showName", "showName")
+                    )
+            ,
+            new SubcommandData("anonymous", "change anonymous users archive settings")
+                    .addOptions(new OptionData(
+                            OptionType.STRING, "menu", "setting menu", true)
+                            .addChoice("cycle", "cycle")
+                            
+                    )
+                    .addOption(OptionType.INTEGER, "cycle", "change name cycle", true)
+            ,
+            new SubcommandData("me", "change your archive settings")
+                    .addOption(OptionType.BOOLEAN, "anonymous", "hide your name", true)
+            ,
+            new SubcommandData("help", "send you about this bots command help")
+    );
+
+    private final DiscordBotUtils bot;
+
+    @Autowired
+    public DiscordBotCommandListener(DiscordBotUtils bot){
+        this.bot = bot;
     }
 
     @Override

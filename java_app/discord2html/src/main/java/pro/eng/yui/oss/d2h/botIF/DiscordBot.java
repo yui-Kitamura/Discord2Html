@@ -4,6 +4,9 @@ import jakarta.annotation.PostConstruct;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.interactions.commands.build.Commands;
+import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
+import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -47,6 +50,8 @@ public class DiscordBot  {
                 .addEventListeners(botEventListener, botCommandListener)
                 .build();
             jda.awaitReady();
+            
+            updateCommands();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -56,6 +61,16 @@ public class DiscordBot  {
         if(jda != null) {
             jda.shutdownNow();
         }
+    }
+
+    private void updateCommands(){
+        SlashCommandData d2hCommand = Commands.slash(
+                DiscordBotCommandListener.commands.get(0),
+                "operation D2H bot"      
+        );
+        d2hCommand.addSubcommands(DiscordBotCommandListener.D2H_SUB_COMMANDS);
+        
+        jda.updateCommands().addCommands(d2hCommand).queue();
     }
 
 }
