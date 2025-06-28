@@ -169,6 +169,12 @@ public class DiscordBot extends ListenerAdapter {
         return result;
     }
     
+    private boolean isArchivableChannel(GuildChannel channel){
+        Role adminRole = getH2dAdminRole(channel.getGuild());
+        if(adminRole == null){ return false; }
+        return getArchivableChannelList(channel.getGuild()).contains(channel);
+    }
+    
     private Role getH2dAdminRole(Guild guild){
         List<Role> adminRole = guild.getRolesByName(StringConsts.ADMIN_ROLE, false);
         if(adminRole.isEmpty()){ return null; }
