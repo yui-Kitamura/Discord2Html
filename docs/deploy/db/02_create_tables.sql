@@ -16,12 +16,12 @@ CREATE TABLE users (
     user_id     BIGINT UNSIGNED PRIMARY KEY,
     user_name   VARCHAR(255) NOT NULL,
     nickname    VARCHAR(255),
-    avatar      VARCHAR(255)
+    avatar      VARCHAR(255),
+    ignore_anon BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE roles (
     role_id      BIGINT UNSIGNED PRIMARY KEY,
-    admin_flg    BOOLEAN DEFAULT FALSE,
     anon_flg     BOOLEAN DEFAULT TRUE
 );
 
