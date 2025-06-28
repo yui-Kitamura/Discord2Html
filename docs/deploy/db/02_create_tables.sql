@@ -1,8 +1,15 @@
-CREATE TABLE channels (
-    channel_id    BIGINT PRIMARY KEY,
-    channel_name  VARCHAR(255) NOT NULL,
-    status        VARCHAR(50),
-    last_recorded DATETIME
+CREATE TABLE channels
+(
+    channel_id   BIGINT PRIMARY KEY,
+    channel_name VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE channel_log
+(
+    channel_id    BIGINT,
+    time_stamp    TIMESTAMP,
+    is_changed    BOOLEAN,
+    status        VARCHAR(50)
 );
 
 CREATE TABLE users (

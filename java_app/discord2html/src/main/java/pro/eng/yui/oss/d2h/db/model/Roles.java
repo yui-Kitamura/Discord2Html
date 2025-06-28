@@ -14,14 +14,6 @@ public class Roles {
     public RoleId getRoleId(){
         return role_id;
     }
-    
-    private AdminFlg admin_flg;
-    public void setAdminFlg(AdminFlg newValue){
-        this.admin_flg = newValue;
-    }
-    public AdminFlg getAdminFlg() {
-        return admin_flg;
-    }
 
     private AnonFlg anon_flg;
     public void setAnonFlg(AnonFlg newValue){
@@ -39,7 +31,6 @@ public class Roles {
     public int hashCode() {
         int hash = 17;
         hash = hash * 31 + (role_id == null ? 0 : role_id.hashCode());
-        hash = hash * 31 + (admin_flg == null ? 0 : admin_flg.hashCode());
         hash = hash * 31 + (anon_flg == null ? 0 : anon_flg.hashCode());
         return hash;
     }
@@ -51,9 +42,6 @@ public class Roles {
         if(!(obj.getClass().equals(this.getClass()))){ return false; }
         Roles other = (Roles) obj;
         if(!Objects.equals(role_id, other.role_id)){
-            return false;
-        }
-        if(!Objects.equals(admin_flg, other.admin_flg)){
             return false;
         }
         if(!Objects.equals(anon_flg, other.anon_flg)){
