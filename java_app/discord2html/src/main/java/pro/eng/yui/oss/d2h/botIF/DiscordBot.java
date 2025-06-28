@@ -76,17 +76,21 @@ public class DiscordBot extends ListenerAdapter {
         joinEvent.getJDA().getPresence().setStatus(OnlineStatus.IDLE);
         joinEvent.getJDA().getPresence().setActivity(Activity.playing("Standby for log"));
         
-        joinEvent.getGuild().createRole()
-                .setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY)
-                .setMentionable(false)
-                .queue();
-        Role role = joinEvent.getGuild().getRolesByName(StringConsts.ADMIN_ROLE, false).get(0);
-        List<GuildChannel> ch = joinEvent.getGuild().getChannels();
-        for(GuildChannel gc : ch) {
-            gc.getPermissionContainer()
-                    .upsertPermissionOverride(role)
-                    .deny(Permission.VIEW_CHANNEL)
+        if(getH2dAdminRole(joinEvent.getGuild()) == null) {
+            joinEvent.getGuild().createRole()
+                    .setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY)
+                    .setMentionable(false)
                     .queue();
+        }
+        Role role = getH2dAdminRole(joinEvent.getGuild());
+        if(role != null) {
+            List<GuildChannel> ch = joinEvent.getGuild().getChannels();
+            for (GuildChannel gc : ch) {
+                gc.getPermissionContainer()
+                        .upsertPermissionOverride(role)
+                        .deny(Permission.VIEW_CHANNEL)
+                        .queue();
+            }
         }
     }
 
@@ -158,5 +162,11 @@ public class DiscordBot extends ListenerAdapter {
             }
         }
         return result;
+    }
+    
+    private Role getH2dAdminRole(Guild guild){
+        List<Role> adminRole = guild.getRolesByName(StringConsts.ADMIN_ROLE, false);
+        if(adminRole.isEmpty()){ return null; }
+        return adminRole.get(0);
     }
 }
