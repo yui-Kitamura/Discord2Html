@@ -62,10 +62,6 @@ public class DiscordBot extends ListenerAdapter {
         }
     }
     
-    public void refreshToken(){
-        initialize();
-    }
-    
     private void shutdownJdaIfNeeded(){
         if(jda != null) {
             jda.shutdownNow();
