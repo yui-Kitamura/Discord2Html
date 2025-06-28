@@ -8,12 +8,14 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.MessageChannel;
+import net.dv8tion.jda.api.events.channel.update.GenericChannelUpdateEvent;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.role.RoleCreateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
-import net.dv8tion.jda.api.requests.restaction.MessageCreateAction;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -62,10 +64,6 @@ public class DiscordBot extends ListenerAdapter {
         }
     }
     
-    public void refreshToken(){
-        initialize();
-    }
-    
     private void shutdownJdaIfNeeded(){
         if(jda != null) {
             jda.shutdownNow();
@@ -77,18 +75,51 @@ public class DiscordBot extends ListenerAdapter {
         joinEvent.getJDA().getPresence().setStatus(OnlineStatus.IDLE);
         joinEvent.getJDA().getPresence().setActivity(Activity.playing("Standby for log"));
         
-        joinEvent.getGuild().createRole()
-                .setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY)
-                .setMentionable(false)
-                .queue();
-        Role role = joinEvent.getGuild().getRolesByName(StringConsts.ADMIN_ROLE, false).get(0);
-        List<GuildChannel> ch = joinEvent.getGuild().getChannels();
-        for(GuildChannel gc : ch) {
-            gc.getPermissionContainer()
-                    .upsertPermissionOverride(role)
-                    .deny(Permission.VIEW_CHANNEL)
+        if(getH2dAdminRole(joinEvent.getGuild()) == null) {
+            joinEvent.getGuild().createRole()
+                    .setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY)
+                    .setMentionable(false)
                     .queue();
         }
+        Role role = getH2dAdminRole(joinEvent.getGuild());
+        if(role != null) {
+            List<GuildChannel> ch = joinEvent.getGuild().getChannels();
+            for (GuildChannel gc : ch) {
+                gc.getPermissionContainer()
+                        .upsertPermissionOverride(role)
+                        .deny(Permission.VIEW_CHANNEL)
+                        .queue();
+            }
+        }
+    }
+    
+    @Override
+    public void onRoleCreate(@NotNull RoleCreateEvent event){
+        List<Role> adminRole = event.getGuild().getRolesByName(StringConsts.ADMIN_ROLE, false);
+        if (adminRole.size() > 2 && event.getRole().getName().equalsIgnoreCase(StringConsts.ADMIN_ROLE)) {
+            event.getRole().delete().reason("duplicate").queue();
+        }
+    }
+
+    @Override
+    public void onGenericChannelUpdate(@NotNull GenericChannelUpdateEvent channelUpdateEvent){
+        Role adminRole = getH2dAdminRole(channelUpdateEvent.getGuild()); 
+        if(adminRole != null) {
+            for(GuildChannel gc : channelUpdateEvent.getGuild().getChannels()) {
+                if(gc.getId().equals(channelUpdateEvent.getChannel().getId())) {
+                    if(gc instanceof MessageChannel mc) {
+                        String msg = "(Channel update has detected) now this channel is logging " 
+                                + (isArchivableChannel(gc) ? "ON": "off");
+                        mc.sendMessage(msg).queue();
+                    }
+                    return;
+                }else {
+                    // nothing to do. skip to the next.
+                    continue;
+                }
+            }
+        }
+        
     }
 
     @Override
@@ -159,5 +190,17 @@ public class DiscordBot extends ListenerAdapter {
             }
         }
         return result;
+    }
+    
+    private boolean isArchivableChannel(GuildChannel channel){
+        Role adminRole = getH2dAdminRole(channel.getGuild());
+        if(adminRole == null){ return false; }
+        return getArchivableChannelList(channel.getGuild()).contains(channel);
+    }
+    
+    private Role getH2dAdminRole(Guild guild){
+        List<Role> adminRole = guild.getRolesByName(StringConsts.ADMIN_ROLE, false);
+        if(adminRole.isEmpty()){ return null; }
+        return adminRole.get(0);
     }
 }
