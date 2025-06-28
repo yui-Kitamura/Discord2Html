@@ -11,6 +11,7 @@ import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.guild.GuildJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import net.dv8tion.jda.api.events.role.RoleCreateEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import org.jetbrains.annotations.NotNull;
@@ -91,6 +92,14 @@ public class DiscordBot extends ListenerAdapter {
                         .deny(Permission.VIEW_CHANNEL)
                         .queue();
             }
+        }
+    }
+    
+    @Override
+    public void onRoleCreate(@NotNull RoleCreateEvent event){
+        List<Role> adminRole = event.getGuild().getRolesByName(StringConsts.ADMIN_ROLE, false);
+        if (adminRole.size() > 2 && event.getRole().getName().equalsIgnoreCase(StringConsts.ADMIN_ROLE)) {
+            event.getRole().delete().reason("duplicate").queue();
         }
     }
 
