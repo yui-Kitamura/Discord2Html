@@ -18,11 +18,15 @@ public class DiscordBot  {
     private JDA jda;
     
     private final DiscordBotListener botEventListener;
+    private final DiscordBotCommandListener botCommandListener;
 
     @Autowired
-    public DiscordBot(Secrets secrets, DiscordBotListener eventListener) {
+    public DiscordBot(Secrets secrets,
+                      DiscordBotListener eventListener,
+                      DiscordBotCommandListener commandListener) {
         this.secrets = secrets;
         this.botEventListener = eventListener;
+        this.botCommandListener = commandListener;
     }
 
     @PostConstruct
@@ -40,7 +44,7 @@ public class DiscordBot  {
                         )
                 )
                 .setStatus(OnlineStatus.IDLE)
-                .addEventListeners(botEventListener)
+                .addEventListeners(botEventListener, botCommandListener)
                 .build();
             jda.awaitReady();
         } catch (InterruptedException e) {
