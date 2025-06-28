@@ -31,6 +31,7 @@ import net.dv8tion.jda.api.Permission;
 public class DiscordBot extends ListenerAdapter {
 
     private final Secrets secrets;
+    private JDA jda;
 
     @Autowired
     public DiscordBot(Secrets secrets) {
@@ -39,7 +40,9 @@ public class DiscordBot extends ListenerAdapter {
 
     @PostConstruct
     public void initialize() {
-        JDA jda = JDABuilder.create(
+        shutdownJdaIfNeeded();
+        try {
+            jda = JDABuilder.create(
                         secrets.getDiscordBotToken(),
                         EnumSet.of(
                                 GatewayIntent.GUILD_PRESENCES,
@@ -52,7 +55,6 @@ public class DiscordBot extends ListenerAdapter {
                 .setStatus(OnlineStatus.IDLE)
                 .addEventListeners(this)
                 .build();
-        try {
             jda.awaitReady();
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
@@ -61,6 +63,12 @@ public class DiscordBot extends ListenerAdapter {
     
     public void refreshToken(){
         initialize();
+    }
+    
+    private void shutdownJdaIfNeeded(){
+        if(jda != null) {
+            jda.shutdownNow();
+        }
     }
     
     @Override
