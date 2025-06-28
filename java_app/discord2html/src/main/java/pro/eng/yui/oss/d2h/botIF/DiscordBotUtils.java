@@ -25,19 +25,17 @@ public class DiscordBotUtils {
         final String guildName = messageEvent.getGuild().getName();
 
         messageEvent.getAuthor().openPrivateChannel()
-                .flatMap(channel -> channel.sendMessage("Hello. You have D2H bot admin role." +
+                .flatMap(channel -> 
+                        channel.sendMessage("Hello. You have D2H bot admin role." +
                                 "So you can use this bots commands to make archive.")
                         .flatMap(message ->
-                                channel.sendMessage("These channels in "+guildName+" are enabled to use admin commands." +
+                                channel.sendMessage("These channels in "+guildName+
+                                        " are enabled to use admin commands." +
                                         "```\n" + chListWithBr + "```"
                                 )
                         )
                 )
-                .queue(null, error ->
-                        messageEvent.getChannel()
-                                .sendMessage("Failed to send private message")
-                                .queue()
-                );
+                .queue();
     }
 
     /* pkg-prv */ List<Channel> getArchivableChannelList(Guild guild){
