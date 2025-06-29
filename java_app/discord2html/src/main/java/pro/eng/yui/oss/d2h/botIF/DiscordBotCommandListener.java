@@ -64,6 +64,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             event.reply("commands is enabled only in server channel").queue();
             return;
         }
+        if (isAcceptedChannel(event.getGuildChannel()) == false) {
+            event.reply("you can NOT USE commands in this channel")
+                    .setEphemeral(true) //visible=false
+                    .queue();
+
+        }
         
         if(commands.contains(command) == false) {
             event.reply("bot D2H has called but was not supported")
