@@ -38,7 +38,15 @@ public class Users {
     public Avatar getAvatar(){
         return avatar;
     }
-
+    
+    private IgnoreAnon ignore_anon;
+    public void setIgnoreAnon(IgnoreAnon ignoreAnon){
+        this.ignore_anon = ignoreAnon;
+    }
+    public IgnoreAnon getIgnoreAnon(){
+        return ignore_anon;
+    }
+    
     public Users(){
         // nothing to do
     }
@@ -50,6 +58,7 @@ public class Users {
         hash = hash * 31 + (user_name == null ? 0 : user_name.hashCode());
         hash = hash * 31 + (nickname == null ? 0 : nickname.hashCode());
         hash = hash * 31 + (avatar == null ? 0 : avatar.hashCode());
+        hash = hash * 31 + (ignore_anon == null ? 0 : ignore_anon.hashCode());
         return hash;
     }
     
@@ -69,6 +78,9 @@ public class Users {
             return false;
         }
         if(!Objects.equals(avatar, other.avatar)){
+            return false;
+        }
+        if(!Objects.equals(ignore_anon, other.ignore_anon)){
             return false;
         }
         return true;

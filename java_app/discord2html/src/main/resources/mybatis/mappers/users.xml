@@ -4,15 +4,15 @@
 <mapper namespace="pro.eng.yui.oss.d2h.db.mapper.UsersMapper">
 
     <select id="findById" parameterType="UserId" resultType="Users">
-        SELECT user_id, user_name, nickname, avatar
+        SELECT user_id, user_name, nickname, avatar, ignore_anon
         FROM users
         WHERE user_id = #{user_id}
     </select>
 
     <insert id="insert" parameterType="Users">
         INSERT INTO users
-            (user_id, user_name, nickname, avatar) 
+            (user_id, user_name, nickname, avatar, ignore_anon) 
         VALUES
-            (#{user_id}, #{user_name}, #{nickname}, #{avatar})
+            (#{user_id}, #{user_name}, #{nickname}, #{avatar}, #{ignore_anon})
     </insert>
 </mapper>

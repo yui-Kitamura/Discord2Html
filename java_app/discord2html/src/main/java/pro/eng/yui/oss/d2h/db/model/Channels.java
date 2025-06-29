@@ -3,8 +3,6 @@ package pro.eng.yui.oss.d2h.db.model;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
-import pro.eng.yui.oss.d2h.db.field.LastRecorded;
-import pro.eng.yui.oss.d2h.db.field.Status;
 
 import java.util.Objects;
 
@@ -28,24 +26,6 @@ public class Channels {
         return channel_name;
     }
 
-    /** チャンネル記録設定 */
-    private Status status;
-    public void setStatus(Status newValue){
-        this.status = newValue;
-    }
-    public Status getStatus() {
-        return status;
-    }
-
-    /** 最終記録日時 */
-    private LastRecorded last_recorded;
-    public void setLastRecorded(LastRecorded newValue){
-        this.last_recorded = newValue;
-    }
-    public LastRecorded getLastRecorded(){
-        return last_recorded;
-    }
-
     public Channels(){
         // nothing to do
     }
@@ -55,8 +35,6 @@ public class Channels {
         int hash = 17;
         hash = hash * 31 + (channel_id == null ? 0 : channel_id.hashCode());
         hash = hash * 31 + (channel_name == null ? 0 : channel_name.hashCode());
-        hash = hash * 31 + (status == null ? 0 : status.hashCode());
-        hash = hash * 31 + (last_recorded == null ? 0 : last_recorded.hashCode());
         return hash;
     }
     
@@ -70,12 +48,6 @@ public class Channels {
             return false;
         }
         if(!Objects.equals(channel_name, other.channel_name)){
-            return false;
-        }
-        if(!Objects.equals(status, other.status)){
-            return false;
-        }
-        if(!Objects.equals(last_recorded, other.last_recorded)){
             return false;
         }
         return true;

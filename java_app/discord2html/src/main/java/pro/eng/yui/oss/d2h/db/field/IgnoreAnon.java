@@ -1,8 +1,8 @@
 package pro.eng.yui.oss.d2h.db.field;
 
-public class AdminFlg extends AbstFlgs{
-
-    public AdminFlg(boolean value){
+public class IgnoreAnon extends AbstFlgs {
+    
+    public IgnoreAnon(boolean value){
         super(value);
     }
 
@@ -28,3 +28,4 @@ public class AdminFlg extends AbstFlgs{
     }
 
 }
+

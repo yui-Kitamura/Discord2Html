@@ -1,5 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF;
 
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
@@ -59,7 +60,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         final String command = event.getName();
         final String sub = event.getSubcommandName();
         
-        if(event.isGuildCommand() == false) {
+        if((event.getChannel() instanceof GuildChannel) == false) {
             event.reply("commands is enabled only in server channel").queue();
             return;
         }
@@ -91,6 +92,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         }
     }
     
+    /** 汎用Admin権限チェック。エラーメッセージのレスポンスつき */
     protected boolean hasAdminPermission(SlashCommandInteractionEvent event){
         if(bot.isD2hAdmin(event.getMember()) == false) {
             event.reply("you do NOT have required permission(role) to do this").queue();
