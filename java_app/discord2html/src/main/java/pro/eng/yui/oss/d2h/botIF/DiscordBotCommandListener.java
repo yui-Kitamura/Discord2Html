@@ -100,6 +100,10 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         }
         return true;
     }
+    /** コマンド実行チャンネルの確認 */
+    protected boolean isAcceptedChannel(GuildChannel channel){
+        return bot.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
+    }
     
     private void runArchive(SlashCommandInteractionEvent event){
         if(hasAdminPermission(event) == false) {

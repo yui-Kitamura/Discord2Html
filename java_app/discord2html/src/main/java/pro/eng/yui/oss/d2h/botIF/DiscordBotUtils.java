@@ -39,6 +39,22 @@ public class DiscordBotUtils {
                 .queue();
     }
 
+    /* pkg-prv */ List<Channel> getAdminTaggedChannelList(Guild guild){
+        List<Channel> result = new ArrayList<>();
+
+        List<Role> adminRole = guild.getRolesByName(StringConsts.ADMIN_ROLE, false);
+        if (!adminRole.isEmpty()) {
+            IPermissionHolder holder = adminRole.get(0);
+            for (GuildChannel channel : guild.getChannels()) {
+                if (channel instanceof Category) { continue; }
+                if (holder.hasPermission(channel, Permission.MESSAGE_HISTORY)) {
+                    result.add(channel);
+                }
+            }
+        }
+        return result;
+    }
+    
     /* pkg-prv */ List<Channel> getArchivableChannelList(Guild guild){
         List<Channel> result = new ArrayList<>();
 
