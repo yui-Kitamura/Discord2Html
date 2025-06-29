@@ -1,7 +1,20 @@
+CREATE TABLE guilds
+(
+    guild_id    BIGINT UNSIGNED PRIMARY KEY,
+    guild_name  VARCHAR(255) NOT NULL,
+    joined_time TIMESTAMP,
+    runs_on_1   INT NOT NULL,
+    runs_on_2   INT,
+    runs_on_3   INT,
+    runs_on_4   INT
+);
+
 CREATE TABLE channels
 (
-    channel_id   BIGINT PRIMARY KEY,
-    channel_name VARCHAR(255) NOT NULL
+    channel_id   BIGINT UNSIGNED PRIMARY KEY,
+    guild_id     BIGINT UNSIGNED NOT NULL,
+    channel_name VARCHAR(255) NOT NULL,
+    FOREIGN KEY (guild_id) REFERENCES guilds(guild_id)
 );
 
 CREATE TABLE channel_log
@@ -13,11 +26,13 @@ CREATE TABLE channel_log
 );
 
 CREATE TABLE users (
-    user_id     BIGINT UNSIGNED PRIMARY KEY,
+    user_id     BIGINT UNSIGNED,
+    guild_id    BIGINT UNSIGNED,
     user_name   VARCHAR(255) NOT NULL,
     nickname    VARCHAR(255),
     avatar      VARCHAR(255),
-    ignore_anon BOOLEAN DEFAULT FALSE
+    ignore_anon BOOLEAN DEFAULT FALSE,
+    PRIMARY KEY (user_id, guild_id)
 );
 
 CREATE TABLE roles (
