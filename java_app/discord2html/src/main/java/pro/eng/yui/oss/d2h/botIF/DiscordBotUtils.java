@@ -9,14 +9,25 @@ import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
+import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
+import pro.eng.yui.oss.d2h.db.field.GuildId;
+import pro.eng.yui.oss.d2h.db.model.Channels;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
 public class DiscordBotUtils {
+    
+    private ChannelsDAO channelsDao;
+    
+    @Autowired
+    public DiscordBotUtils(ChannelsDAO channelsDao){
+        this.channelsDao = channelsDao;
+    }
 
     /* pkg-prv */ void sendMessagePrivate(MessageReceivedEvent messageEvent){
         StringBuilder chListWithBr = new StringBuilder();
@@ -57,17 +68,10 @@ public class DiscordBotUtils {
     
     /* pkg-prv */ List<Channel> getArchivableChannelList(Guild guild){
         List<Channel> result = new ArrayList<>();
-
-        List<Role> adminRole = guild.getRolesByName(StringConsts.ADMIN_ROLE, false);
-
-        if (!adminRole.isEmpty()) {
-            IPermissionHolder holder = adminRole.get(0);
-            for (GuildChannel channel : guild.getChannels()) {
-                if (channel instanceof Category) { continue; }
-                if (holder.hasPermission(channel, Permission.MESSAGE_HISTORY)) {
-                    result.add(channel);
-                }
-            }
+        
+        List<Channels> activeDbCh = channelsDao.selectChannelArchiveDo(new GuildId(guild));
+        for(Channels ch : activeDbCh) {
+            result.add(guild.getGuildChannelById(ch.getChannelId().getValue()));
         }
         return result;
     }
