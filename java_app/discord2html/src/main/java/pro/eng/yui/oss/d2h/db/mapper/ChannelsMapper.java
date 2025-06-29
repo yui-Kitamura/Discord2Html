@@ -10,4 +10,10 @@ public interface ChannelsMapper {
     
     List<Channels> selectChannelArchiveDo(Channels channels);
     
+    void register(Channels newRecord);
+    
+    void update(Channels param);
+    
+    Channels selectOne(Channels key);
+    
 }
