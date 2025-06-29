@@ -4,9 +4,7 @@
 <mapper namespace="pro.eng.yui.oss.d2h.db.mapper.ChannelsMapper">
 
     <select id="selectChannelArchiveDo" parameterType="Channels" resultType="Channels">
-        SELECT ch.*,
-               cl.status,
-               cl.time_stamp
+        SELECT ch.*
         FROM
             channels ch,
             (   SELECT cl1.channel_id, status, time_stamp
@@ -20,6 +18,7 @@
         WHERE
             ch.channel_id = cl.channel_id
             AND ch.guild_id = #{guild_id}
+            AND cl.status = true
     </select>
     
     <insert id="register" parameterType="Channels">
