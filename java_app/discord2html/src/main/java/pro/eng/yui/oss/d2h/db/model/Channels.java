@@ -18,6 +18,7 @@ public class Channels {
         return channel_id;
     }
     
+    /** DiscordサーバID */
     private GuildId guild_id;
     public void setGuildId(GuildId newValue){
         this.guild_id = newValue;
