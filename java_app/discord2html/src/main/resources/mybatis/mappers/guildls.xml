@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pro.eng.yui.oss.d2h.db.mapper.GuildsMapper">
+
+    <insert id="register" parameterType="Guilds">
+        INSERT INTO guilds (guild_id, guild_name, joined_time, runs_on_1)
+        VALUES (#{guild_id}, #{guild_name},CURRENT_TIMESTAMP, 0)
+    </insert>
+    
+    <update id="update" parameterType="Guilds">
+        UPDATE guilds
+        SET guild_name = #{guild_name}
+        WHERE guild_id = #{guild_id}
+    </update>
+    
+    <select id="selectOne" parameterType="Guilds">
+        SELECT 
+            guild_id, guild_name, joined_time, runs_on_1, runs_on_2, runs_on_3, runs_on_4
+        FROM guilds
+        WHERE guild_id = #{guild_id}
+    </select>
+    
+    <select id="runsOn" parameterType="Guilds" resultType="RunsOn">
+        (
+            SELECT runs_on_1 FROM guilds WHERE guild_id = #{guild_id}
+            UNION
+            SELECT runs_on_2 FROM guilds WHERE guild_id = #{guild_id} AND runs_on_2 IS NOT NULL
+            UNION
+            SELECT runs_on_3 FROM guilds WHERE guild_id = #{guild_id} AND runs_on_3 IS NOT NULL
+            UNION
+            SELECT runs_on_4 FROM guilds WHERE guild_id = #{guild_id} AND runs_on_4 IS NOT NULL
+        )
+        ORDER BY 1
+    </select>
+</mapper>
