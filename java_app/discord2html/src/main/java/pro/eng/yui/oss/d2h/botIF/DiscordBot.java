@@ -4,6 +4,7 @@ import jakarta.annotation.PostConstruct;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.OnlineStatus;
+import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
 import net.dv8tion.jda.api.interactions.commands.build.SlashCommandData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -22,6 +23,8 @@ public class DiscordBot  {
     private final DiscordBotListener botEventListener;
     private final DiscordBotCommandListener botCommandListener;
 
+    public static final String idleMessage = "stand by for log";
+    
     @Autowired
     public DiscordBot(Secrets secrets,
                       DiscordBotListener eventListener,
@@ -46,6 +49,7 @@ public class DiscordBot  {
                         )
                 )
                 .setStatus(OnlineStatus.IDLE)
+                .setActivity(Activity.playing(idleMessage))
                 .addEventListeners(botEventListener, botCommandListener)
                 .build();
             jda.awaitReady();
