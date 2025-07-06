@@ -157,7 +157,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         }
         event.deferReply().queue();
         runArchiveRunner.run(event.getMember(), event.getOptions());
-        event.reply(runArchiveRunner.afterRunMessage()).queue();
+        event.getHook().sendMessage(runArchiveRunner.afterRunMessage()).queue();
     }
     
     private void runRole(SlashCommandInteractionEvent event){
