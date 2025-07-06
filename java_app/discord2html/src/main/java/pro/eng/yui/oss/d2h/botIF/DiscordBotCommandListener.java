@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.botIF.runner.AnonymousSettingRunner;
+import pro.eng.yui.oss.d2h.botIF.runner.HelpRunner;
 import pro.eng.yui.oss.d2h.botIF.runner.MeRunner;
 
 import java.util.Arrays;
@@ -53,13 +54,15 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private final DiscordBotUtils bot;
     private final MeRunner meRunner;
     private final AnonymousSettingRunner anonymousSettingRunner;
+    private final HelpRunner helpRunner;
 
     @Autowired
     public DiscordBotCommandListener(DiscordBotUtils bot,
-                                     MeRunner me, AnonymousSettingRunner anon){
+                                     HelpRunner help, MeRunner me, AnonymousSettingRunner anon){
         this.bot = bot;
         this.meRunner = me;
         this.anonymousSettingRunner = anon;
+        this.helpRunner = help;
     }
 
     @Override
@@ -165,8 +168,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     
     private void runHelp(SlashCommandInteractionEvent event){
         //do not need to check //if(hasAdminPermission(event) == false) == false)
-        boolean isAdmin = bot.isD2hAdmin(event.getMember());
-        event.reply("help command is running").queue();
+        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()));
     }
 
 }
