@@ -6,6 +6,9 @@ public class IgnoreAnon extends AbstFlgs {
         super(value);
     }
 
+    public static IgnoreAnon PUBLIC = new IgnoreAnon(true);
+    public static IgnoreAnon HIDDEN = new IgnoreAnon(false);
+    
     @Override
     public int hashCode() {
         return super.hashCode();
