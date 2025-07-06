@@ -4,9 +4,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
+import pro.eng.yui.oss.d2h.db.field.RunsOn;
 import pro.eng.yui.oss.d2h.db.mapper.GuildsMapper;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -47,6 +50,15 @@ public class GuildsDAO {
             mapper.update(newRecord);
         }else{
             mapper.register(newRecord);
+        }
+    }
+    
+    public List<RunsOn> getRunsOn(GuildId id){
+        if(exists(id)) {
+            Guilds g = selectGuildInfo(id);
+            return g.getRunsOn();
+        }else {
+            return Collections.emptyList();
         }
     }
    
