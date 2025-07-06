@@ -104,9 +104,9 @@ public class UsersDAO {
         }
         
         if(newValue.isTrue()) {
-            mapper.setIgnoreAnon(userId);
+            mapper.setIgnoreAnon(current);
         }else {
-            mapper.setAsAnon(userId);
+            mapper.setAsAnon(current);
         }
         return newValue;
     }
