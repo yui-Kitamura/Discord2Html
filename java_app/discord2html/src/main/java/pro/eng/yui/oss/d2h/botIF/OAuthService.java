@@ -34,7 +34,7 @@ public class OAuthService {
         DiscordOauthToken newRecord = new DiscordOauthToken(userInfo.getUserId(), tokenInfo);
         try {
             try {
-                usersDao.select(userInfo.getUserId());
+                usersDao.select(userInfo.getGuildId(), userInfo.getUserId());
             }catch(DbRecordNotFoundException nfe) {
                 userInfo.setIgnoreAnon(new IgnoreAnon(false)); //set default
                 usersDao.insert(userInfo);
