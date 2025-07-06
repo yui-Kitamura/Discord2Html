@@ -30,6 +30,24 @@ public class UsersDAO {
         return res;
     }
     
+    public boolean exists(UserId keyId){
+        try {
+            select(keyId);
+            return true;
+        }catch (DbRecordNotFoundException nfe) {
+            return false;
+        }
+    }
+    
+    public Users upsertUserInfo(Users newInfo){
+        if(exists(newInfo.getUserId())) {
+            update(newInfo.getUserId(), newInfo);
+        }else {
+            insert(newInfo);
+        }
+        return select(newInfo.getUserId());
+    }
+    
     public Users insert(Users newRecord){
         Users insertParam = new Users();
         try {
