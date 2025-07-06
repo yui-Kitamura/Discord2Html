@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.runner.MeRunner;
 
 import java.util.Arrays;
 import java.util.List;
@@ -49,10 +50,13 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     );
 
     private final DiscordBotUtils bot;
+    private final MeRunner meRunner;
 
     @Autowired
-    public DiscordBotCommandListener(DiscordBotUtils bot){
+    public DiscordBotCommandListener(DiscordBotUtils bot,
+                                     MeRunner me){
         this.bot = bot;
+        this.meRunner = me;
     }
 
     @Override
@@ -134,7 +138,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     
     private void runMe(SlashCommandInteractionEvent event){
         //do not need to check //if(hasAdminPermission(event) == false) == false)
-        event.reply("me command is running!").queue();
+        meRunner.run(event.getMember(), event.getOptions());
     }
     
     private void runAnonymous(SlashCommandInteractionEvent event){
