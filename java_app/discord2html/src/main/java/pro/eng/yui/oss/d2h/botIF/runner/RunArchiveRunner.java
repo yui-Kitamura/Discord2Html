@@ -19,13 +19,13 @@ public class RunArchiveRunner implements IRunner {
     public void run(Member member, List<OptionMapping> options){
         //TODO run make archive file
         
-        member.getJDA().getPresence().setPresence(OnlineStatus.ONLINE,  Activity.playing("working"));
+        member.getJDA().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        member.getJDA().getPresence().setPresence(OnlineStatus.IDLE, Activity.playing(DiscordBot.idleMessage));
+        member.getJDA().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
     }
 
     @Override

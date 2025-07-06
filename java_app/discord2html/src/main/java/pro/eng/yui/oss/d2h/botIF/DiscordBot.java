@@ -23,7 +23,8 @@ public class DiscordBot  {
     private final DiscordBotListener botEventListener;
     private final DiscordBotCommandListener botCommandListener;
 
-    public static final String idleMessage = "stand by for log";
+    public static final Activity idle = Activity.customStatus("stand by for log");
+    public static final Activity working = Activity.customStatus("working");
     
     @Autowired
     public DiscordBot(Secrets secrets,
@@ -49,7 +50,7 @@ public class DiscordBot  {
                         )
                 )
                 .setStatus(OnlineStatus.IDLE)
-                .setActivity(Activity.playing(idleMessage))
+                .setActivity(idle)
                 .addEventListeners(botEventListener, botCommandListener)
                 .build();
             jda.awaitReady();
