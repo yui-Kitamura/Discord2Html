@@ -4,6 +4,7 @@ CREATE TABLE guilds
     guild_name  VARCHAR(255) NOT NULL,
     joined_time TIMESTAMP,
     anon_cycle  INT DEFAULT 12,
+    last_anon_changed TIMESTAMP,
     runs_on_1   INT NOT NULL,
     runs_on_2   INT,
     runs_on_3   INT,

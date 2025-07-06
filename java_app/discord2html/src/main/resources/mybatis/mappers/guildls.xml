@@ -4,8 +4,12 @@
 <mapper namespace="pro.eng.yui.oss.d2h.db.mapper.GuildsMapper">
 
     <insert id="register" parameterType="Guilds">
-        INSERT INTO guilds (guild_id, guild_name, joined_time, anon_cycle, runs_on_1)
-        VALUES (#{guild_id}, #{guild_name},CURRENT_TIMESTAMP, 12, 0)
+        INSERT INTO guilds
+            (guild_id, guild_name, joined_time, 
+             anon_cycle, last_anon_changed, runs_on_1)
+        VALUES
+            (#{guild_id}, #{guild_name},CURRENT_TIMESTAMP,
+             12, CURRENT_TIMESTAMP, 0)
     </insert>
     
     <update id="update" parameterType="Guilds">
@@ -23,16 +27,11 @@
         WHERE guild_id = #{guild_id}
     </select>
     
-    <select id="runsOn" parameterType="Guilds" resultType="RunsOn">
-        (
-            SELECT runs_on_1 FROM guilds WHERE guild_id = #{guild_id}
-            UNION
-            SELECT runs_on_2 FROM guilds WHERE guild_id = #{guild_id} AND runs_on_2 IS NOT NULL
-            UNION
-            SELECT runs_on_3 FROM guilds WHERE guild_id = #{guild_id} AND runs_on_3 IS NOT NULL
-            UNION
-            SELECT runs_on_4 FROM guilds WHERE guild_id = #{guild_id} AND runs_on_4 IS NOT NULL
-        )
-        ORDER BY 1
-    </select>
+    <update id="anonTimestamp" parameterType="Guilds">
+        UPDATE guilds
+        SET
+            last_anon_changed = CURRENT_TIMESTAMP
+        WHERE guild_id = #{guild_id}
+    </update>
+
 </mapper>
