@@ -1,9 +1,14 @@
 package pro.eng.yui.oss.d2h.db.field;
 
+import net.dv8tion.jda.api.entities.User;
+
 public class UserId extends AbstIds {
     
     public UserId(long value){
         super(value);
+    }
+    public UserId(User user){
+        this(user.getIdLong());
     }
 
     @Override

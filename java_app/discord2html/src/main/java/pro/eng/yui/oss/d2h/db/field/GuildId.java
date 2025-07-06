@@ -1,14 +1,14 @@
 package pro.eng.yui.oss.d2h.db.field;
 
-import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.entities.Guild;
 
-public class ChannelId extends AbstIds{
+public class GuildId extends AbstIds{
     
-    public ChannelId(long value){
+    public GuildId(long value){
         super(value);
     }
-    public ChannelId(Channel channel){
-        super(channel.getIdLong());
+    public GuildId(Guild guild){
+        this(guild.getIdLong());
     }
 
     @Override

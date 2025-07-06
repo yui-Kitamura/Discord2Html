@@ -1,14 +1,12 @@
 package pro.eng.yui.oss.d2h.db.field;
 
-import net.dv8tion.jda.api.entities.channel.Channel;
-
-public class ChannelId extends AbstIds{
+public abstract class RunsOn extends AbstInt {
     
-    public ChannelId(long value){
+    public RunsOn(int value){
         super(value);
-    }
-    public ChannelId(Channel channel){
-        super(channel.getIdLong());
+        if(value < 0 || 23 < value) {
+            throw new IllegalArgumentException("runs on time value must between 0-23");
+        }
     }
 
     @Override
@@ -31,4 +29,6 @@ public class ChannelId extends AbstIds{
     public String toString() {
         return super.toString();
     }
+
 }
+

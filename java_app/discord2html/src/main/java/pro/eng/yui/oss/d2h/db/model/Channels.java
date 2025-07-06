@@ -3,6 +3,7 @@ package pro.eng.yui.oss.d2h.db.model;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
+import pro.eng.yui.oss.d2h.db.field.GuildId;
 
 import java.util.Objects;
 
@@ -15,6 +16,15 @@ public class Channels {
     }
     public ChannelId getChannelId(){
         return channel_id;
+    }
+    
+    /** DiscordサーバID */
+    private GuildId guild_id;
+    public void setGuildId(GuildId newValue){
+        this.guild_id = newValue;
+    }
+    public GuildId getGuidId(){
+        return guild_id;
     }
     
     /** Discordチャンネル名 */
@@ -34,6 +44,7 @@ public class Channels {
     public int hashCode() {
         int hash = 17;
         hash = hash * 31 + (channel_id == null ? 0 : channel_id.hashCode());
+        hash = hash * 31 + (guild_id == null ? 0 : guild_id.hashCode());
         hash = hash * 31 + (channel_name == null ? 0 : channel_name.hashCode());
         return hash;
     }
@@ -45,6 +56,9 @@ public class Channels {
         if(!(obj.getClass().equals(this.getClass()))){ return false; }
         Channels other = (Channels) obj;
         if(!Objects.equals(channel_id, other.channel_id)){
+            return false;
+        }
+        if(!Objects.equals(guild_id, other.guild_id)) {
             return false;
         }
         if(!Objects.equals(channel_name, other.channel_name)){

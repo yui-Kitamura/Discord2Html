@@ -3,16 +3,38 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="pro.eng.yui.oss.d2h.db.mapper.UsersMapper">
 
-    <select id="findById" parameterType="UserId" resultType="Users">
-        SELECT user_id, user_name, nickname, avatar, ignore_anon
+    <select id="findById" parameterType="Users" resultType="Users">
+        SELECT user_id, guild_id, user_name, nickname, avatar, ignore_anon
         FROM users
-        WHERE user_id = #{user_id}
+        WHERE user_id = #{user_id} AND guild_id = #{guild_id}
     </select>
 
     <insert id="insert" parameterType="Users">
         INSERT INTO users
-            (user_id, user_name, nickname, avatar, ignore_anon) 
+            (user_id, guild_id, user_name, nickname, avatar, ignore_anon) 
         VALUES
-            (#{user_id}, #{user_name}, #{nickname}, #{avatar}, #{ignore_anon})
+            (#{user_id}, #{guild_id}, #{user_name}, #{nickname}, #{avatar}, #{ignore_anon})
     </insert>
+    
+    <update id="update" parameterType="Map">
+        UPDATE users
+        <set>
+            <if test="param.user_name != null">user_name = #{param.user_name},</if>
+            <if test="param.nickname != null">nickname = #{param.nickname},</if>
+            <if test="param.avatar != null">avatar = #{param.avatar}</if>
+        </set>
+        WHERE user_id = #{key.user_id} AND guild_id = #{key.guild_id}
+    </update>
+    
+    <update id="setIgnoreAnon" parameterType="UserId">
+        UPDATE users
+        SET ignore_anon = true
+        WHERE user_id = #{user_id} AND guild_id = #{key.guild_id}
+    </update>
+    <update id="setAsAnon" parameterType="UserId">
+        UPDATE users
+        SET ignore_anon = false
+        WHERE user_id = #{user_id} AND guild_id = #{key.guild_id}
+    </update>
+    
 </mapper>

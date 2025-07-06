@@ -1,14 +1,16 @@
 package pro.eng.yui.oss.d2h.db.field;
 
-import net.dv8tion.jda.api.entities.channel.Channel;
+import net.dv8tion.jda.api.entities.Guild;
 
-public class ChannelId extends AbstIds{
+public class GuildName extends AbstVarChar {
     
-    public ChannelId(long value){
-        super(value);
+    public static int LIMIT = 255;
+    
+    public GuildName(String value){
+        super(value, LIMIT);
     }
-    public ChannelId(Channel channel){
-        super(channel.getIdLong());
+    public GuildName(Guild guild){
+        this(guild.getName());
     }
 
     @Override
@@ -31,4 +33,5 @@ public class ChannelId extends AbstIds{
     public String toString() {
         return super.toString();
     }
+
 }

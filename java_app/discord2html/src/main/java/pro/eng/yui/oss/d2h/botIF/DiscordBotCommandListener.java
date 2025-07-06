@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.runner.MeRunner;
 
 import java.util.Arrays;
 import java.util.List;
@@ -49,10 +50,13 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     );
 
     private final DiscordBotUtils bot;
+    private final MeRunner meRunner;
 
     @Autowired
-    public DiscordBotCommandListener(DiscordBotUtils bot){
+    public DiscordBotCommandListener(DiscordBotUtils bot,
+                                     MeRunner me){
         this.bot = bot;
+        this.meRunner = me;
     }
 
     @Override
@@ -63,6 +67,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if((event.getChannel() instanceof GuildChannel) == false) {
             event.reply("commands is enabled only in server channel").queue();
             return;
+        }
+        if (isAcceptedChannel(event.getGuildChannel()) == false) {
+            event.reply("you can NOT USE commands in this channel")
+                    .setEphemeral(true) //visible=false
+                    .queue();
+
         }
         
         if(commands.contains(command) == false) {
@@ -77,6 +87,10 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     .queue();
             return;
         }
+
+        bot.upsertGuildInfoToDB(event.getGuild());
+        bot.upsertGuildChannelToDB(event.getGuildChannel());
+
         switch(sub) {
             case "archive" -> runArchive(event);
             case "run" -> runRun(event);
@@ -99,6 +113,10 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             return false;
         }
         return true;
+    }
+    /** コマンド実行チャンネルの確認 */
+    protected boolean isAcceptedChannel(GuildChannel channel){
+        return bot.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
     }
     
     private void runArchive(SlashCommandInteractionEvent event){
@@ -124,7 +142,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     
     private void runMe(SlashCommandInteractionEvent event){
         //do not need to check //if(hasAdminPermission(event) == false) == false)
-        event.reply("me command is running!").queue();
+        meRunner.run(event.getMember(), event.getOptions());
     }
     
     private void runAnonymous(SlashCommandInteractionEvent event){

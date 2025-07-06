@@ -5,6 +5,9 @@ public class IsChanged extends AbstFlgs {
     public IsChanged(boolean value){
         super(value);
     }
+    
+    public static IsChanged CHANGED = new IsChanged(true);
+    public static IsChanged NOT_CHANGED = new IsChanged(false);
 
     @Override
     public int hashCode() {

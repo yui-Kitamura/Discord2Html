@@ -1,14 +1,9 @@
 package pro.eng.yui.oss.d2h.db.field;
 
-import net.dv8tion.jda.api.entities.channel.Channel;
-
-public class ChannelId extends AbstIds{
+public class RunsOn3 extends RunsOn {
     
-    public ChannelId(long value){
+    public RunsOn3(int value){
         super(value);
-    }
-    public ChannelId(Channel channel){
-        super(channel.getIdLong());
     }
 
     @Override
@@ -31,4 +26,6 @@ public class ChannelId extends AbstIds{
     public String toString() {
         return super.toString();
     }
+
 }
+

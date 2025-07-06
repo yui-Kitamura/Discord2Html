@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pro.eng.yui.oss.d2h.db.mapper.ChannelsMapper">
+
+    <select id="selectChannelArchiveDo" parameterType="Channels" resultType="Channels">
+        SELECT ch.*
+        FROM
+            channels ch,
+            (   SELECT cl1.channel_id, status, time_stamp
+                FROM 
+                    channel_log cl1,
+                    (SELECT channel_id, MAX(time_stamp) mt 
+                     FROM channel_log GROUP BY channel_id) cl2
+                WHERE
+                    cl1.channel_id = cl2.channel_id
+                    AND cl1.time_stamp = cl2.mt
+            ) cl
+        WHERE
+            ch.channel_id = cl.channel_id
+            AND ch.guild_id = #{guild_id}
+            AND cl.status = true
+    </select>
+    
+    <insert id="register" parameterType="Channels">
+        INSERT INTO channels (channel_id, guild_id, channel_name)
+        VALUES (#{channel_id}, #{guild_id}, #{channel_name})
+    </insert>
+    
+    <update id="update" parameterType="Channels">
+        UPDATE channels
+        SET channel_name = #{channel_name}
+        WHERE channel_id = #{channel_id}
+    </update>
+    
+    <select id="selectOne" parameterType="Channels">
+        SELECT 
+            guild_id, channel_id, channel_name
+        FROM channels
+        WHERE channel_id = #{channel_id}
+    </select>
+    
+    <update id="updateChannelStatus" parameterType="ChannelLog">
+        INSERT INTO channel_log (channel_id, time_stamp, is_changed, status)
+        VALUES
+            (#{channel_id}, CURRENT_TIMESTAMP, true, #{status} )
+    </update>
+    
+    <insert id="logChannelStatus" parameterType="ChannelLog">
+        INSERT INTO channel_log (channel_id, time_stamp, is_changed, status)
+        VALUES
+            (#{channel_id}, CURRENT_TIMESTAMP, false, (
+                SELECT COALESCE(status, 'OFF') FROM channel_log 
+                WHERE channel_id = #{channel_id}
+                ORDER BY time_stamp DESC
+                LIMIT 1
+            ))
+    </insert>
+</mapper>

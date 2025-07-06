@@ -1,5 +1,7 @@
 package pro.eng.yui.oss.d2h.db.field;
 
+import net.dv8tion.jda.api.entities.User;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -10,6 +12,9 @@ public class Avatar extends AbstVarChar {
     
     public Avatar(String value){
         super(value, LIMIT);
+    }
+    public Avatar(User user){
+        this(user.getAvatarId());
     }
     
     public URL getImgPath(UserId userId){
