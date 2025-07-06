@@ -118,8 +118,9 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 }
             }
         }catch(Exception unexpected) {
-            event.reply("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
-                    .queue();
+            event.getHook()
+                .sendMessage("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
+                .queue();
             return;
         }
     }
