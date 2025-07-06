@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.botIF.runner.AnonymousSettingRunner;
 import pro.eng.yui.oss.d2h.botIF.runner.HelpRunner;
 import pro.eng.yui.oss.d2h.botIF.runner.MeRunner;
+import pro.eng.yui.oss.d2h.botIF.runner.RoleRunner;
 
 import java.util.Arrays;
 import java.util.List;
@@ -52,16 +53,19 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     );
 
     private final DiscordBotUtils bot;
-    private final MeRunner meRunner;
+    private final RoleRunner roleRunner;
     private final AnonymousSettingRunner anonymousSettingRunner;
+    private final MeRunner meRunner;
     private final HelpRunner helpRunner;
 
     @Autowired
     public DiscordBotCommandListener(DiscordBotUtils bot,
-                                     HelpRunner help, MeRunner me, AnonymousSettingRunner anon){
+                                     HelpRunner help, MeRunner me, RoleRunner role,
+                                     AnonymousSettingRunner anon){
         this.bot = bot;
-        this.meRunner = me;
+        this.roleRunner = role;
         this.anonymousSettingRunner = anon;
+        this.meRunner = me;
         this.helpRunner = help;
     }
 
@@ -149,7 +153,8 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if(hasAdminPermission(event) == false) {
             return;
         }
-        event.reply("role command is running!").queue();
+        roleRunner.run(event.getMember(), event.getOptions());
+        event.reply(roleRunner.afterRunMessage()).queue();
     }
     
     private void runMe(SlashCommandInteractionEvent event){
@@ -169,6 +174,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private void runHelp(SlashCommandInteractionEvent event){
         //do not need to check //if(hasAdminPermission(event) == false) == false)
         helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()));
+        event.reply(helpRunner.afterRunMessage()).queue();
     }
 
 }
