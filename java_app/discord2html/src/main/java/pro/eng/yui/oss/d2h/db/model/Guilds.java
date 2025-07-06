@@ -96,6 +96,7 @@ public class Guilds {
         hash = hash * 31 + (guild_id == null ? 0 : guild_id.hashCode());
         hash = hash * 31 + (guild_name == null ? 0 : guild_name.hashCode());
         hash = hash * 31 + (joined_time == null ? 0 : joined_time.hashCode());
+        hash = hash * 31 + (anon_cycle == null ? 0 : anon_cycle.hashCode());
         hash = hash * 31 + (runs_on_1 == null ? 0 : runs_on_1.hashCode());
         hash = hash * 31 + (runs_on_2 == null ? 0 : runs_on_2.hashCode());
         hash = hash * 31 + (runs_on_3 == null ? 0 : runs_on_3.hashCode());
@@ -116,6 +117,9 @@ public class Guilds {
             return false;
         }
         if(!Objects.equals(joined_time, other.joined_time)){
+            return false;
+        }
+        if(!Objects.equals(anon_cycle, other.anon_cycle)) {
             return false;
         }
         if(!Objects.equals(runs_on_1, other.runs_on_1)){
