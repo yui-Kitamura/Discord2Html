@@ -87,6 +87,10 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     .queue();
             return;
         }
+
+        bot.upsertGuildInfoToDB(event.getGuild());
+        bot.upsertGuildChannelToDB(event.getGuildChannel());
+
         switch(sub) {
             case "archive" -> runArchive(event);
             case "run" -> runRun(event);
