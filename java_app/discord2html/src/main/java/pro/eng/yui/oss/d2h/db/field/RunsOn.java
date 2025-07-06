@@ -1,5 +1,7 @@
 package pro.eng.yui.oss.d2h.db.field;
 
+import java.util.Comparator;
+
 public abstract class RunsOn extends AbstInt {
     
     public RunsOn(int value){
@@ -7,6 +9,10 @@ public abstract class RunsOn extends AbstInt {
         if(value < 0 || 23 < value) {
             throw new IllegalArgumentException("runs on time value must between 0-23");
         }
+    }
+
+    public static Comparator<RunsOn> getListComparator() {
+        return (a, b) -> Integer.compare(a.getValue(), b.getValue());
     }
 
     @Override

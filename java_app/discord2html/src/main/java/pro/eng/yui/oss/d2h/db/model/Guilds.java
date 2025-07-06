@@ -82,6 +82,7 @@ public class Guilds {
         if(runs_on_2 != null){ result.add(runs_on_2); }
         if(runs_on_3 != null){ result.add(runs_on_3); }
         if(runs_on_4 != null){ result.add(runs_on_4); }
+        result.sort(RunsOn.getListComparator());
         return result;
     }
     
