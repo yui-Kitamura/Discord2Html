@@ -4,13 +4,15 @@
 <mapper namespace="pro.eng.yui.oss.d2h.db.mapper.GuildsMapper">
 
     <insert id="register" parameterType="Guilds">
-        INSERT INTO guilds (guild_id, guild_name, joined_time, runs_on_1)
-        VALUES (#{guild_id}, #{guild_name},CURRENT_TIMESTAMP, 0)
+        INSERT INTO guilds (guild_id, guild_name, joined_time, anon_cycle, runs_on_1)
+        VALUES (#{guild_id}, #{guild_name},CURRENT_TIMESTAMP, 12, 0)
     </insert>
     
     <update id="update" parameterType="Guilds">
         UPDATE guilds
-        SET guild_name = #{guild_name}
+        SET
+            guild_name = #{guild_name},
+            anon_cycle = #{anon_cycle}
         WHERE guild_id = #{guild_id}
     </update>
     
