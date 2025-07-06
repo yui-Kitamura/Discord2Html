@@ -10,7 +10,7 @@ import java.util.Map;
 @Mapper
 public interface UsersMapper {
     
-    Users findById(@Param("user_id")UserId userId);
+    Users findById(Users key);
 
     void insert(Users insertParam);
     

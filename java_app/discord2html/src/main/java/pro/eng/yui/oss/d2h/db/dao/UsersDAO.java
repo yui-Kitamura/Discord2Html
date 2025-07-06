@@ -3,6 +3,7 @@ package pro.eng.yui.oss.d2h.db.dao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
+import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.IgnoreAnon;
 import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.mapper.UsersMapper;
@@ -22,17 +23,20 @@ public class UsersDAO {
         this.mapper = usersMapper;
     }
     
-    public Users select(UserId keyId){
-        Users res = mapper.findById(keyId);
+    public Users select(GuildId joinedTo, UserId keyId){
+        Users param = new Users();
+        param.setGuildId(joinedTo);
+        param.setUserId(keyId);
+        Users res = mapper.findById(param);
         if(res == null) {
             throw new DbRecordNotFoundException(keyId.toString());
         }
         return res;
     }
     
-    public boolean exists(UserId keyId){
+    public boolean exists(GuildId joinedTo, UserId keyId){
         try {
-            select(keyId);
+            select(joinedTo, keyId);
             return true;
         }catch (DbRecordNotFoundException nfe) {
             return false;
@@ -40,18 +44,19 @@ public class UsersDAO {
     }
     
     public Users upsertUserInfo(Users newInfo){
-        if(exists(newInfo.getUserId())) {
-            update(newInfo.getUserId(), newInfo);
+        if(exists(newInfo.getGuildId(), newInfo.getUserId())) {
+            update(newInfo.getGuildId(), newInfo.getUserId(), newInfo);
         }else {
             insert(newInfo);
         }
-        return select(newInfo.getUserId());
+        return select(newInfo.getGuildId(), newInfo.getUserId());
     }
     
     public Users insert(Users newRecord){
         Users insertParam = new Users();
         try {
             insertParam.setUserId(Objects.requireNonNull(newRecord.getUserId()));
+            insertParam.setGuildId(Objects.requireNonNull(newRecord.getGuildId()));
             insertParam.setUserName(Objects.requireNonNull(newRecord.getUserName()));
             insertParam.setNickname(newRecord.getNickname());
             insertParam.setAvatar(newRecord.getAvatar());
@@ -61,15 +66,16 @@ public class UsersDAO {
         }
         
         mapper.insert(insertParam);
-        return select(insertParam.getUserId());
+        return select(insertParam.getGuildId(), insertParam.getUserId());
     }
     
     /** ignore_anon 以外の更新 */
-    public Users update(UserId key, Users newData){
+    public Users update(GuildId joinedTo, UserId key, Users newData){
         Users usersKey = new Users();
         Users updateParam = new Users();
         try {
             usersKey.setUserId(Objects.requireNonNull(key));
+            usersKey.setGuildId(Objects.requireNonNull(joinedTo));
             
             if(newData.getUserName() != null) {
                 updateParam.setUserName(newData.getUserName());
@@ -88,11 +94,11 @@ public class UsersDAO {
         keyVal.put("key", usersKey);
         keyVal.put("param", updateParam);
         mapper.update(keyVal);
-        return select(key);
+        return select(usersKey.getGuildId(), usersKey.getUserId());
     }
     
-    public IgnoreAnon updateIgnoreAnon(UserId userId, IgnoreAnon newValue){
-        Users current = select(userId);
+    public IgnoreAnon updateIgnoreAnon(GuildId joinedTo, UserId userId, IgnoreAnon newValue){
+        Users current = select(joinedTo, userId);
         if(current.getIgnoreAnon().equals(newValue)) {
             return current.getIgnoreAnon();
         }
