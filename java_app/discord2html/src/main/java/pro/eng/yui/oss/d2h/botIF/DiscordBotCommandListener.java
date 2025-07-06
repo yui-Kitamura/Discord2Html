@@ -100,6 +100,8 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             return;
         }
 
+        event.deferReply().queue();
+        
         bot.upsertGuildInfoToDB(event.getGuild());
         bot.upsertGuildChannelToDB(event.getGuildChannel());
         
@@ -112,7 +114,8 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "me" -> runMe(event);
                 case "help" -> runHelp(event);
                 default -> {
-                    event.reply("unknown subcommand. Use `/d2h help`")
+                    event.getHook()
+                            .sendMessage("unknown subcommand. Use `/d2h help`")
                             .setSuppressedNotifications(true)
                             .queue();
                 }
@@ -146,7 +149,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             return;
         }
         archiveConfigRunner.run(event.getMember(), event.getOptions());
-        event.reply(archiveConfigRunner.afterRunMessage()).queue();
+        event.getHook().sendMessage(archiveConfigRunner.afterRunMessage()).queue();
     }
     
     private void runRun(SlashCommandInteractionEvent event){
@@ -156,7 +159,6 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if(isAcceptedChannel(event.getGuildChannel()) == false) {
             return;
         }
-        event.deferReply().queue();
         runArchiveRunner.run(event.getMember(), event.getOptions());
         event.getHook().sendMessage(runArchiveRunner.afterRunMessage()).queue();
     }
@@ -166,13 +168,13 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             return;
         }
         roleRunner.run(event.getMember(), event.getOptions());
-        event.reply(roleRunner.afterRunMessage()).queue();
+        event.getHook().sendMessage(roleRunner.afterRunMessage()).queue();
     }
     
     private void runMe(SlashCommandInteractionEvent event){
         //do not need to check //if(hasAdminPermission(event) == false) == false)
         meRunner.run(event.getMember(), event.getOptions());
-        event.reply(meRunner.afterRunMessage()).queue();
+        event.getHook().sendMessage(meRunner.afterRunMessage()).queue();
     }
     
     private void runAnonymous(SlashCommandInteractionEvent event){
@@ -180,13 +182,13 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             return;
         }
         anonymousSettingRunner.run(event.getGuild(), event.getOptions());
-        event.reply(anonymousSettingRunner.afterRunMessage()).queue();
+        event.getHook().sendMessage(anonymousSettingRunner.afterRunMessage()).queue();
     }
     
     private void runHelp(SlashCommandInteractionEvent event){
         //do not need to check //if(hasAdminPermission(event) == false) == false)
         helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()));
-        event.reply(helpRunner.afterRunMessage()).queue();
+        event.getHook().sendMessage(helpRunner.afterRunMessage()).queue();
     }
 
 }
