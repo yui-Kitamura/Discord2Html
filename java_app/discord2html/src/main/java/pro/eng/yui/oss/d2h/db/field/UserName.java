@@ -1,11 +1,16 @@
 package pro.eng.yui.oss.d2h.db.field;
 
+import net.dv8tion.jda.api.entities.User;
+
 public class UserName extends AbstVarChar {
     
     public static int LIMIT = 255;
     
     public UserName(String value){
         super(value, LIMIT);
+    }
+    public UserName(User user){
+        this(user.getName());
     }
 
     @Override

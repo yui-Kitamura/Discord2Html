@@ -1,11 +1,16 @@
 package pro.eng.yui.oss.d2h.db.field;
 
+import net.dv8tion.jda.api.entities.Guild;
+
 public class GuildName extends AbstVarChar {
     
     public static int LIMIT = 255;
     
     public GuildName(String value){
         super(value, LIMIT);
+    }
+    public GuildName(Guild guild){
+        this(guild.getName());
     }
 
     @Override
