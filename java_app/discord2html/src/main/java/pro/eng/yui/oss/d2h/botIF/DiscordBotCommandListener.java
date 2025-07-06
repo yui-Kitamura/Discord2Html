@@ -90,19 +90,24 @@ public class DiscordBotCommandListener extends ListenerAdapter {
 
         bot.upsertGuildInfoToDB(event.getGuild());
         bot.upsertGuildChannelToDB(event.getGuildChannel());
-
-        switch(sub) {
-            case "archive" -> runArchive(event);
-            case "run" -> runRun(event);
-            case "role" -> runRole(event);
-            case "anonymous" -> runAnonymous(event);
-            case "me" -> runMe(event);
-            case "help" -> runHelp(event);
-            default -> {
-                event.reply("unknown subcommand. Use `/d2h help`")
-                        .setSuppressedNotifications(true)
-                        .queue();
+        
+        try {
+            switch (sub) {
+                case "archive" -> runArchive(event);
+                case "run" -> runRun(event);
+                case "role" -> runRole(event);
+                case "anonymous" -> runAnonymous(event);
+                case "me" -> runMe(event);
+                case "help" -> runHelp(event);
+                default -> {
+                    event.reply("unknown subcommand. Use `/d2h help`")
+                            .setSuppressedNotifications(true)
+                            .queue();
+                }
             }
+        }catch(Exception unexpected) {
+            event.reply("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
+                    .queue();
         }
     }
     

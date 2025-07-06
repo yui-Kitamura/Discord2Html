@@ -99,7 +99,7 @@ public class UsersDAO {
     
     public IgnoreAnon updateIgnoreAnon(GuildId joinedTo, UserId userId, IgnoreAnon newValue){
         Users current = select(joinedTo, userId);
-        if(current.getIgnoreAnon().equals(newValue)) {
+        if(newValue.equals(current.getIgnoreAnon())) {
             return current.getIgnoreAnon();
         }
         
