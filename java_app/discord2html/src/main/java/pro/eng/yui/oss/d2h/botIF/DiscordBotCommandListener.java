@@ -72,7 +72,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             event.reply("you can NOT USE commands in this channel")
                     .setEphemeral(true) //visible=false
                     .queue();
-
+            return;
         }
         
         if(commands.contains(command) == false) {
@@ -108,6 +108,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         }catch(Exception unexpected) {
             event.reply("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
                     .queue();
+            return;
         }
     }
     
@@ -148,6 +149,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private void runMe(SlashCommandInteractionEvent event){
         //do not need to check //if(hasAdminPermission(event) == false) == false)
         meRunner.run(event.getMember(), event.getOptions());
+        event.reply(meRunner.afterRunMessage()).queue();
     }
     
     private void runAnonymous(SlashCommandInteractionEvent event){
