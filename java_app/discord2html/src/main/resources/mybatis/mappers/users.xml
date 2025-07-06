@@ -29,12 +29,12 @@
     <update id="setIgnoreAnon" parameterType="Users">
         UPDATE users
         SET ignore_anon = true
-        WHERE user_id = #{user_id} AND guild_id = #{key.guild_id}
+        WHERE user_id = #{user_id} AND guild_id = #{guild_id}
     </update>
     <update id="setAsAnon" parameterType="Users">
         UPDATE users
         SET ignore_anon = false
-        WHERE user_id = #{user_id} AND guild_id = #{key.guild_id}
+        WHERE user_id = #{user_id} AND guild_id = #{guild_id}
     </update>
     
 </mapper>
