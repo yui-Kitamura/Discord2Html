@@ -12,4 +12,6 @@ public interface GuildsMapper {
 
     Guilds selectOne(Guilds key);
     
+    void anonTimestamp(Guilds key);
+    
 }
