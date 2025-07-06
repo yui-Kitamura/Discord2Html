@@ -1,18 +1,12 @@
 package pro.eng.yui.oss.d2h.db.field;
 
-import java.util.Comparator;
-
-public abstract class RunsOn extends AbstInt {
+public class AnonCycle extends AbstInt {
     
-    public RunsOn(int value){
+    public AnonCycle(int value){
         super(value);
-        if(value < 0 || 23 < value) {
-            throw new IllegalArgumentException("runs on time value must between 0-23");
+        if(value < 1 || 24 < value) {
+            throw new IllegalArgumentException("runs on time value must between 1-24");
         }
-    }
-
-    public static Comparator<RunsOn> getListComparator() {
-        return (a, b) -> Integer.compare(a.getValue(), b.getValue());
     }
 
     @Override

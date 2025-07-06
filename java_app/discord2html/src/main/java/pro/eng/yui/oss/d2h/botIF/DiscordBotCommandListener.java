@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.runner.AnonymousSettingRunner;
 import pro.eng.yui.oss.d2h.botIF.runner.MeRunner;
 
 import java.util.Arrays;
@@ -51,12 +52,14 @@ public class DiscordBotCommandListener extends ListenerAdapter {
 
     private final DiscordBotUtils bot;
     private final MeRunner meRunner;
+    private final AnonymousSettingRunner anonymousSettingRunner;
 
     @Autowired
     public DiscordBotCommandListener(DiscordBotUtils bot,
-                                     MeRunner me){
+                                     MeRunner me, AnonymousSettingRunner anon){
         this.bot = bot;
         this.meRunner = me;
+        this.anonymousSettingRunner = anon;
     }
 
     @Override
@@ -156,7 +159,8 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if(hasAdminPermission(event) == false) {
             return;
         }
-        event.reply("anonymous command is running!").queue();
+        anonymousSettingRunner.run(event.getGuild(), event.getOptions());
+        event.reply(anonymousSettingRunner.afterRunMessage()).queue();
     }
     
     private void runHelp(SlashCommandInteractionEvent event){
