@@ -59,7 +59,7 @@ public class DiscordBotUtils {
         Users newRecord = new Users();
         newRecord.setUserId(new UserId(member.getUser()));
         newRecord.setUserName(new UserName(member.getUser().getName()));
-        newRecord.setNickname(new Nickname(member.getNickname()));
+        newRecord.setNickname(new Nickname(member));
         newRecord.setAvatar(new Avatar(member.getAvatarId()));
         usersDao.upsertUserInfo(newRecord);
     }

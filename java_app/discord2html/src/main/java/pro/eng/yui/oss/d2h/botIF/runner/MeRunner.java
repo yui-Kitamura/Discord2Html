@@ -41,7 +41,7 @@ public class MeRunner implements IRunner {
         latestInfo.setUserId(userId);
         latestInfo.setGuildId(new GuildId(member.getGuild()));
         latestInfo.setUserName(new UserName(member.getUser()));
-        latestInfo.setNickname(new Nickname(member.getNickname()));
+        latestInfo.setNickname(new Nickname(member));
         latestInfo.setAvatar(new Avatar(member.getUser()));
         usersDao.upsertUserInfo(latestInfo);
         usersDao.updateIgnoreAnon(userId, newValue);
