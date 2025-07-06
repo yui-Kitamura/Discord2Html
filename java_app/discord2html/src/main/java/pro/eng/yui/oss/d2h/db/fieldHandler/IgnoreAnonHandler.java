@@ -23,18 +23,18 @@ public class IgnoreAnonHandler extends BaseTypeHandler<IgnoreAnon> {
     @Override
     public IgnoreAnon getNullableResult(ResultSet rs, String columnName) throws SQLException {
         boolean val = rs.getBoolean(columnName);
-        return rs.wasNull() ? null : new IgnoreAnon(val);
+        return rs.wasNull() ? IgnoreAnon.HIDDEN : new IgnoreAnon(val);
     }
 
     @Override
     public IgnoreAnon getNullableResult(ResultSet rs, int columnIndex) throws SQLException {
         boolean val = rs.getBoolean(columnIndex);
-        return rs.wasNull() ? null : new IgnoreAnon(val);
+        return rs.wasNull() ? IgnoreAnon.HIDDEN : new IgnoreAnon(val);
     }
 
     @Override
     public IgnoreAnon getNullableResult(CallableStatement cs, int columnIndex) throws SQLException {
         boolean val = cs.getBoolean(columnIndex);
-        return cs.wasNull() ? null : new IgnoreAnon(val);
+        return cs.wasNull() ? IgnoreAnon.HIDDEN : new IgnoreAnon(val);
     }
 }
