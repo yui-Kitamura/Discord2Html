@@ -9,10 +9,7 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import pro.eng.yui.oss.d2h.botIF.runner.AnonymousSettingRunner;
-import pro.eng.yui.oss.d2h.botIF.runner.HelpRunner;
-import pro.eng.yui.oss.d2h.botIF.runner.MeRunner;
-import pro.eng.yui.oss.d2h.botIF.runner.RoleRunner;
+import pro.eng.yui.oss.d2h.botIF.runner.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -57,16 +54,21 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private final AnonymousSettingRunner anonymousSettingRunner;
     private final MeRunner meRunner;
     private final HelpRunner helpRunner;
+    private final RunArchiveRunner runArchiveRunner;
+    private final ArchiveConfigRunner archiveConfigRunner;
 
     @Autowired
     public DiscordBotCommandListener(DiscordBotUtils bot,
                                      HelpRunner help, MeRunner me, RoleRunner role,
-                                     AnonymousSettingRunner anon){
+                                     AnonymousSettingRunner anon, RunArchiveRunner run,
+                                     ArchiveConfigRunner archive){
         this.bot = bot;
         this.roleRunner = role;
         this.anonymousSettingRunner = anon;
         this.meRunner = me;
         this.helpRunner = help;
+        this.runArchiveRunner = run;
+        this.archiveConfigRunner = archive;
     }
 
     @Override
@@ -139,14 +141,23 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if(hasAdminPermission(event) == false) {
             return;
         }
-        event.reply("archive command is running!").queue();
+        if(isAcceptedChannel(event.getGuildChannel()) == false) {
+            return;
+        }
+        archiveConfigRunner.run(event.getMember(), event.getOptions());
+        event.reply(archiveConfigRunner.afterRunMessage()).queue();
     }
     
     private void runRun(SlashCommandInteractionEvent event){
         if(hasAdminPermission(event) == false) {
             return;
         }
-        event.reply("run command is running!").queue();
+        if(isAcceptedChannel(event.getGuildChannel()) == false) {
+            return;
+        }
+        event.deferReply().queue();
+        runArchiveRunner.run(event.getMember(), event.getOptions());
+        event.reply(runArchiveRunner.afterRunMessage()).queue();
     }
     
     private void runRole(SlashCommandInteractionEvent event){
