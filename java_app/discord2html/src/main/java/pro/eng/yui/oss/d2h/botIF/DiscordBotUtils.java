@@ -124,6 +124,7 @@ public class DiscordBotUtils {
     }
     
     /* pkg-prv */ boolean isD2hAdmin(Member member){
+        if(member == null) { return false; }
         return member.getRoles().contains(getD2hAdminRole(member.getGuild()));
     }
 }
