@@ -35,6 +35,11 @@ public class MeRunner implements IRunner {
         
     }
     
+    @Override
+    public String afterRunMessage(){
+        return "Your configuration has updated successfully";
+    }
+    
     private void runSetAnonymous(Member member, IgnoreAnon newValue){
         final UserId userId = new UserId(member.getUser());
         final GuildId guildId = new GuildId(member.getGuild());
