@@ -34,7 +34,16 @@ public class Guilds {
     public JoinedTime getJoinedTime() {
         return joined_time;
     }
-
+    
+    /** 匿名更新サイクル */
+    private AnonCycle anon_cycle;
+    public void setAnonCycle(AnonCycle newValue){
+        this.anon_cycle = newValue;
+    }
+    public AnonCycle getAnonCycle(){
+        return anon_cycle;
+    }        
+        
     public RunsOn1 runs_on_1;
     public void setRunsOn1(RunsOn1 newValue) {
         this.runs_on_1 = newValue;
