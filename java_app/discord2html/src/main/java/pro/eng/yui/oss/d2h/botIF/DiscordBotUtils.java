@@ -8,13 +8,18 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
-import pro.eng.yui.oss.d2h.db.field.GuildId;
+import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
+import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
+import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Channels;
+import pro.eng.yui.oss.d2h.db.model.Guilds;
+import pro.eng.yui.oss.d2h.db.model.Users;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,11 +27,41 @@ import java.util.List;
 @Component
 public class DiscordBotUtils {
     
-    private ChannelsDAO channelsDao;
+    private final GuildsDAO guildsDao;
+    private final ChannelsDAO channelsDao;
+    private final UsersDAO usersDao;
     
     @Autowired
-    public DiscordBotUtils(ChannelsDAO channelsDao){
-        this.channelsDao = channelsDao;
+    public DiscordBotUtils(GuildsDAO g, ChannelsDAO c, UsersDAO u){
+        this.guildsDao = g;
+        this.channelsDao = c;
+        this.usersDao = u;
+    }
+
+    /* pkg-prv */ void upsertGuildInfoToDB(Guild guild){
+        Guilds newRecord = new Guilds();
+        newRecord.setGuildId(new GuildId(guild));
+        newRecord.setGuildName(new GuildName(guild));
+        guildsDao.upsertGuildInfo(newRecord);
+    }
+    
+    /* pkg-prv */ void upsertGuildChannelToDB(GuildMessageChannel ch){
+        upsertGuildInfoToDB(ch.getGuild());
+        Channels newRecord = new Channels();
+        newRecord.setGuildId(new GuildId(ch.getGuild()));
+        newRecord.setChannelId(new ChannelId(ch));
+        newRecord.setChannelName(new ChannelName(ch));
+        channelsDao.upsertChannelInfo(newRecord);
+    }
+    
+    /* pkg-prv */ void registerUserInfoToDB(Member member){
+        upsertGuildInfoToDB(member.getGuild());
+        Users newRecord = new Users();
+        newRecord.setUserId(new UserId(member.getUser()));
+        newRecord.setUserName(new UserName(member.getUser().getName()));
+        newRecord.setNickname(new Nickname(member.getNickname()));
+        newRecord.setAvatar(new Avatar(member.getAvatarId()));
+        usersDao.upsertUserInfo(newRecord);
     }
 
     /* pkg-prv */ void sendMessagePrivate(MessageReceivedEvent messageEvent){
