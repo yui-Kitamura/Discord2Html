@@ -30,6 +30,6 @@ public class RunArchiveRunner implements IRunner {
 
     @Override
     public String afterRunMessage() {
-        return "";
+        return "bot completed making archive";
     }
 }
