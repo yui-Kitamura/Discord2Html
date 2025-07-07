@@ -21,7 +21,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     public static final List<SubcommandData> D2H_SUB_COMMANDS = List.of(
             new SubcommandData("archive", "change channel archive settings")
                     .addOption(OptionType.CHANNEL, "channel", "target channel", true)
-                    .addOption(OptionType.BOOLEAN, "mode", "do archive", true)
+                    .addOptions(new OptionData(
+                            OptionType.STRING, "mode", "do archive", true
+                            )
+                            .addChoice("ignore", "ignore")
+                            .addChoice("monitor", "monitor")
+                    )
             ,
             new SubcommandData("run", "run archive function now")
                     .addOption(OptionType.CHANNEL, "target","target channel", false)
