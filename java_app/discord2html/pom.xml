@@ -11,7 +11,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.0</version>
+        <version>3.5.3</version>
     </parent>
 
     <properties>
@@ -50,9 +50,10 @@
             <version>3.0.4</version>
         </dependency>
         <dependency>
+            <!-- https://mvnrepository.com/artifact/org.mariadb.jdbc/mariadb-java-client -->
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>
-            <version>3.4.0</version>
+            <version>3.5.4</version>
         </dependency>
 
         <dependency>
