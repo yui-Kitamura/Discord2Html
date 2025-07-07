@@ -1,6 +1,5 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
