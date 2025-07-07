@@ -4,6 +4,8 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.stereotype.Component;
@@ -29,18 +31,17 @@ public class RunArchiveRunner implements IRunner {
     }
     
     public void run(Member member, List<OptionMapping> options){
-        //TODO run make archive file
-        
         member.getJDA().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
 
-        loop: for(OptionMapping om : options) {
+        for(OptionMapping om : options) {
             if("target".equals(om.getName())) {
-                String channelName = om.getAsString();
-                for(GuildMessageChannel channel : member.getGuild().getTextChannels()) {
-                    if (channelName.equals(channel.getName())) {
-                        run(channel);
-                        break loop;
-                    }
+                List<TextChannel> channels =  member.getGuild().getTextChannelsByName(om.getAsString(), true);
+                for(GuildMessageChannel channel : channels){
+                    run(channel);
+                }
+                List<VoiceChannel> voiceChannels = member.getGuild().getVoiceChannelsByName(om.getAsString(), true);
+                for(GuildMessageChannel v : voiceChannels) {
+                    run(v);
                 }
             }
         }
@@ -51,13 +52,12 @@ public class RunArchiveRunner implements IRunner {
     public void run(){
         final int now = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
         List<Guilds> allGuilds = guildDao.selectAll();
-        loop: for(Guilds guilds : allGuilds) {
+        for(Guilds guilds : allGuilds) {
             for(RunsOn on : guilds.getRunsOn()) {
                 if(on.getValue() == now) {
                     List<Channels> chs = channelDao.selectAllInGuild(guilds.getGuildId());
                     for(Channels ch : chs) {
                         run((GuildMessageChannel) ch);
-                        break loop;
                     }
                 }
             }
