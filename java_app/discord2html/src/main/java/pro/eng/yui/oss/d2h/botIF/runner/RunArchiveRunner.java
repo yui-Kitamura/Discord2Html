@@ -8,8 +8,10 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.botIF.DiscordBot;
+import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
@@ -24,25 +26,39 @@ public class RunArchiveRunner implements IRunner {
     
     private final GuildsDAO guildDao;
     private final ChannelsDAO channelDao;
+    private final DiscordJdaProvider jda;
     
-    public RunArchiveRunner(GuildsDAO g, ChannelsDAO ch){
+    @Autowired
+    public RunArchiveRunner(GuildsDAO g, ChannelsDAO ch, DiscordJdaProvider j){
         this.guildDao = g;
         this.channelDao = ch;
+        this.jda = j;
     }
     
     public void run(Member member, List<OptionMapping> options){
         member.getJDA().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
 
+        boolean isTargetChannelMarked = false;
         for(OptionMapping om : options) {
             if("target".equals(om.getName())) {
                 List<TextChannel> channels =  member.getGuild().getTextChannelsByName(om.getAsString(), true);
                 for(GuildMessageChannel channel : channels){
+                    isTargetChannelMarked = true;
                     run(channel);
                 }
                 List<VoiceChannel> voiceChannels = member.getGuild().getVoiceChannelsByName(om.getAsString(), true);
                 for(GuildMessageChannel v : voiceChannels) {
+                    isTargetChannelMarked = true;
                     run(v);
                 }
+            }
+        }
+        if(isTargetChannelMarked == false) {
+            for(GuildMessageChannel c : member.getGuild().getTextChannels()) {
+                run(c);
+            }
+            for(GuildMessageChannel v : member.getGuild().getVoiceChannels()) {
+                run(v);
             }
         }
 
@@ -57,15 +73,15 @@ public class RunArchiveRunner implements IRunner {
                 if(on.getValue() == now) {
                     List<Channels> chs = channelDao.selectAllInGuild(guilds.getGuildId());
                     for(Channels ch : chs) {
-                        run((GuildMessageChannel) ch);
+                        run(ch);
                     }
                 }
             }
         }
     }
     
-    private void run(JDA jda, Channels target) {
-        Guild guildIn = jda.getGuildById(target.getGuidId().getValue());
+    private void run(Channels target) {
+        Guild guildIn = jda.getJda().getGuildById(target.getGuidId().getValue());
         if (guildIn == null) {
             System.err.println("Guild not found: " + target.getGuidId());
             return;

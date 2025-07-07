@@ -18,10 +18,7 @@ import java.util.EnumSet;
 public class DiscordBot  {
 
     private final Secrets secrets;
-    private JDA jda;
-    public JDA jda(){
-        return jda;
-    }
+    private final DiscordJdaProvider jda;
     
     private final DiscordBotListener botEventListener;
     private final DiscordBotCommandListener botCommandListener;
@@ -30,10 +27,11 @@ public class DiscordBot  {
     public static final Activity working = Activity.customStatus("working");
     
     @Autowired
-    public DiscordBot(Secrets secrets,
+    public DiscordBot(Secrets secrets, DiscordJdaProvider provider, 
                       DiscordBotListener eventListener,
                       DiscordBotCommandListener commandListener) {
         this.secrets = secrets;
+        this.jda = provider;
         this.botEventListener = eventListener;
         this.botCommandListener = commandListener;
     }
@@ -42,7 +40,7 @@ public class DiscordBot  {
     public void initialize() {
         shutdownJdaIfNeeded();
         try {
-            jda = JDABuilder.create(
+            jda.setJda(JDABuilder.create(
                         secrets.getDiscordBotToken(),
                         EnumSet.of(
                                 GatewayIntent.GUILD_PRESENCES,
@@ -55,8 +53,9 @@ public class DiscordBot  {
                 .setStatus(OnlineStatus.IDLE)
                 .setActivity(idle)
                 .addEventListeners(botEventListener, botCommandListener)
-                .build();
-            jda.awaitReady();
+                .build()
+            );
+            jda.getJda().awaitReady();
             
             updateCommands();
         } catch (InterruptedException e) {
@@ -65,8 +64,8 @@ public class DiscordBot  {
     }
     
     private void shutdownJdaIfNeeded(){
-        if(jda != null) {
-            jda.shutdownNow();
+        if(jda.getJda() != null) {
+            jda.getJda().shutdownNow();
         }
     }
 
@@ -77,7 +76,7 @@ public class DiscordBot  {
         );
         d2hCommand.addSubcommands(DiscordBotCommandListener.D2H_SUB_COMMANDS);
         
-        jda.updateCommands().addCommands(d2hCommand).queue();
+        jda.getJda().updateCommands().addCommands(d2hCommand).queue();
     }
 
 }
