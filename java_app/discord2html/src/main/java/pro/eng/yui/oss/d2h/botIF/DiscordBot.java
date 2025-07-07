@@ -19,6 +19,9 @@ public class DiscordBot  {
 
     private final Secrets secrets;
     private JDA jda;
+    public JDA jda(){
+        return jda;
+    }
     
     private final DiscordBotListener botEventListener;
     private final DiscordBotCommandListener botCommandListener;
