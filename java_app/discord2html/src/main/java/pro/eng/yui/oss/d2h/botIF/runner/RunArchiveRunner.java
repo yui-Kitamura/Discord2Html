@@ -76,28 +76,13 @@ public class RunArchiveRunner implements IRunner {
                 if(on.getValue() == now) {
                     List<Channels> chs = channelDao.selectAllInGuild(guilds.getGuildId());
                     for(Channels ch : chs) {
-                        run(ch);
+                        run(jda.getJda().getGuildById(ch.getGuidId().getValue()).getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue()));
                     }
                 }
             }
         }
     }
-    
-    private void run(Channels target) {
-        Guild guildIn = jda.getJda().getGuildById(target.getGuidId().getValue());
-        if (guildIn == null) {
-            System.err.println("Guild not found: " + target.getGuidId());
-            return;
-        }
-        GuildMessageChannel channel = guildIn.getChannelById(GuildMessageChannel.class, target.getChannelId().getValue());
-        if (channel == null) {
-            System.err.println("Channel not found: " + target.getChannelId());
-            return;
-        }
-        
-        run(channel);
-    }
-    
+
     private void run(GuildMessageChannel channel){
         
         //validate
