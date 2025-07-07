@@ -1,8 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.OnlineStatus;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
@@ -84,7 +82,6 @@ public class RunArchiveRunner implements IRunner {
     }
 
     private void run(GuildMessageChannel channel){
-        
         //validate
         List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
         boolean isActivatedChannel = false;
