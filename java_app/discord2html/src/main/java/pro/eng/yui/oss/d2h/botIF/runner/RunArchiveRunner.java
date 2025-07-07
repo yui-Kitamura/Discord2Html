@@ -42,7 +42,6 @@ public class RunArchiveRunner implements IRunner {
         for(OptionMapping om : options) {
             if("target".equals(om.getName())) {
                 String inputName = om.getAsString();
-                System.out.println("channel name is "+ inputName);
                 List<TextChannel> channels =  member.getGuild().getTextChannelsByName(inputName, true);
                 for(GuildMessageChannel channel : channels){
                     isTargetChannelMarked = true;
