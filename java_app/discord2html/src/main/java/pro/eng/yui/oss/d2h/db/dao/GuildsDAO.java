@@ -36,6 +36,14 @@ public class GuildsDAO {
         return res;
     }
     
+    public List<Guilds> selectAll(){
+        List<Guilds> allGuilds = mapper.selectAll();
+        if(allGuilds == null) {
+            return Collections.emptyList();
+        }
+        return allGuilds;
+    }
+    
     public boolean exists(GuildId id){
         try {
             Guilds info = selectGuildInfo(id);

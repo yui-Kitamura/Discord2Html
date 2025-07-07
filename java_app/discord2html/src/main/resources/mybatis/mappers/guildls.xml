@@ -22,9 +22,15 @@
     
     <select id="selectOne" parameterType="Guilds">
         SELECT 
-            guild_id, guild_name, joined_time, runs_on_1, runs_on_2, runs_on_3, runs_on_4
+            guild_id, guild_name, joined_time, anon_cycle, runs_on_1, runs_on_2, runs_on_3, runs_on_4
         FROM guilds
         WHERE guild_id = #{guild_id}
+    </select>
+    
+    <select id="selectAll">
+        SELECT
+            guild_id, guild_name, joined_time, anon_cycle, runs_on_1, runs_on_2, runs_on_3, runs_on_4
+        FROM guilds
     </select>
     
     <update id="anonTimestamp" parameterType="Guilds">
