@@ -53,6 +53,15 @@ public class DiscordBotUtils {
         newRecord.setChannelName(new ChannelName(ch));
         channelsDao.upsertChannelInfo(newRecord);
     }
+
+    /* pkg-prv */ void upsertGuildChannelToDB(Guild guild){
+        for(GuildMessageChannel channel : guild.getTextChannels()) {
+            upsertGuildChannelToDB(channel);
+        }
+        for(GuildMessageChannel channel : guild.getVoiceChannels()) {
+            upsertGuildChannelToDB(channel);
+        }
+    }
     
     /* pkg-prv */ void registerUserInfoToDB(Member member){
         upsertGuildInfoToDB(member.getGuild());
