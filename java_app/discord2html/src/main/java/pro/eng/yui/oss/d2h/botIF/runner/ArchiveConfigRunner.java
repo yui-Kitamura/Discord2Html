@@ -26,7 +26,7 @@ public class ArchiveConfigRunner implements IRunner {
         ChannelId targetCh = null;
         Status newMode = null;
         for(OptionMapping op : options) {
-            if("target".equals(op.getName())) {
+            if("channel".equals(op.getName())) {
                  targetCh = new ChannelId(op.getAsChannel());
                  continue;
             }
