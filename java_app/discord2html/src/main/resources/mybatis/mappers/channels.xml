@@ -57,7 +57,7 @@
         INSERT INTO channel_log (channel_id, time_stamp, is_changed, status)
         VALUES
             (#{channel_id}, CURRENT_TIMESTAMP, false, (
-                SELECT COALESCE(status, 'OFF') FROM channel_log 
+                SELECT COALESCE(status, 'IGNORE') FROM channel_log 
                 WHERE channel_id = #{channel_id}
                 ORDER BY time_stamp DESC
                 LIMIT 1
