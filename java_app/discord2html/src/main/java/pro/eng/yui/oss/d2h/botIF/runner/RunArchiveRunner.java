@@ -87,7 +87,9 @@ public class RunArchiveRunner implements IRunner {
         List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
         boolean isActivatedChannel = false;
         ChannelId targetChannelId = new ChannelId(channel);
+        System.out.println("target id is "+ targetChannelId);
         for(Channels c : activate) {
+            System.out.println("active is "+ c.getChannelId());
             if(c.getChannelId().equals(targetChannelId)) {
                 isActivatedChannel = true;
                 break;
