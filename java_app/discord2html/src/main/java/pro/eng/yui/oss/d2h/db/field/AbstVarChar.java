@@ -38,6 +38,16 @@ public abstract class AbstVarChar {
         if(this.length != other.length){ return false; }
         return true;
     }
+    
+    public boolean equalsIgnoreCase(Object obj){
+        if(this == obj){ return true; }
+        if(obj == null){ return false; }
+        if(!(obj.getClass().equals(this.getClass()))){ return false; }
+        AbstVarChar other = (AbstVarChar) obj;
+        if(!(this.value.equalsIgnoreCase(other.value)) ){ return false; }
+        if(this.length != other.length){ return false; }
+        return true;
+    }
 
     @Override
     public String toString() {
