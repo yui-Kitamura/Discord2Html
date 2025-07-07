@@ -43,12 +43,13 @@ public class RunArchiveRunner implements IRunner {
         boolean isTargetChannelMarked = false;
         for(OptionMapping om : options) {
             if("target".equals(om.getName())) {
-                List<TextChannel> channels =  member.getGuild().getTextChannelsByName(om.getAsString(), true);
+                String inputName = om.getAsString();
+                List<TextChannel> channels =  member.getGuild().getTextChannelsByName(inputName, true);
                 for(GuildMessageChannel channel : channels){
                     isTargetChannelMarked = true;
                     run(channel);
                 }
-                List<VoiceChannel> voiceChannels = member.getGuild().getVoiceChannelsByName(om.getAsString(), true);
+                List<VoiceChannel> voiceChannels = member.getGuild().getVoiceChannelsByName(inputName, true);
                 for(GuildMessageChannel v : voiceChannels) {
                     isTargetChannelMarked = true;
                     run(v);
