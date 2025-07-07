@@ -19,7 +19,7 @@
         WHERE
             ch.channel_id = cl.channel_id
             AND ch.guild_id = #{guild_id}
-            AND cl.status = true
+            AND cl.status = 'MONITOR'
     </select>
     
     <insert id="register" parameterType="Channels">
