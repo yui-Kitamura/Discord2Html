@@ -20,9 +20,7 @@ public class ArchiveConfigRunner implements IRunner {
         this.channelDao = c;
     }
     
-    public void run(Member member, List<OptionMapping> options){
-        //TODO set archive settings with new value
-        
+    public void run(List<OptionMapping> options){
         ChannelId targetCh = null;
         Status newMode = null;
         for(OptionMapping op : options) {

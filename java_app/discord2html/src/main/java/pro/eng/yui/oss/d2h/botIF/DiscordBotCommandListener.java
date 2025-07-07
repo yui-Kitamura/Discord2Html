@@ -153,7 +153,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if(isAcceptedChannel(event.getGuildChannel()) == false) {
             return;
         }
-        archiveConfigRunner.run(event.getMember(), event.getOptions());
+        archiveConfigRunner.run(event.getOptions());
         event.getHook().sendMessage(archiveConfigRunner.afterRunMessage()).queue();
     }
     
