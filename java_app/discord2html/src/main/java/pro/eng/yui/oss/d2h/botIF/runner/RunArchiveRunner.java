@@ -14,6 +14,8 @@ import pro.eng.yui.oss.d2h.botIF.DiscordBot;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
+import pro.eng.yui.oss.d2h.db.field.ChannelId;
+import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
@@ -96,6 +98,19 @@ public class RunArchiveRunner implements IRunner {
     }
     
     private void run(GuildMessageChannel channel){
+        
+        //validate
+        List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
+        boolean isActivatedChannel = false;
+        for(Channels c : activate) {
+            if(c.getChannelId().equals(new ChannelId(channel))) {
+                isActivatedChannel = true;
+                break;
+            }
+        }
+        if(isActivatedChannel == false) {
+            return;
+        }
         
         channel.sendMessage("This channel is archive target. Start >>>").queue();
         
