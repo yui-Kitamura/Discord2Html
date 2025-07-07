@@ -31,7 +31,7 @@ public class ArchiveConfigRunner implements IRunner {
                  continue;
             }
             if("mode".equals(op.getName())) {
-                newMode = new Status(String.valueOf(op.getAsBoolean()));
+                newMode = new Status(op.getAsString());
             }
         }
         
