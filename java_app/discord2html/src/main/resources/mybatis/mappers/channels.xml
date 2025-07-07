@@ -40,6 +40,13 @@
         WHERE channel_id = #{channel_id}
     </select>
     
+    <select id="selectAll" parameterType="Channels">
+        SELECT
+            guild_id, channel_id, channel_name
+        FROM channels
+        WHERE guild_id = #{guild_id}
+    </select>
+    
     <update id="updateChannelStatus" parameterType="ChannelLog">
         INSERT INTO channel_log (channel_id, time_stamp, is_changed, status)
         VALUES

@@ -11,6 +11,7 @@ import pro.eng.yui.oss.d2h.db.mapper.ChannelsMapper;
 import pro.eng.yui.oss.d2h.db.model.ChannelLog;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -44,6 +45,20 @@ public class ChannelsDAO {
         Channels res = mapper.selectOne(param);
         if(res == null) {
             throw new DbRecordNotFoundException("not found with " + channelId);
+        }
+        return res;
+    }
+    
+    public List<Channels> selectAllInGuild(GuildId guildKey){
+        Channels param = new Channels();
+        try {
+            param.setGuildId(guildKey);
+        }catch(NullPointerException npe) {
+            throw new IllegalArgumentException(npe);
+        }
+        List<Channels> res = mapper.selectAll(param);
+        if(res == null) {
+            return Collections.emptyList();
         }
         return res;
     }

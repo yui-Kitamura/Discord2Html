@@ -17,6 +17,8 @@ public interface ChannelsMapper {
     
     Channels selectOne(Channels key);
     
+    List<Channels> selectAll(Channels key);
+    
     void updateChannelStatus(ChannelLog param);
     
     void logChannelStatus(ChannelLog param); 
