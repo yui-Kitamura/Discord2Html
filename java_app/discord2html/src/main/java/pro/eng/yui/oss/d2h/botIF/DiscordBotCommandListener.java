@@ -49,7 +49,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     .addOption(OptionType.INTEGER, "cycle", "change name cycle", true)
             ,
             new SubcommandData("me", "change your archive settings")
-                    .addOption(OptionType.BOOLEAN, "anonymous", "hide your name", true)
+                    .addOptions(new OptionData(
+                                    OptionType.STRING, "anonymous", "set you as", true
+                            )
+                                    .addChoice("anonymous", "anonymous")
+                                    .addChoice("open", "open")
+                    )
             ,
             new SubcommandData("help", "send you about this bots command help")
     );
