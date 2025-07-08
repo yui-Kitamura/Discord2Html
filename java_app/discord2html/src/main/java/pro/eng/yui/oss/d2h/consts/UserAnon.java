@@ -12,6 +12,15 @@ public enum UserAnon {
         }
         throw new IllegalArgumentException("not defined: "+ value);
     }
+    
+    public static UserAnon get(boolean bool){
+        if(bool) {
+            return ANONYMOUS;
+        }else {
+            return OPEN;
+        }
+    }
+    
     public static boolean validName(String value){
         try {
             UserAnon.get(value);
