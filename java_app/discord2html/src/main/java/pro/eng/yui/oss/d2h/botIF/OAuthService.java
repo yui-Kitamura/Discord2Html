@@ -3,6 +3,7 @@ package pro.eng.yui.oss.d2h.botIF;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import pro.eng.yui.oss.d2h.consts.UserAnon;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.dao.DiscordOauthTokenDAO;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
@@ -36,7 +37,7 @@ public class OAuthService {
             try {
                 usersDao.select(userInfo.getGuildId(), userInfo.getUserId());
             }catch(DbRecordNotFoundException nfe) {
-                userInfo.setIgnoreAnon(new IgnoreAnon(false)); //set default
+                userInfo.setAnonStats(new AnonStats(UserAnon.ANONYMOUS)); //set default
                 usersDao.insert(userInfo);
             }
             discordDao.select();
