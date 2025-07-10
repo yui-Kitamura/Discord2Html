@@ -29,4 +29,11 @@ public enum UserAnon {
             return false;
         }
     }
+    
+    public boolean isAnon(){
+        return this == ANONYMOUS;
+    }
+    public boolean isOpen(){
+        return this == OPEN;
+    }
 }
