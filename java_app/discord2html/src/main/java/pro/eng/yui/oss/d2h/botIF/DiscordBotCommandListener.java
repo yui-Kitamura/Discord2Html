@@ -32,12 +32,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     .addOption(OptionType.CHANNEL, "target","target channel", false)
             ,
             new SubcommandData("role", "change role archive settings")
-                    .addOption(OptionType.ROLE, "target", "target role", true)
+                    .addOption(OptionType.ROLE, "role", "target role", true)
                     .addOptions(new OptionData(
-                            OptionType.STRING, "role", "role", true
+                            OptionType.STRING, "anonymous", "set user with role as", true
                             )
                             .addChoice("anonymous", "anonymous")
-                            .addChoice("showName", "showName")
+                            .addChoice("open", "open")
                     )
             ,
             new SubcommandData("anonymous", "change anonymous users archive settings")
@@ -49,7 +49,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     .addOption(OptionType.INTEGER, "cycle", "change name cycle", true)
             ,
             new SubcommandData("me", "change your archive settings")
-                    .addOption(OptionType.BOOLEAN, "anonymous", "hide your name", true)
+                    .addOptions(new OptionData(
+                                    OptionType.STRING, "anonymous", "set you as", true
+                            )
+                                    .addChoice("anonymous", "anonymous")
+                                    .addChoice("open", "open")
+                    )
             ,
             new SubcommandData("help", "send you about this bots command help")
     );

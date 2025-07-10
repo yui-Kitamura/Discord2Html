@@ -1,14 +1,22 @@
 package pro.eng.yui.oss.d2h.db.field;
 
-public class IgnoreAnon extends AbstFlgs {
+import pro.eng.yui.oss.d2h.consts.UserAnon;
+
+public class AnonStats extends AbstVarChar {
+
+    public static int LIMIT = 10;
     
-    public IgnoreAnon(boolean value){
-        super(value);
+    public AnonStats(UserAnon value){
+        super(value.name(), LIMIT);
+    }
+    public AnonStats(String value){
+        super(UserAnon.get(value).name(), LIMIT);
+    }
+    
+    public UserAnon get(){
+        return UserAnon.get(value);
     }
 
-    public static IgnoreAnon PUBLIC = new IgnoreAnon(true);
-    public static IgnoreAnon HIDDEN = new IgnoreAnon(false);
-    
     @Override
     public int hashCode() {
         return super.hashCode();
@@ -29,6 +37,5 @@ public class IgnoreAnon extends AbstFlgs {
     public String toString() {
         return super.toString();
     }
-
+    
 }
-

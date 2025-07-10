@@ -15,12 +15,12 @@ public class Roles {
         return role_id;
     }
 
-    private AnonFlg anon_flg;
-    public void setAnonFlg(AnonFlg newValue){
-        this.anon_flg = newValue;
+    private AnonStats anon_stats;
+    public void setAnonStats(AnonStats newValue){
+        this.anon_stats = newValue;
     }
-    public AnonFlg getAnonFlg(){
-        return anon_flg;
+    public AnonStats getAnonStats(){
+        return anon_stats;
     }
 
     public Roles(){
@@ -31,7 +31,7 @@ public class Roles {
     public int hashCode() {
         int hash = 17;
         hash = hash * 31 + (role_id == null ? 0 : role_id.hashCode());
-        hash = hash * 31 + (anon_flg == null ? 0 : anon_flg.hashCode());
+        hash = hash * 31 + (anon_stats == null ? 0 : anon_stats.hashCode());
         return hash;
     }
     
@@ -44,7 +44,7 @@ public class Roles {
         if(!Objects.equals(role_id, other.role_id)){
             return false;
         }
-        if(!Objects.equals(anon_flg, other.anon_flg)){
+        if(!Objects.equals(anon_stats, other.anon_stats)){
             return false;
         }
         return true;

@@ -14,6 +14,6 @@ public interface UsersMapper {
     
     void update(Map<String, Users> keyValue);
     
-    void setIgnoreAnon(Users key);
+    void setAsOpen(Users key);
     void setAsAnon(Users key);
 }
