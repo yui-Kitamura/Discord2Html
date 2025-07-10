@@ -2,9 +2,9 @@ package pro.eng.yui.oss.d2h.db.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pro.eng.yui.oss.d2h.consts.UserAnon;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
-import pro.eng.yui.oss.d2h.db.field.IgnoreAnon;
 import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.mapper.UsersMapper;
 import pro.eng.yui.oss.d2h.db.model.Users;
@@ -60,8 +60,8 @@ public class UsersDAO {
             insertParam.setUserName(Objects.requireNonNull(newRecord.getUserName()));
             insertParam.setNickname(newRecord.getNickname());
             insertParam.setAvatar(newRecord.getAvatar());
-            if(newRecord.getIgnoreAnon() != null) {
-                insertParam.setIgnoreAnon(newRecord.getIgnoreAnon());
+            if(newRecord.getAnonStats() != null) {
+                insertParam.setAnonStats(newRecord.getAnonStats());
             }
         }catch(NullPointerException npe) {
             throw new IllegalArgumentException(npe);
@@ -99,16 +99,16 @@ public class UsersDAO {
         return select(usersKey.getGuildId(), usersKey.getUserId());
     }
     
-    public IgnoreAnon updateIgnoreAnon(GuildId joinedTo, UserId userId, IgnoreAnon newValue){
+    public UserAnon updateAnonStats(GuildId joinedTo, UserId userId, UserAnon newValue){
         Users current = select(joinedTo, userId);
-        if(newValue.equals(current.getIgnoreAnon())) {
-            return current.getIgnoreAnon();
+        if(newValue.equals(current.getAnonStats().get())) {
+            return current.getAnonStats().get();
         }
         
-        if(newValue.isTrue()) {
-            mapper.setIgnoreAnon(current);
-        }else {
+        if(newValue.isAnon()) {
             mapper.setAsAnon(current);
+        }else {
+            mapper.setAsOpen(current);
         }
         return newValue;
     }
