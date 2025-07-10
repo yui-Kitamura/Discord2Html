@@ -20,8 +20,8 @@ class UserAnonTest {
         UserAnon anon = UserAnon.ANONYMOUS;
         UserAnon open = UserAnon.OPEN;
         assertAll(
-                ()->assertFalse(anon.isAnon()),
-                ()->assertTrue(open.isAnon())
+                ()->assertFalse(anon.isOpen()),
+                ()->assertTrue(open.isOpen())
         );
     }
 
