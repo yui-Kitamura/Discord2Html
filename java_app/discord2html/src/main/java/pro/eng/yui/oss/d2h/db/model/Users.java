@@ -47,12 +47,12 @@ public class Users {
         return avatar;
     }
     
-    private IgnoreAnon ignore_anon;
-    public void setIgnoreAnon(IgnoreAnon ignoreAnon){
-        this.ignore_anon = ignoreAnon;
+    private AnonStats anon_stats;
+    public void setAnonStats(AnonStats ignoreAnon){
+        this.anon_stats = ignoreAnon;
     }
-    public IgnoreAnon getIgnoreAnon(){
-        return ignore_anon;
+    public AnonStats getAnonStats(){
+        return anon_stats;
     }
     
     public Users(){
@@ -67,7 +67,7 @@ public class Users {
         hash = hash * 31 + (user_name == null ? 0 : user_name.hashCode());
         hash = hash * 31 + (nickname == null ? 0 : nickname.hashCode());
         hash = hash * 31 + (avatar == null ? 0 : avatar.hashCode());
-        hash = hash * 31 + (ignore_anon == null ? 0 : ignore_anon.hashCode());
+        hash = hash * 31 + (anon_stats == null ? 0 : anon_stats.hashCode());
         return hash;
     }
     
@@ -92,7 +92,7 @@ public class Users {
         if(!Objects.equals(avatar, other.avatar)){
             return false;
         }
-        if(!Objects.equals(ignore_anon, other.ignore_anon)){
+        if(!Objects.equals(anon_stats, other.anon_stats)){
             return false;
         }
         return true;

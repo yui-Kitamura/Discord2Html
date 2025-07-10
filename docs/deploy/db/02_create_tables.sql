@@ -33,13 +33,13 @@ CREATE TABLE users (
     user_name   VARCHAR(255) NOT NULL,
     nickname    VARCHAR(255),
     avatar      VARCHAR(255),
-    ignore_anon BOOLEAN DEFAULT FALSE,
+    anon_stats  VARCHAR(10),
     PRIMARY KEY (user_id, guild_id)
 );
 
 CREATE TABLE roles (
     role_id      BIGINT UNSIGNED PRIMARY KEY,
-    anon_flg     BOOLEAN DEFAULT TRUE
+    anon_stats   VARCHAR(10)
 );
 
 CREATE TABLE user_role (
