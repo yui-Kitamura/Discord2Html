@@ -12,6 +12,10 @@ public class AnonStats extends AbstVarChar {
     public AnonStats(String value){
         super(UserAnon.get(value).name(), LIMIT);
     }
+    
+    public UserAnon get(){
+        return UserAnon.get(value);
+    }
 
     @Override
     public int hashCode() {
