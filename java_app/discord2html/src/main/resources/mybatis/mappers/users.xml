@@ -4,16 +4,16 @@
 <mapper namespace="pro.eng.yui.oss.d2h.db.mapper.UsersMapper">
 
     <select id="findById" parameterType="Users" resultType="Users">
-        SELECT user_id, guild_id, user_name, nickname, avatar, ignore_anon
+        SELECT user_id, guild_id, user_name, nickname, avatar, anon_stats
         FROM users
         WHERE user_id = #{user_id} AND guild_id = #{guild_id}
     </select>
 
     <insert id="insert" parameterType="Users">
         INSERT INTO users
-            (user_id, guild_id, user_name, nickname, avatar, ignore_anon) 
+            (user_id, guild_id, user_name, nickname, avatar, anon_stats) 
         VALUES
-            (#{user_id}, #{guild_id}, #{user_name}, #{nickname}, #{avatar}, #{ignore_anon})
+            (#{user_id}, #{guild_id}, #{user_name}, #{nickname}, #{avatar}, #{anon_stats})
     </insert>
     
     <update id="update" parameterType="Map">
