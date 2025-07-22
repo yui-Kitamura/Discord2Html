@@ -39,7 +39,9 @@ CREATE TABLE users (
 
 CREATE TABLE roles (
     role_id      BIGINT UNSIGNED PRIMARY KEY,
-    anon_stats   VARCHAR(10)
+    guild_id     BIGINT UNSIGNED NOT NULL,
+    anon_stats   VARCHAR(10),
+    FOREIGN KEY (guild_id) REFERENCES guilds(guild_id)
 );
 
 CREATE TABLE user_role (

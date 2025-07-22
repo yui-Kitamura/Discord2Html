@@ -15,6 +15,14 @@ public class Roles {
         return role_id;
     }
 
+    private GuildId guild_id;
+    public void setGuildId(GuildId newValue) {
+        this.guild_id = newValue;
+    }
+    public GuildId getGuildId(){
+        return guild_id;
+    }
+    
     private AnonStats anon_stats;
     public void setAnonStats(AnonStats newValue){
         this.anon_stats = newValue;
@@ -31,6 +39,7 @@ public class Roles {
     public int hashCode() {
         int hash = 17;
         hash = hash * 31 + (role_id == null ? 0 : role_id.hashCode());
+        hash = hash * 31 + (guild_id == null ? 0 : guild_id.hashCode());
         hash = hash * 31 + (anon_stats == null ? 0 : anon_stats.hashCode());
         return hash;
     }
@@ -42,6 +51,9 @@ public class Roles {
         if(!(obj.getClass().equals(this.getClass()))){ return false; }
         Roles other = (Roles) obj;
         if(!Objects.equals(role_id, other.role_id)){
+            return false;
+        }
+        if(!Objects.equals(guild_id, other.guild_id)) {
             return false;
         }
         if(!Objects.equals(anon_stats, other.anon_stats)){

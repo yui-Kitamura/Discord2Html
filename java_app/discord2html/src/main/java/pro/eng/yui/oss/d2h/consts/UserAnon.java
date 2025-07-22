@@ -12,7 +12,10 @@ public enum UserAnon {
         }
         throw new IllegalArgumentException("not defined: "+ value);
     }
-    
+
+    /**
+     * <code>true</code> then <code>Anonymous</code>
+     */
     public static UserAnon get(boolean bool){
         if(bool) {
             return ANONYMOUS;
