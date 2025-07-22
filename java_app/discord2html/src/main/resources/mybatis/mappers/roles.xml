@@ -9,7 +9,7 @@
         WHERE role_id = #{role_id}
     </select>
 
-    <insert id="insert" parameterType="Roles">
+    <insert id="register" parameterType="Roles">
         INSERT INTO roles
             (role_id, guild_id, anon_stats) 
         VALUES
