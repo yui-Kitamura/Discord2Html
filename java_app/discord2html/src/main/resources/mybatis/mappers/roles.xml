@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pro.eng.yui.oss.d2h.db.mapper.RolesMapper">
+
+    <select id="findById" parameterType="Roles" resultType="Roles">
+        SELECT role_id, guild_id, anon_stats
+        FROM roles
+        WHERE role_id = #{user_id}
+    </select>
+
+    <insert id="insert" parameterType="Roles">
+        INSERT INTO roles
+            (role_id, guild_id, anon_stats) 
+        VALUES
+            (#{role_id}, #{guild_id}, #{anon_stats})
+    </insert>
+  
+    <update id="setAsOpen" parameterType="Roles">
+        UPDATE roles
+        SET anon_stats = 'OPEN'
+        WHERE role_id = #{user_id}
+    </update>
+    <update id="setAsAnon" parameterType="Roles">
+        UPDATE roles
+        SET anon_stats = 'ANONYMOUS'
+        WHERE role_id = #{user_id}
+    </update>
+    
+</mapper>

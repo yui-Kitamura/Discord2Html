@@ -91,7 +91,7 @@ public class RolesDAO {
             throw new IllegalArgumentException(npe);
         }
         if(exists(newRecord.getRoleId())) {
-            mapper.update(newRecord);
+            //mapper.update(newRecord);
         }else{
             if(newRecord.getAnonStats() == null) {
                 newRecord.setAnonStats(new AnonStats(UserAnon.ANONYMOUS));

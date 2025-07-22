@@ -14,7 +14,7 @@ public interface RolesMapper {
 
     void register(Roles insertParam);
     
-    void update(Roles keyValue);
+    // not required //void update(Roles keyValue);
     
     void setAsOpen(Roles key);
     void setAsAnon(Roles key);
