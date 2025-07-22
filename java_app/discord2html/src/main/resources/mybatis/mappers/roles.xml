@@ -6,7 +6,7 @@
     <select id="findById" parameterType="Roles" resultType="Roles">
         SELECT role_id, guild_id, anon_stats
         FROM roles
-        WHERE role_id = #{user_id}
+        WHERE role_id = #{role_id}
     </select>
 
     <insert id="insert" parameterType="Roles">
@@ -19,12 +19,12 @@
     <update id="setAsOpen" parameterType="Roles">
         UPDATE roles
         SET anon_stats = 'OPEN'
-        WHERE role_id = #{user_id}
+        WHERE role_id = #{role_id}
     </update>
     <update id="setAsAnon" parameterType="Roles">
         UPDATE roles
         SET anon_stats = 'ANONYMOUS'
-        WHERE role_id = #{user_id}
+        WHERE role_id = #{role_id}
     </update>
     
 </mapper>
