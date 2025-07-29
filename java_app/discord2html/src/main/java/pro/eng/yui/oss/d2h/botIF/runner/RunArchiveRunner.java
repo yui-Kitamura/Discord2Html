@@ -125,12 +125,6 @@ public class RunArchiveRunner implements IRunner {
 
         fileGenerator.generate(new ChannelInfo(channel), messages, beginDate, endDate, 1);
 
-        try {
-            Thread.sleep(1234);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        
         channel.sendMessage("archive created. task end <<<").queue();
     }
 
