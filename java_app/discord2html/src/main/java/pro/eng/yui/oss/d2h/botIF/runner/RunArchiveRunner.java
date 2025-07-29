@@ -116,10 +116,13 @@ public class RunArchiveRunner implements IRunner {
         Calendar endDate = Calendar.getInstance();
 
         List<MessageInfo> messages = new ArrayList<>();
-        channel.getHistory().retrievePast(100).complete()
+        channel.getHistory().retrievePast(100)
+                .complete()
                 .stream()
-                .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
-                        && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                .filter(msg -> {
+                    return msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
+                            && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant());
+                })
                 .sorted(Comparator.comparing(msg -> { return msg.getTimeCreated(); }))
                 .forEach(msg -> messages.add(new MessageInfo(msg, usersDao)));
 
