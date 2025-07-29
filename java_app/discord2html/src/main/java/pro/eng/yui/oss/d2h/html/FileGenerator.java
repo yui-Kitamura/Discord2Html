@@ -31,7 +31,7 @@ public class FileGenerator {
     }
 
     public void generate(
-            Channel channel, List<Message> messages, Calendar begin, Calendar end,
+            ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end,
             int seq
     ) {
         Context context = new Context();
