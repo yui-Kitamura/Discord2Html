@@ -21,14 +21,13 @@
   <h1 th:text="${channel.name} + ' の会話履歴'">Discord会話履歴</h1>
 
   <div th:each="msg : ${messages}" class="message">
-    <img class="avatar" th:src="${msg.author.effectiveAvatarUrl}" alt="avatar"/>
+    <img class="avatar" th:src="${msg.getUserInfo().getAvatar().getImgPath()}" alt="avatar"/>
     <div>
       <div class="meta">
-        <span class="author" th:text="${msg.author.name}">ユーザー名</span>
-        <span class="timestamp"
-              th:text="${#dates.format(msg.timeCreated.toInstant().atZone(T(java.time.ZoneId).systemDefault()).toLocalDateTime(), 'yyyy/MM/dd HH:mm:ss')}">日付</span>
+        <span class="author" th:text="${msg.getUserInfo().getNickname().value}">ユーザー名</span>
+        <span class="timestamp" th:text="${msg.getCreatedTimestamp()}">日付</span>
       </div>
-      <div class="content" th:utext="${msg.contentDisplay}">メッセージ</div>
+      <div class="content" th:utext="${msg.getContentRaw()}">メッセージ</div>
     </div>
   </div>
 </div>
