@@ -12,13 +12,19 @@ import pro.eng.yui.oss.d2h.botIF.DiscordBot;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
+import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
+import pro.eng.yui.oss.d2h.html.ChannelInfo;
+import pro.eng.yui.oss.d2h.html.FileGenerator;
+import pro.eng.yui.oss.d2h.html.MessageInfo;
 
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.List;
 
 @Component
@@ -26,13 +32,20 @@ public class RunArchiveRunner implements IRunner {
     
     private final GuildsDAO guildDao;
     private final ChannelsDAO channelDao;
+    private final UsersDAO usersDao;
     private final DiscordJdaProvider jda;
-    
+    private final FileGenerator fileGenerator;
+
     @Autowired
-    public RunArchiveRunner(GuildsDAO g, ChannelsDAO ch, DiscordJdaProvider j){
+    public RunArchiveRunner(
+            GuildsDAO g, ChannelsDAO ch, UsersDAO u,
+            DiscordJdaProvider j, FileGenerator fileGenerator
+    ){
         this.guildDao = g;
         this.channelDao = ch;
+        this.usersDao = u;
         this.jda = j;
+        this.fileGenerator = fileGenerator;
     }
     
     public void run(Member member, List<OptionMapping> options){
@@ -83,23 +96,35 @@ public class RunArchiveRunner implements IRunner {
 
     private void run(GuildMessageChannel channel){
         //validate
+        Channels targetChInfo = null;
         List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
-        boolean isActivatedChannel = false;
         ChannelId targetChannelId = new ChannelId(channel);
         for(Channels c : activate) {
             if(c.getChannelId().equals(targetChannelId)) {
-                isActivatedChannel = true;
+                targetChInfo = c;
                 break;
             }
         }
-        if(isActivatedChannel == false) {
+        if(targetChInfo == null) {
             return;
         }
-        
+
         channel.sendMessage("This channel is archive target. Start >>>").queue();
-        
-        //TODO implement archive
-        
+
+        Calendar beginDate = Calendar.getInstance();
+        beginDate.add(Calendar.HOUR_OF_DAY, -3); //FIXME 3h固定で仮生成
+        Calendar endDate = Calendar.getInstance();
+
+        List<MessageInfo> messages = new ArrayList<>();
+        channel.getHistory().retrievePast(100).complete()
+                .stream()
+                .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
+                        && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                .sorted(Comparator.comparing(msg -> { return msg.getTimeCreated(); }))
+                .forEach(msg -> messages.add(new MessageInfo(msg, usersDao)));
+
+        fileGenerator.generate(new ChannelInfo(channel), messages, beginDate, endDate, 1);
+
         try {
             Thread.sleep(1234);
         } catch (InterruptedException e) {
