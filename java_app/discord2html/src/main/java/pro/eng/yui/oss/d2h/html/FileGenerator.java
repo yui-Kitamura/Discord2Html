@@ -8,11 +8,10 @@ import org.thymeleaf.context.Context;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
-
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.channel.Channel;
+import java.util.TimeZone;
 
 @Service
 public class FileGenerator {
@@ -22,10 +21,13 @@ public class FileGenerator {
     @Value("${d2h.output.path}")
     private String outputPath;
 
+    private final SimpleDateFormat timeFormat;
     private final TemplateEngine templateEngine;
 
     public FileGenerator(TemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
+        this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss(JST,UTC+09:00)");
+        this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
     }
 
     public void generate(
@@ -35,8 +37,8 @@ public class FileGenerator {
         Context context = new Context();
         context.setVariable("channel", channel);
         context.setVariable("messages", messages);
-        context.setVariable("begin", begin);
-        context.setVariable("end", end);
+        context.setVariable("begin", timeFormat.format(begin));
+        context.setVariable("end", timeFormat.format(end));
         context.setVariable("sequence", seq);
 
         String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
