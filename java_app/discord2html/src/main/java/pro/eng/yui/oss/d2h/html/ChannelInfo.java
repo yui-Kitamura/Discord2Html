@@ -16,6 +16,6 @@ public class ChannelInfo {
     }
     
     public ChannelInfo(Channel ch){
-        ch.getName();
+        this.name = ch.getName();
     }
 }
