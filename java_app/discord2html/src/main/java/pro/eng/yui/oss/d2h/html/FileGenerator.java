@@ -26,7 +26,7 @@ public class FileGenerator {
 
     public FileGenerator(TemplateEngine templateEngine) {
         this.templateEngine = templateEngine;
-        this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss(JST,UTC+09:00)");
+        this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
     }
 
