@@ -7,6 +7,7 @@ import org.thymeleaf.context.Context;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -48,6 +49,7 @@ public class FileGenerator {
                 channel.getName()+ ".html"
         );
         try {
+            Files.createDirectories(output.getParent());
             output.toFile().createNewFile();
         }catch(IOException ioe) {
             throw new RuntimeException("Failed to generate HTML file", ioe);
