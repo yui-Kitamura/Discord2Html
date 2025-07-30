@@ -30,7 +30,7 @@ public class FileGenerator {
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
     }
 
-    public void generate(
+    public Path generate(
             ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end,
             int seq
     ) {
@@ -43,10 +43,17 @@ public class FileGenerator {
 
         String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
-        try (FileWriter writer = new FileWriter(Path.of(outputPath, timeFormat.format(begin), channel.getName() + ".html").toString())) {
+        Path output = Path.of(outputPath, 
+                new SimpleDateFormat("yyyyMMddHHmmss").format(begin),
+                channel.getName()+ ".html"
+        );
+        
+        try (FileWriter writer = new FileWriter(output.toString())) {
             writer.write(htmlContent);
         } catch (IOException e) {
             throw new RuntimeException("Failed to generate HTML file", e);
         }
+        
+        return output;
     }
 }
