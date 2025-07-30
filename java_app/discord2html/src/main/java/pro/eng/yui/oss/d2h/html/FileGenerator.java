@@ -45,7 +45,7 @@ public class FileGenerator {
         String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
         Path output = Path.of(outputPath, 
-                new SimpleDateFormat("yyyyMMddHHmmss").format(begin.getTime()),
+                new SimpleDateFormat("yyyyMMddHHmmss").format(end.getTime()),
                 channel.getName()+ ".html"
         );
         try {
