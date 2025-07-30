@@ -19,7 +19,7 @@
 <body>
 <div class="container">
   <h1 th:text="${channel.name} + ' の会話履歴'">Discord会話履歴</h1>
-
+  <p><time th:text="${begin}"></time> から <time th:text="${end}"></time> まで</p>
   <div th:each="msg : ${messages}" class="message">
     <img class="avatar" th:src="${msg.getAvatarUrl()}" alt="avatar"/>
     <div>
