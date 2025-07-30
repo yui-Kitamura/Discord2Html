@@ -8,6 +8,7 @@ import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -50,7 +51,7 @@ public class MessageInfo {
     }
     
     public MessageInfo(Message msg, UsersDAO usersDao){
-        this.createdTimestamp = DATE_FORMAT.format(msg.getTimeCreated());
+        this.createdTimestamp = DATE_FORMAT.format(new Date(msg.getTimeCreated().toEpochSecond()));
         GuildId guildId = new GuildId(msg.getGuild());
         UserId userId = new UserId(msg.getAuthor());
         this.userInfo =  usersDao.select(guildId, userId);
