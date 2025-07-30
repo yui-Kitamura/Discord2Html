@@ -98,6 +98,9 @@ public class RunArchiveRunner implements IRunner {
         }
     }
 
+    /**
+     * 処理本体
+     */
     private void run(GuildMessageChannel channel){
         //validate
         Channels targetChInfo = null;
