@@ -51,7 +51,7 @@ public class MessageInfo {
     }
     
     public MessageInfo(Message msg, UsersDAO usersDao){
-        this.createdTimestamp = DATE_FORMAT.format(new Date(msg.getTimeCreated().toEpochSecond()));
+        this.createdTimestamp = DATE_FORMAT.format(Date.from(msg.getTimeCreated().toInstant()));
         GuildId guildId = new GuildId(msg.getGuild());
         UserId userId = new UserId(msg.getAuthor());
         this.userInfo =  usersDao.select(guildId, userId);
@@ -61,7 +61,8 @@ public class MessageInfo {
         if(msg.getReferencedMessage() == null) {
             this.refOriginMessageContent = null;
         }else{
-            this.refOriginMessageContent = msg.getReferencedMessage().getContentRaw().substring(0, 30);
+            String content = msg.getReferencedMessage().getContentRaw();
+            this.refOriginMessageContent = content.length() > 30 ? content.substring(0, 30) : content;
         }
     }
 }
