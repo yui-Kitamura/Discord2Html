@@ -43,7 +43,7 @@ public class FileGenerator {
 
         String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
-        try (FileWriter writer = new FileWriter(Path.of(outputPath, channel.getName() + ".html").toString())) {
+        try (FileWriter writer = new FileWriter(Path.of(outputPath, timeFormat.format(begin), channel.getName() + ".html").toString())) {
             writer.write(htmlContent);
         } catch (IOException e) {
             throw new RuntimeException("Failed to generate HTML file", e);
