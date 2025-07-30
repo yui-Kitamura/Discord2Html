@@ -1,5 +1,6 @@
 package pro.eng.yui.oss.d2h.db.model;
 
+import net.dv8tion.jda.api.entities.Member;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.field.*;
 
@@ -57,6 +58,15 @@ public class Users {
     
     public Users(){
         // nothing to do
+    }
+    /** anon_stats以外を設定する */
+    public Users(Member member){
+        this.guild_id = new GuildId(member.getGuild());
+        this.user_id = new UserId(member.getUser());
+        this.user_name = new UserName(member.getUser());
+        this.nickname = new Nickname(member);
+        this.user_name = new UserName(member.getUser());
+        this.avatar = new Avatar(member.getUser());
     }
 
     @Override
