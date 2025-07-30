@@ -51,29 +51,33 @@ public class RunArchiveRunner implements IRunner {
     public void run(Member member, List<OptionMapping> options){
         member.getJDA().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
 
-        boolean isTargetChannelMarked = false;
-        for(OptionMapping om : options) {
-            if("target".equals(om.getName())) {
-                String inputName = om.getAsString();
-                List<TextChannel> channels =  member.getGuild().getTextChannelsByName(inputName, true);
-                for(GuildMessageChannel channel : channels){
-                    isTargetChannelMarked = true;
-                    run(channel);
+        try {
+            boolean isTargetChannelMarked = false;
+            for (OptionMapping om : options) {
+                if ("target".equals(om.getName())) {
+                    String inputName = om.getAsString();
+                    List<TextChannel> channels = member.getGuild().getTextChannelsByName(inputName, true);
+                    for (GuildMessageChannel channel : channels) {
+                        isTargetChannelMarked = true;
+                        run(channel);
+                    }
+                    List<VoiceChannel> voiceChannels = member.getGuild().getVoiceChannelsByName(inputName, true);
+                    for (GuildMessageChannel v : voiceChannels) {
+                        isTargetChannelMarked = true;
+                        run(v);
+                    }
                 }
-                List<VoiceChannel> voiceChannels = member.getGuild().getVoiceChannelsByName(inputName, true);
-                for(GuildMessageChannel v : voiceChannels) {
-                    isTargetChannelMarked = true;
+            }
+            if (isTargetChannelMarked == false) {
+                for (GuildMessageChannel c : member.getGuild().getTextChannels()) {
+                    run(c);
+                }
+                for (GuildMessageChannel v : member.getGuild().getVoiceChannels()) {
                     run(v);
                 }
             }
-        }
-        if(isTargetChannelMarked == false) {
-            for(GuildMessageChannel c : member.getGuild().getTextChannels()) {
-                run(c);
-            }
-            for(GuildMessageChannel v : member.getGuild().getVoiceChannels()) {
-                run(v);
-            }
+        }catch(Exception e) {
+            e.printStackTrace();
         }
 
         member.getJDA().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
