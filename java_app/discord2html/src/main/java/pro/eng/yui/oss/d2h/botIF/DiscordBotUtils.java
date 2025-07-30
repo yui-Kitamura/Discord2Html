@@ -65,11 +65,7 @@ public class DiscordBotUtils {
     
     /* pkg-prv */ void registerUserInfoToDB(Member member){
         upsertGuildInfoToDB(member.getGuild());
-        Users newRecord = new Users();
-        newRecord.setUserId(new UserId(member.getUser()));
-        newRecord.setUserName(new UserName(member.getUser().getName()));
-        newRecord.setNickname(new Nickname(member));
-        newRecord.setAvatar(new Avatar(member.getAvatarId()));
+        Users newRecord = new Users(member);
         usersDao.upsertUserInfo(newRecord);
     }
 

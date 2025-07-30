@@ -34,12 +34,7 @@ public class MeRunner implements IRunner {
     private void runSetAnonymous(Member member, UserAnon newValue){
         final UserId userId = new UserId(member.getUser());
         final GuildId guildId = new GuildId(member.getGuild());
-        Users latestInfo = new Users();
-        latestInfo.setUserId(userId);
-        latestInfo.setGuildId(guildId);
-        latestInfo.setUserName(new UserName(member.getUser()));
-        latestInfo.setNickname(new Nickname(member));
-        latestInfo.setAvatar(new Avatar(member.getUser()));
+        Users latestInfo = new Users(member);
         usersDao.upsertUserInfo(latestInfo);
         usersDao.updateAnonStats(guildId, userId, newValue);
     }
