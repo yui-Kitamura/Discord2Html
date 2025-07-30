@@ -18,6 +18,7 @@ import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
+import pro.eng.yui.oss.d2h.db.model.Users;
 import pro.eng.yui.oss.d2h.html.ChannelInfo;
 import pro.eng.yui.oss.d2h.html.FileGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
@@ -123,6 +124,7 @@ public class RunArchiveRunner implements IRunner {
         Calendar endDate = Calendar.getInstance();
 
         List<MessageInfo> messages = new ArrayList<>();
+        List<Users> marked = new ArrayList<>();
         channel.getHistory().retrievePast(100)
                 .complete()
                 .stream()
@@ -131,7 +133,14 @@ public class RunArchiveRunner implements IRunner {
                             && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant());
                 })
                 .sorted(Comparator.comparing(msg -> { return msg.getTimeCreated(); }))
-                .forEach(msg -> messages.add(new MessageInfo(msg, usersDao)));
+                .forEach(msg -> {
+                    Users author = new Users(msg.getMember());
+                    if(marked.contains(author) == false) {
+                        usersDao.upsertUserInfo(author);
+                        marked.add(author);
+                    }
+                    messages.add(new MessageInfo(msg, author));
+                });
 
         fileGenerator.generate(new ChannelInfo(channel), messages, beginDate, endDate, 1);
 

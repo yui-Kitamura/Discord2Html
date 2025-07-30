@@ -2,9 +2,6 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageReaction;
-import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
-import pro.eng.yui.oss.d2h.db.field.GuildId;
-import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
 import java.text.SimpleDateFormat;
@@ -50,11 +47,9 @@ public class MessageInfo {
         return this.refOriginMessageContent;
     }
     
-    public MessageInfo(Message msg, UsersDAO usersDao){
+    public MessageInfo(Message msg, Users authorInfo){
         this.createdTimestamp = DATE_FORMAT.format(Date.from(msg.getTimeCreated().toInstant()));
-        GuildId guildId = new GuildId(msg.getGuild());
-        UserId userId = new UserId(msg.getAuthor());
-        this.userInfo =  usersDao.select(guildId, userId);
+        this.userInfo = authorInfo;
         this.contentRaw = msg.getContentRaw();
         this.attachments = msg.getAttachments();
         this.reactions = msg.getReactions();
