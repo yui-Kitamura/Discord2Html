@@ -16,7 +16,7 @@ import java.util.TimeZone;
 @Service
 public class FileGenerator {
 
-    private static final String TEMPLATE_NAME = "templates/template.html";
+    private static final String TEMPLATE_NAME = "template";
 
     @Value("${d2h.output.path}")
     private String outputPath;
