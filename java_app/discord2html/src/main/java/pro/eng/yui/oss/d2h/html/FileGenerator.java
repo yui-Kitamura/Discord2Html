@@ -37,14 +37,14 @@ public class FileGenerator {
         Context context = new Context();
         context.setVariable("channel", channel);
         context.setVariable("messages", messages);
-        context.setVariable("begin", timeFormat.format(begin));
-        context.setVariable("end", timeFormat.format(end));
+        context.setVariable("begin", timeFormat.format(begin.getTime()));
+        context.setVariable("end", timeFormat.format(end.getTime()));
         context.setVariable("sequence", seq);
 
         String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
         Path output = Path.of(outputPath, 
-                new SimpleDateFormat("yyyyMMddHHmmss").format(begin),
+                new SimpleDateFormat("yyyyMMddHHmmss").format(begin.getTime()),
                 channel.getName()+ ".html"
         );
         
