@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageReaction;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -24,6 +25,11 @@ public class MessageInfo {
     private final Users userInfo;
     public Users getUserInfo(){
         return this.userInfo;
+    }
+    
+    private final URL avatarUrl;
+    public URL getAvatarUrl(){
+        return this.avatarUrl;
     }
     
     private final String createdTimestamp;
@@ -50,6 +56,7 @@ public class MessageInfo {
     public MessageInfo(Message msg, Users authorInfo){
         this.createdTimestamp = DATE_FORMAT.format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
+        this.avatarUrl = authorInfo.getAvatar().getImgPath(userInfo.getUserId());
         this.contentRaw = msg.getContentRaw();
         this.attachments = msg.getAttachments();
         this.reactions = msg.getReactions();

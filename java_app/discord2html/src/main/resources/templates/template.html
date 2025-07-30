@@ -21,7 +21,7 @@
   <h1 th:text="${channel.name} + ' の会話履歴'">Discord会話履歴</h1>
 
   <div th:each="msg : ${messages}" class="message">
-    <img class="avatar" th:src="${msg.getUserInfo().getAvatar().getImgPath()}" alt="avatar"/>
+    <img class="avatar" th:src="${msg.getAvatarUrl()}" alt="avatar"/>
     <div>
       <div class="meta">
         <span class="author" th:text="${msg.getUserInfo().getNickname().value}">ユーザー名</span>
