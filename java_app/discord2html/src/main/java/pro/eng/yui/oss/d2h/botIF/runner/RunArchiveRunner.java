@@ -134,12 +134,14 @@ public class RunArchiveRunner implements IRunner {
                 })
                 .sorted(Comparator.comparing(msg -> { return msg.getTimeCreated(); }))
                 .forEach(msg -> {
-                    Users author = new Users(msg.getMember());
-                    if(marked.contains(author) == false) {
-                        usersDao.upsertUserInfo(author);
-                        marked.add(author);
+                    if(msg.getMember() != null) {
+                        Users author = new Users(msg.getMember());
+                        if (marked.contains(author) == false) {
+                            usersDao.upsertUserInfo(author);
+                            marked.add(author);
+                        }
+                        messages.add(new MessageInfo(msg, author));
                     }
-                    messages.add(new MessageInfo(msg, author));
                 });
 
         fileGenerator.generate(new ChannelInfo(channel), messages, beginDate, endDate, 1);
