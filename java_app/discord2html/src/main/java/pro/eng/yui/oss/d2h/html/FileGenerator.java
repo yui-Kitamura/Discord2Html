@@ -47,6 +47,11 @@ public class FileGenerator {
                 new SimpleDateFormat("yyyyMMddHHmmss").format(begin.getTime()),
                 channel.getName()+ ".html"
         );
+        try {
+            output.toFile().createNewFile();
+        }catch(IOException ioe) {
+            throw new RuntimeException("Failed to generate HTML file", ioe);
+        }
         
         try (FileWriter writer = new FileWriter(output.toString())) {
             writer.write(htmlContent);
