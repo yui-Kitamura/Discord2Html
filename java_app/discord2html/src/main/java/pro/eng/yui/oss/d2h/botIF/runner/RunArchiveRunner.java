@@ -10,9 +10,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.botIF.DiscordBot;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
+import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
+import pro.eng.yui.oss.d2h.consts.UserAnon;
+import pro.eng.yui.oss.d2h.db.field.AnonStats;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
@@ -34,17 +37,19 @@ public class RunArchiveRunner implements IRunner {
     private final GuildsDAO guildDao;
     private final ChannelsDAO channelDao;
     private final UsersDAO usersDao;
+    private final AnonStatsDAO anonStatsDao;
     private final DiscordJdaProvider jda;
     private final FileGenerator fileGenerator;
 
     @Autowired
     public RunArchiveRunner(
-            GuildsDAO g, ChannelsDAO ch, UsersDAO u,
+            GuildsDAO g, ChannelsDAO ch, UsersDAO u, AnonStatsDAO a,
             DiscordJdaProvider j, FileGenerator fileGenerator
     ){
         this.guildDao = g;
         this.channelDao = ch;
         this.usersDao = u;
+        this.anonStatsDao = a;
         this.jda = j;
         this.fileGenerator = fileGenerator;
     }
@@ -140,6 +145,12 @@ public class RunArchiveRunner implements IRunner {
                             usersDao.upsertUserInfo(author);
                             marked.add(author);
                         }
+
+                        UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember(), targetChannelId);
+                        if (author.getAnonStats() == null) {
+                            author.setAnonStats(new AnonStats(anonStatus));
+                        }
+                        
                         messages.add(new MessageInfo(msg, author));
                     }
                 });
