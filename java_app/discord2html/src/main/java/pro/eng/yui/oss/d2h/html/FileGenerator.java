@@ -35,6 +35,8 @@ public class FileGenerator {
             ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end,
             int seq
     ) {
+        AnonymizationUtil.clearCache();
+        
         Context context = new Context();
         context.setVariable("channel", channel);
         context.setVariable("messages", messages);
