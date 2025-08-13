@@ -5,6 +5,8 @@ import pro.eng.yui.oss.d2h.db.model.Users;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -35,16 +37,15 @@ public class AnonymizationUtil {
                 return uuid.substring(uuid.length() - 12);
             });
             
-            // Get or generate anonymous avatar URL for this user
             URL avatarUrl = userIdToAnonAvatar.computeIfAbsent(userId, id -> {
-                // Generate a color based on the anonymous ID
                 String color = generateColorFromId(anonId);
                 try {
                     // Create a URL to a colored circle SVG
-                    return new URL("data:image/svg+xml," + 
-                        "<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'>" +
-                        "<circle cx='22' cy='22' r='22' fill='" + color + "'/>" +
-                        "</svg>");
+                    String svg = 
+                            "<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'>" +
+                            "<circle cx='22' cy='22' r='22' fill='" + color + "'/>" +
+                            "</svg>";
+                    return new URL("data:image/svg+xml," + URLEncoder.encode(svg, StandardCharsets.UTF_8));
                 } catch (MalformedURLException e) {
                     throw new RuntimeException("Failed to create anonymous avatar URL", e);
                 }
