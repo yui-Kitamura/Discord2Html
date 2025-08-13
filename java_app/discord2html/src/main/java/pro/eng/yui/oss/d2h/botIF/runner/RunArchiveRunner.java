@@ -146,7 +146,7 @@ public class RunArchiveRunner implements IRunner {
                             marked.add(author);
                         }
 
-                        UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember(), targetChannelId);
+                        UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
                         if (author.getAnonStats() == null) {
                             author.setAnonStats(new AnonStats(anonStatus));
                         }
