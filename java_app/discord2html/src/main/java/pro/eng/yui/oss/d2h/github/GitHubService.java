@@ -111,6 +111,7 @@ public class GitHubService {
                 });
             }
         }
+        path.toFile().setReadable(true);
         Files.delete(path);
     }
 }
