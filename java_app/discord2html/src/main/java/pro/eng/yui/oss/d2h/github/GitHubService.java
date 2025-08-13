@@ -1,6 +1,5 @@
 package pro.eng.yui.oss.d2h.github;
 
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pro.eng.yui.oss.d2h.consts.GitHubConsts;
@@ -101,46 +100,17 @@ public class GitHubService {
 
     /** フォルダ内容を含めた削除 */
     private void deleteDirectoryRecursively(Path path) throws IOException {
-        Files.walkFileTree(path, new java.nio.file.SimpleFileVisitor<Path>() {
-            @NotNull
-            @Override
-            public java.nio.file.FileVisitResult visitFile(Path file, java.nio.file.attribute.BasicFileAttributes attrs) throws IOException {
-                try {
-                    Files.delete(file);
-                } catch (IOException e) {
+        if (Files.isDirectory(path)) {
+            try (Stream<Path> entries = Files.list(path)) {
+                entries.forEach(entry -> {
                     try {
-                        file.toFile().setWritable(true);
-                        Files.delete(file);
-                    } catch (IOException ex) {
-                        System.err.println("Failed to delete file: " + file + ": " + ex.getMessage());
+                        deleteDirectoryRecursively(entry);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
-                }
-                return java.nio.file.FileVisitResult.CONTINUE;
+                });
             }
-            
-            @NotNull
-            @Override
-            public java.nio.file.FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
-                System.err.println("Failed to access file: " + file + ": " + exc.getMessage());
-                return java.nio.file.FileVisitResult.CONTINUE;
-            }
-            
-            @NotNull
-            @Override
-            public java.nio.file.FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                try {
-                    Files.delete(dir);
-                } catch (IOException e) {
-                    // Try to make the directory writable and try again
-                    try {
-                        dir.toFile().setWritable(true);
-                        Files.delete(dir);
-                    } catch (IOException ex) {
-                        System.err.println("Failed to delete directory: " + dir + ": " + ex.getMessage());
-                    }
-                }
-                return java.nio.file.FileVisitResult.CONTINUE;
-            }
-        });
+        }
+        Files.delete(path);
     }
 }
