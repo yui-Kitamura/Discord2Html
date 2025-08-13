@@ -40,6 +40,10 @@ public class GitConfig {
             return main;
         }
 
+        public String getUrl() {
+            return "https://github.com/" + owner + "/" + name;
+        }
+
     }
 
     private User user;

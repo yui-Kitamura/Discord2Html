@@ -24,7 +24,56 @@ public class GitUtil {
         this.config = gitConfig;
         this.secrets = secrets;
     }
-    
+    /**
+     * リポジトリ初期化を保証する
+     * - .git が無ければ clone もしくは init + remote 設定 + fetch + checkout を行う
+     * - ネットワーク操作時のみ一時的に認証付きURLを使い、完了後に元のURLへ戻す
+     */
+    public void ensureRepoInitialized(String originUrl) throws Exception {
+        final File repoDir = new File(config.getLocal().getDir());
+        if (!repoDir.exists()) {
+            repoDir.mkdirs();
+        }
+        if (isGitRepoDir(repoDir)) {
+            return; // 既にgit管理下
+        }
+
+        final String branch = config.getRepo().getMain();
+        final String authUrl = insertTokenToUrl(originUrl);
+
+        if (isEmptyDir(repoDir)) {
+            // 空ディレクトリなら clone で作成
+            runGitCommand("clone", authUrl, ".");
+            // clone で remote に認証URLが残るため、非認証URLへ戻す
+            runGitCommand("remote", "set-url", "origin", originUrl);
+            // 目的ブランチへ切替（clone先のデフォルトブランチが異なる可能性に備える）
+            try {
+                runGitCommand("checkout", branch);
+            } catch (Exception ignore) {
+                // ブランチが無ければ追跡ブランチで作成
+                runGitCommand("checkout", "-B", branch, "origin/" + branch);
+            }
+        } else {
+            // 既存ファイルがある場合は in-place init
+            runGitCommand("init");
+            try {
+                runGitCommand("remote", "add", "origin", originUrl);
+            } catch (Exception e) {
+                // 既に origin がある場合は上書き
+                runGitCommand("remote", "set-url", "origin", originUrl);
+            }
+            // fetch は一時的に認証付きURLへ切替
+            runGitCommand("remote", "set-url", "origin", authUrl);
+            try {
+                runGitCommand("fetch", "origin", branch);
+            } finally {
+                runGitCommand("remote", "set-url", "origin", originUrl);
+            }
+            // リモート追跡ブランチを起点にブランチを作成/更新
+            runGitCommand("checkout", "-B", branch, "origin/" + branch);
+        }
+    }
+
     /**
      * fetch
      */
@@ -133,6 +182,15 @@ public class GitUtil {
         } else {
             throw new IllegalArgumentException("HTTPS URLのみ対応: " + url);
         }
+    }
+
+    private boolean isGitRepoDir(File dir) {
+        return new File(dir, ".git").isDirectory();
+    }
+
+    private boolean isEmptyDir(File dir) {
+        File[] files = dir.listFiles();
+        return files == null || files.length == 0;
     }
 
 }

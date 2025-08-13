@@ -39,12 +39,13 @@ public class GitHubService {
             throw new IOException("HTML file does not exist: " + htmlFilePath);
         }
 
-        // Get the local repository directory
         String repoDir = gitConfig.getLocal().getDir();
         File repoDirFile = new File(repoDir);
         if (!repoDirFile.exists() || !repoDirFile.isDirectory()) {
             repoDirFile.mkdirs();
         }
+        // repoの確実な初期化
+        gitUtil.ensureRepoInitialized(gitConfig.getRepo().getUrl());
 
         String dateDir = GitHubConsts.DATE_FORMAT.format(new Date());
         File targetDir = new File(repoDirFile, GitHubConsts.ARCHIVES_DIR + dateDir);
