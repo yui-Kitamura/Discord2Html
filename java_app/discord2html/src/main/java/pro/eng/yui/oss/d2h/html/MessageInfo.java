@@ -27,9 +27,15 @@ public class MessageInfo {
         return this.userInfo;
     }
     
-    private final URL avatarUrl;
+    private final MessageUserInfo messageUserInfo;
+    public MessageUserInfo getMessageUserInfo() {
+        return this.messageUserInfo;
+    }
     public URL getAvatarUrl(){
-        return this.avatarUrl;
+        return this.messageUserInfo.getAvatarUrl();
+    }
+    public String getUsername() {
+        return this.messageUserInfo.getUsername();
     }
     
     private final String createdTimestamp;
@@ -56,7 +62,7 @@ public class MessageInfo {
     public MessageInfo(Message msg, Users authorInfo){
         this.createdTimestamp = DATE_FORMAT.format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
-        this.avatarUrl = authorInfo.getAvatar().getImgPath(userInfo.getUserId());
+        this.messageUserInfo = AnonymizationUtil.anonymizeUser(authorInfo);
         this.contentRaw = msg.getContentRaw();
         this.attachments = msg.getAttachments();
         this.reactions = msg.getReactions();
