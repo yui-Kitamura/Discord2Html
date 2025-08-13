@@ -72,6 +72,9 @@ public class GitUtil {
             // リモート追跡ブランチを起点にブランチを作成/更新
             runGitCommand("checkout", "-B", branch, "origin/" + branch);
         }
+        // Set git user configuration for bot
+        runGitCommand("config", "--global", "user.email", "discord2html-bot@yui-kitamura.github.io");
+        runGitCommand("config", "--global", "user.name", "Discord2HTML Bot");
     }
 
     /**
