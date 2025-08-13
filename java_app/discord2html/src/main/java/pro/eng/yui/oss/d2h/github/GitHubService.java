@@ -51,11 +51,7 @@ public class GitHubService {
         String repoDir = gitConfig.getLocal().getDir();
         File repoDirFile = new File(repoDir);
         if (repoDirFile.exists()) {
-            try {
-                deleteDirectoryRecursively(repoDirFile.toPath());
-            } catch (IOException e) {
-                e.printStackTrace(); // continue
-            }
+            deleteDirectoryRecursively(repoDirFile.toPath());
         }
         if (!repoDirFile.exists() || !repoDirFile.isDirectory()) {
             repoDirFile.mkdirs();
