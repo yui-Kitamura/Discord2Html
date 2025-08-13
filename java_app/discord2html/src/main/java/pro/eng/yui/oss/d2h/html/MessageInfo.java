@@ -31,7 +31,7 @@ public class MessageInfo {
     public MessageUserInfo getMessageUserInfo() {
         return this.messageUserInfo;
     }
-    public URL getAvatarUrl(){
+    public String getAvatarUrl(){
         return this.messageUserInfo.getAvatarUrl();
     }
     public String getUsername() {
