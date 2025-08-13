@@ -99,13 +99,16 @@ public class RunArchiveRunner implements IRunner {
             if (config.getPushToGitHub() && !generatedFiles.isEmpty()) {
                 try {
                     gitHubService.pushHtmlFilesToGitHub(generatedFiles);
-                    member.getGuild().getDefaultChannel().asTextChannel()
-                        .sendMessage("All archives have been pushed to GitHub repository.").queue();
                 } catch (Exception e) {
+                    List<Channels> loggingChannels = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
                     System.err.println("Failed to push HTML files to GitHub: " + e.getMessage());
                     e.printStackTrace();
-                    member.getGuild().getDefaultChannel().asTextChannel()
-                        .sendMessage("Failed to push archives to GitHub: " + e.getMessage()).queue();
+                    for(Channels sendTo : loggingChannels) {
+                        jda.getJda().getGuildById(sendTo.getGuidId().getValue())
+                                .getChannelById(GuildMessageChannel.class, sendTo.getChannelId().getValue())
+                                .sendMessage("Failed to push archives to GitHub: " + e.getMessage())
+                                .queue();
+                    }
                 }
             }
         } catch(Exception e) {
@@ -134,10 +137,16 @@ public class RunArchiveRunner implements IRunner {
                     if (config.getPushToGitHub() && !generatedFiles.isEmpty()) {
                         try {
                             gitHubService.pushHtmlFilesToGitHub(generatedFiles);
-                            System.out.println("All archives for guild " + guilds.getGuildId().getValue() + " have been pushed to GitHub repository.");
                         } catch (Exception e) {
+                            List<Channels> loggingChannels = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
                             System.err.println("Failed to push HTML files to GitHub: " + e.getMessage());
                             e.printStackTrace();
+                            for(Channels sendTo : loggingChannels) {
+                                jda.getJda().getGuildById(sendTo.getGuidId().getValue())
+                                        .getChannelById(GuildMessageChannel.class, sendTo.getChannelId().getValue())
+                                        .sendMessage("Failed to push archives to GitHub: " + e.getMessage())
+                                        .queue();
+                            }
                         }
                         // Clear files after pushing for this guild
                         generatedFiles.clear();
