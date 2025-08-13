@@ -88,7 +88,7 @@ public class GitHubService {
     }
 
     /**
-     * Get relative path from base directory to target file
+     * 相対パスの取得
      */
     private String getRelativePath(File baseDir, File targetFile) {
         String basePath = baseDir.getAbsolutePath();
