@@ -42,9 +42,9 @@ public class AnonymizationUtil {
                 // Create a URL to a colored circle SVG
                 String svg = 
                         "<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'>" +
-                        "<circle cx='22' cy='22' r='22' fill='" + color + "'/>" +
+                        "<circle cx='22' cy='22' r='22' fill='%23" + color + "'/>" +
                         "</svg>";
-                return "data:image/svg+xml," + URLEncoder.encode(svg, StandardCharsets.UTF_8);
+                return "data:image/svg+xml;charset=UTF-8," + svg;
             });
             
             return new MessageUserInfo(anonId, avatarUrl);
