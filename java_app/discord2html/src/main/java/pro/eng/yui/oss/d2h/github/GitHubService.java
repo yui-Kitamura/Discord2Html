@@ -43,7 +43,7 @@ public class GitHubService {
         String repoDir = gitConfig.getLocal().getDir();
         File repoDirFile = new File(repoDir);
         if (!repoDirFile.exists() || !repoDirFile.isDirectory()) {
-            throw new IOException("Local repository directory does not exist: " + repoDir);
+            repoDirFile.mkdirs();
         }
 
         String dateDir = GitHubConsts.DATE_FORMAT.format(new Date());
