@@ -73,6 +73,56 @@ public class GitHubService {
     }
 
     /**
+     * Push multiple HTML files to GitHub repository in a single operation
+     * 
+     * @param htmlFilePaths List of paths to the HTML files to push
+     * @throws Exception If any error occurs during the push process
+     */
+    public void pushHtmlFilesToGitHub(List<Path> htmlFilePaths) throws Exception {
+        if (htmlFilePaths == null || htmlFilePaths.isEmpty()) {
+            return; // Nothing to push
+        }
+        
+        // Validate all files exist
+        for (Path path : htmlFilePaths) {
+            if (!Files.exists(path)) {
+                throw new IOException("HTML file does not exist: " + path);
+            }
+        }
+
+        String repoDir = gitConfig.getLocal().getDir();
+        File repoDirFile = new File(repoDir);
+        if (!repoDirFile.exists() || !repoDirFile.isDirectory()) {
+            repoDirFile.mkdirs();
+        }
+        // Initialize repository
+        gitUtil.ensureRepoInitialized(gitConfig.getRepo().getUrl());
+
+        String dateDir = GitHubConsts.DATE_FORMAT.format(new Date());
+        File targetDir = new File(repoDirFile, GitHubConsts.ARCHIVES_DIR + dateDir);
+        targetDir.mkdirs();
+
+        // Copy all HTML files to the repository and collect paths for git add
+        List<String> filesToAdd = new ArrayList<>();
+        for (Path htmlFilePath : htmlFilePaths) {
+            File targetFile = new File(targetDir, htmlFilePath.getFileName().toString());
+            Files.copy(htmlFilePath, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            filesToAdd.add(getRelativePath(repoDirFile, targetFile));
+        }
+
+        try {
+            gitUtil.fetch();
+            gitUtil.pullRebase();
+
+            gitUtil.add(filesToAdd);
+            gitUtil.commit(GitHubConsts.COMMIT_PREFIX + "multiple files");
+            gitUtil.push();
+        } catch (Exception e) {
+            throw new Exception("Failed to push HTML files to GitHub", e);
+        }
+    }
+
+    /**
      * Get relative path from base directory to target file
      */
     private String getRelativePath(File baseDir, File targetFile) {

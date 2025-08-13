@@ -65,17 +65,6 @@ public class FileGenerator {
             throw new RuntimeException("Failed to generate HTML file", e);
         }
         
-        // Push to GitHub
-        if (appConfig.getPushToGitHub()) {
-            // if enabled
-            try {
-                gitHubService.pushHtmlToGitHub(output);
-            } catch (Exception e) {
-                System.err.println("Failed to push HTML file to GitHub: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
-        
         return output;
     }
 }
