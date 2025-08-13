@@ -53,11 +53,8 @@ public class GitHubService {
         if (repoDirFile.exists()) {
             deleteDirectoryRecursively(repoDirFile.toPath());
         }
-        if (!repoDirFile.exists() || !repoDirFile.isDirectory()) {
-            repoDirFile.mkdirs();
-        }
         // Initialize repository
-        gitUtil.ensureRepoInitialized(gitConfig.getRepo().getUrl());
+        gitUtil.ensureRepoInitialized();
 
         String dateDir = GitHubConsts.DATE_FORMAT.format(new Date());
         File targetDir = new File(repoDirFile, GitHubConsts.ARCHIVES_DIR + dateDir);

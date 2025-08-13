@@ -29,7 +29,7 @@ public class GitUtil {
      * - .git が無ければ clone もしくは init + remote 設定 + fetch + checkout を行う
      * - ネットワーク操作時のみ一時的に認証付きURLを使い、完了後に元のURLへ戻す
      */
-    public void ensureRepoInitialized(String originUrl) throws Exception {
+    public void ensureRepoInitialized() throws Exception {
         final File repoDir = new File(config.getLocal().getDir());
         if (!repoDir.exists()) {
             repoDir.mkdirs();
@@ -38,6 +38,7 @@ public class GitUtil {
             return; // 既にgit管理下
         }
 
+        final String originUrl = config.getRepo().getUrl();
         final String branch = config.getRepo().getMain();
         final String authUrl = insertTokenToUrl(originUrl);
 
