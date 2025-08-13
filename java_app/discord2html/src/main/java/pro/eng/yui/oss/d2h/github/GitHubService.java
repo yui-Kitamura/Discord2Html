@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * Service to push HTML files to GitHub repository
@@ -92,6 +93,13 @@ public class GitHubService {
 
         String repoDir = gitConfig.getLocal().getDir();
         File repoDirFile = new File(repoDir);
+        if (repoDirFile.exists()) {
+            try {
+                deleteDirectoryRecursively(repoDirFile.toPath());
+            } catch (IOException e) {
+                e.printStackTrace(); // continue
+            }
+        }
         if (!repoDirFile.exists() || !repoDirFile.isDirectory()) {
             repoDirFile.mkdirs();
         }
@@ -139,5 +147,21 @@ public class GitHubService {
         }
         
         return targetFile.getName();
+    }
+
+    /** フォルダ内容を含めた削除 */
+    private void deleteDirectoryRecursively(Path path) throws IOException {
+        if (Files.isDirectory(path)) {
+            try (Stream<Path> entries = Files.list(path)) {
+                entries.forEach(entry -> {
+                    try {
+                        deleteDirectoryRecursively(entry);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+        }
+        Files.delete(path);
     }
 }
