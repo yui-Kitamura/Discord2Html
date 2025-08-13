@@ -13,7 +13,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Stream;
 
 /**
  * Service to push HTML files to GitHub repository
@@ -99,8 +98,49 @@ public class GitHubService {
         return targetFile.getName();
     }
 
-    /** フォルダ内容を含めた削除 */
+    /** 
+     * フォルダ内容を含めた削除 (.gitディレクトリの削除を確実に行う)
+     * .gitディレクトリの場合はシステムコマンドを使用して確実に削除を試みる
+     * @throws IOException ファイル操作に失敗した場合
+     */
     private void deleteDirectoryRecursively(Path path) throws IOException {
+        // Special handling for .git directory - use system command if available
+        if (path.toString().endsWith(".git") || new File(path.toFile(), ".git").exists()) {
+            try {
+                // Try using system command first for .git directories
+                boolean deleted = false;
+                if (isWindowsEnv()) {
+                    // Windows - use rmdir /s /q
+                    ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "rmdir", "/s", "/q", path.toString());
+                    Process process = pb.start();
+                    int exitCode = process.waitFor();
+                    deleted = (exitCode == 0);
+                } else {
+                    // Unix-like - use rm -rf
+                    ProcessBuilder pb = new ProcessBuilder("rm", "-rf", path.toString());
+                    Process process = pb.start();
+                    int exitCode = process.waitFor();
+                    deleted = (exitCode == 0);
+                }
+                
+                if (deleted) {
+                    return; // Successfully deleted using system command
+                }
+                // If system command failed, fall back to Java implementation
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt(); // Restore the interrupted status
+                System.err.println("Process was interrupted: " + e.getMessage());
+                // Fall back to Java implementation
+            } catch (IOException e) {
+                System.err.println("IO error during system command: " + e.getMessage());
+                // Fall back to Java implementation
+            } catch (Exception e) {
+                System.err.println("Failed to delete using system command: " + e.getMessage());
+                // Fall back to Java implementation
+            }
+        }
+        
+        // Standard Java implementation for directory deletion
         Files.walkFileTree(path, new java.nio.file.SimpleFileVisitor<Path>() {
             @NotNull
             @Override
@@ -109,7 +149,19 @@ public class GitHubService {
                     Files.delete(file);
                 } catch (IOException e) {
                     try {
-                        file.toFile().setWritable(true);
+                        // Make file writable and not hidden
+                        File f = file.toFile();
+                        f.setWritable(true);
+                        if (f.isHidden()) {
+                            try {
+                                // On Windows, try to remove hidden attribute
+                                if (isWindowsEnv()) {
+                                    Runtime.getRuntime().exec("attrib -H \"" + file + "\"");
+                                }
+                            } catch (Exception ex) {
+                                // Ignore if attrib command fails
+                            }
+                        }
                         Files.delete(file);
                     } catch (IOException ex) {
                         System.err.println("Failed to delete file: " + file + ": " + ex.getMessage());
@@ -133,7 +185,18 @@ public class GitHubService {
                 } catch (IOException e) {
                     // Try to make the directory writable and try again
                     try {
-                        dir.toFile().setWritable(true);
+                        File d = dir.toFile();
+                        d.setWritable(true);
+                        if (d.isHidden()) {
+                            try {
+                                if (isWindowsEnv()) {
+                                    // On Windows, try to remove hidden attribute
+                                    Runtime.getRuntime().exec("attrib -H \"" + dir + "\"");
+                                }
+                            } catch (Exception ex) {
+                                // Ignore if attrib command fails
+                            }
+                        }
                         Files.delete(dir);
                     } catch (IOException ex) {
                         System.err.println("Failed to delete directory: " + dir + ": " + ex.getMessage());
@@ -142,5 +205,9 @@ public class GitHubService {
                 return java.nio.file.FileVisitResult.CONTINUE;
             }
         });
+    }
+    
+    private boolean isWindowsEnv(){
+        return System.getProperty("os.name").toLowerCase().contains("windows");
     }
 }
