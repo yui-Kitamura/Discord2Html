@@ -138,7 +138,7 @@ public class RunArchiveRunner implements IRunner {
                         try {
                             gitHubService.pushHtmlFilesToGitHub(generatedFiles);
                         } catch (Exception e) {
-                            List<Channels> loggingChannels = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
+                            List<Channels> loggingChannels = channelDao.selectChannelArchiveDo(guilds.getGuildId());
                             System.err.println("Failed to push HTML files to GitHub: " + e.getMessage());
                             e.printStackTrace();
                             for(Channels sendTo : loggingChannels) {
