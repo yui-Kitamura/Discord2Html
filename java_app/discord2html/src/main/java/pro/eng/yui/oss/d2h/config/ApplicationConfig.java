@@ -19,6 +19,18 @@ public class ApplicationConfig {
     public String getDiscordAuthRedirectUriHost(){
         return discordAuthRedirectUriHost;
     }
+
+    @Value("${d2h.output.path}")
+    private String outputPath;
+    public String getOutputPath(){
+        return outputPath;
+    }
+    
+    @Value("${d2h.github.push:false}")
+    private boolean pushToGitHub;
+    public boolean getPushToGitHub(){
+        return pushToGitHub;
+    }
     
     @Bean
     public ForwardedHeaderFilter forwardedHeaderFilter(){

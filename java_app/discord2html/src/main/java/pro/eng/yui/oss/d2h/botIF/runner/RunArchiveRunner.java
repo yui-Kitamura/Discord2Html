@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.botIF.DiscordBot;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
+import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
@@ -34,6 +35,7 @@ import java.util.List;
 @Component
 public class RunArchiveRunner implements IRunner {
     
+    private final ApplicationConfig config;
     private final GuildsDAO guildDao;
     private final ChannelsDAO channelDao;
     private final UsersDAO usersDao;
@@ -43,9 +45,11 @@ public class RunArchiveRunner implements IRunner {
 
     @Autowired
     public RunArchiveRunner(
+            ApplicationConfig c,
             GuildsDAO g, ChannelsDAO ch, UsersDAO u, AnonStatsDAO a,
             DiscordJdaProvider j, FileGenerator fileGenerator
     ){
+        this.config = c;
         this.guildDao = g;
         this.channelDao = ch;
         this.usersDao = u;
@@ -157,11 +161,19 @@ public class RunArchiveRunner implements IRunner {
 
         fileGenerator.generate(new ChannelInfo(channel), messages, beginDate, endDate, 1);
 
-        channel.sendMessage("archive created. task end <<<").queue();
+        if (config.getPushToGitHub()) {
+            channel.sendMessage("archive created and pushed to GitHub repository. task end <<<").queue();
+        } else {
+            channel.sendMessage("archive created. task end <<<").queue();
+        }
     }
 
     @Override
     public String afterRunMessage() {
-        return "bot completed making archive";
+        if (config.getPushToGitHub()) {
+            return "bot completed making archive and pushing to GitHub repository";
+        } else {
+            return "bot completed making archive";
+        }
     }
 }
