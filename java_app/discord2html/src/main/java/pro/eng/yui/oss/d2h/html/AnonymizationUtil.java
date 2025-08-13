@@ -38,7 +38,7 @@ public class AnonymizationUtil {
             });
             
             String avatarUrl = userIdToAnonAvatar.computeIfAbsent(userId, id -> {
-                String color = generateColorFromId(anonId);
+                String color = generateColorFromId(anonId); // #なし
                 // Create a URL to a colored circle SVG
                 String svg = 
                         "<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'>" +
@@ -61,16 +61,14 @@ public class AnonymizationUtil {
      * Generates an RGB color from the given ID string.
      * 
      * @param id The ID string to generate a color from
-     * @return A hex color string (e.g., "#FF0000")
+     * @return A hex color string (e.g., "FF0000")
      */
     private static String generateColorFromId(String id) {
-        // Use the first 6 characters of the ID as a hex color
-        // If ID is shorter than 6 characters, pad with zeros
         String colorHex = id.substring(0, Math.min(6, id.length()));
         while (colorHex.length() < 6) {
             colorHex += "0";
         }
-        return "#" + colorHex;
+        return colorHex;
     }
     
     /**
