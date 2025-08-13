@@ -1,5 +1,6 @@
 package pro.eng.yui.oss.d2h.github;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pro.eng.yui.oss.d2h.consts.GitHubConsts;
@@ -108,6 +109,7 @@ public class GitHubService {
     /** フォルダ内容を含めた削除 */
     private void deleteDirectoryRecursively(Path path) throws IOException {
         Files.walkFileTree(path, new java.nio.file.SimpleFileVisitor<Path>() {
+            @NotNull
             @Override
             public java.nio.file.FileVisitResult visitFile(Path file, java.nio.file.attribute.BasicFileAttributes attrs) throws IOException {
                 try {
@@ -123,12 +125,14 @@ public class GitHubService {
                 return java.nio.file.FileVisitResult.CONTINUE;
             }
             
+            @NotNull
             @Override
             public java.nio.file.FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
                 System.err.println("Failed to access file: " + file + ": " + exc.getMessage());
                 return java.nio.file.FileVisitResult.CONTINUE;
             }
             
+            @NotNull
             @Override
             public java.nio.file.FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
                 try {
