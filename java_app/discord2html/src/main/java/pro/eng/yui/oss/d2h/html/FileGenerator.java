@@ -1,9 +1,10 @@
 package pro.eng.yui.oss.d2h.html;
 
 import org.springframework.stereotype.Service;
-import org.springframework.beans.factory.annotation.Value;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import pro.eng.yui.oss.d2h.config.ApplicationConfig;
+import pro.eng.yui.oss.d2h.github.GitHubService;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -19,14 +20,15 @@ public class FileGenerator {
 
     private static final String TEMPLATE_NAME = "template";
 
-    @Value("${d2h.output.path}")
-    private String outputPath;
-
     private final SimpleDateFormat timeFormat;
+    private final ApplicationConfig appConfig;
     private final TemplateEngine templateEngine;
+    private final GitHubService gitHubService;
 
-    public FileGenerator(TemplateEngine templateEngine) {
+    public FileGenerator(ApplicationConfig config, TemplateEngine templateEngine, GitHubService gitHubService) {
+        this.appConfig = config;
         this.templateEngine = templateEngine;
+        this.gitHubService = gitHubService;
         this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
     }
@@ -46,7 +48,7 @@ public class FileGenerator {
 
         String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
-        Path output = Path.of(outputPath, 
+        Path output = Path.of(appConfig.getOutputPath(), 
                 new SimpleDateFormat("yyyyMMddHHmmss").format(end.getTime()),
                 channel.getName()+ ".html"
         );
@@ -61,6 +63,17 @@ public class FileGenerator {
             writer.write(htmlContent);
         } catch (IOException e) {
             throw new RuntimeException("Failed to generate HTML file", e);
+        }
+        
+        // Push to GitHub
+        if (appConfig.getPushToGitHub()) {
+            // if enabled
+            try {
+                gitHubService.pushHtmlToGitHub(output);
+            } catch (Exception e) {
+                System.err.println("Failed to push HTML file to GitHub: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
         
         return output;
