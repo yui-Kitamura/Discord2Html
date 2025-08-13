@@ -23,6 +23,11 @@ public class GitUtil {
     public GitUtil(GitConfig gitConfig, Secrets secrets){
         this.config = gitConfig;
         this.secrets = secrets;
+
+        File localDir = new File(config.getLocal().getDir());
+        if (!localDir.exists()) {
+            localDir.mkdirs();
+        }
     }
     
     /**
