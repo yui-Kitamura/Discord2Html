@@ -26,11 +26,17 @@ public class AnonStatsDAO {
     /**
      * Extract anonymization statistics based on role+user criteria.
      * If any of them has Anon=OPEN, that will be used.
+     * If the user is a bot, UserAnon.OPEN will be used regardless of other settings.
      *
      * @param member The Discord member
-     * @return UserAnon.OPEN if any of role or user has Anon=OPEN, otherwise UserAnon.ANONYMOUS
+     * @return UserAnon.OPEN if any of role or user has Anon=OPEN or if user is a bot, otherwise UserAnon.ANONYMOUS
      */
     public UserAnon extractAnonStats(Member member) {
+        // If user is a bot, always use OPEN anonymization
+        if (member.getUser().isBot()) {
+            return UserAnon.OPEN;
+        }
+        
         GuildId guildId = new GuildId(member.getGuild());
         UserId userId = new UserId(member.getUser());
 
