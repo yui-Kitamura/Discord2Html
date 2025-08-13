@@ -18,7 +18,7 @@ import java.util.UUID;
 public class AnonymizationUtil {
 
     private static final Map<UserId, String> userIdToAnonId = new HashMap<>();
-    private static final Map<UserId, URL> userIdToAnonAvatar = new HashMap<>();
+    private static final Map<UserId, String> userIdToAnonAvatar = new HashMap<>();
 
     /**
      * Anonymizes a user's information if their AnonStats is set to ANONYMOUS.
@@ -37,18 +37,14 @@ public class AnonymizationUtil {
                 return uuid.substring(uuid.length() - 12);
             });
             
-            URL avatarUrl = userIdToAnonAvatar.computeIfAbsent(userId, id -> {
+            String avatarUrl = userIdToAnonAvatar.computeIfAbsent(userId, id -> {
                 String color = generateColorFromId(anonId);
-                try {
-                    // Create a URL to a colored circle SVG
-                    String svg = 
-                            "<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'>" +
-                            "<circle cx='22' cy='22' r='22' fill='" + color + "'/>" +
-                            "</svg>";
-                    return new URL("data:image/svg+xml," + URLEncoder.encode(svg, StandardCharsets.UTF_8));
-                } catch (MalformedURLException e) {
-                    throw new RuntimeException("Failed to create anonymous avatar URL", e);
-                }
+                // Create a URL to a colored circle SVG
+                String svg = 
+                        "<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'>" +
+                        "<circle cx='22' cy='22' r='22' fill='" + color + "'/>" +
+                        "</svg>";
+                return "data:image/svg+xml," + URLEncoder.encode(svg, StandardCharsets.UTF_8);
             });
             
             return new MessageUserInfo(anonId, avatarUrl);

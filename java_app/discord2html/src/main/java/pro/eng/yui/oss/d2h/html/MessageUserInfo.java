@@ -8,7 +8,7 @@ import java.net.URL;
  */
 public class MessageUserInfo {
     private final String username;
-    private final URL avatarUrl;
+    private final String avatarUrl;
     
     /**
      * Creates a new MessageUserInfo with the specified username and avatar URL.
@@ -16,7 +16,7 @@ public class MessageUserInfo {
      * @param username The username to display
      * @param avatarUrl The URL of the user's avatar
      */
-    public MessageUserInfo(String username, URL avatarUrl) {
+    public MessageUserInfo(String username, String avatarUrl) {
         this.username = username;
         this.avatarUrl = avatarUrl;
     }
@@ -35,7 +35,7 @@ public class MessageUserInfo {
      * 
      * @return The URL of the user's avatar
      */
-    public URL getAvatarUrl() {
+    public String getAvatarUrl() {
         return avatarUrl;
     }
 }

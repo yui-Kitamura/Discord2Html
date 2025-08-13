@@ -2,9 +2,6 @@ package pro.eng.yui.oss.d2h.db.field;
 
 import net.dv8tion.jda.api.entities.User;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-
 public class Avatar extends AbstVarChar {
     
     public static String IMG_HOST = "https://cdn.discordapp.com/avatars";
@@ -17,12 +14,8 @@ public class Avatar extends AbstVarChar {
         this(user.getAvatarId());
     }
     
-    public URL getImgPath(UserId userId){
-        try {
-            return new URL(IMG_HOST + "/" + userId.toString() + "/" + this.value + ".png");
-        }catch(MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
+    public String getImgPath(UserId userId){
+        return IMG_HOST + "/" + userId.toString() + "/" + this.value + ".png";
     }
 
     @Override
