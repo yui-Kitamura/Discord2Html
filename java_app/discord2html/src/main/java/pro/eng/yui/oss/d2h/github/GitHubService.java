@@ -52,6 +52,7 @@ public class GitHubService {
 
         // Copy HTML file to the repository
         File targetFile = new File(targetDir, htmlFilePath.getFileName().toString());
+        targetFile.getParentFile().mkdirs();
         Files.copy(htmlFilePath, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
         // Add, commit, and push the file
