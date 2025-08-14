@@ -4,7 +4,6 @@ import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
-import pro.eng.yui.oss.d2h.github.GitHubService;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -23,12 +22,10 @@ public class FileGenerator {
     private final SimpleDateFormat timeFormat;
     private final ApplicationConfig appConfig;
     private final TemplateEngine templateEngine;
-    private final GitHubService gitHubService;
-
-    public FileGenerator(ApplicationConfig config, TemplateEngine templateEngine, GitHubService gitHubService) {
+    
+    public FileGenerator(ApplicationConfig config, TemplateEngine templateEngine) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
-        this.gitHubService = gitHubService;
         this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
     }
