@@ -33,6 +33,15 @@ public class FileGenerator {
         this.folderFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
     }
 
+    public static String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
+
     public Path generate(
             ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end,
             int seq
