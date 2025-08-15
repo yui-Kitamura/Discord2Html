@@ -89,7 +89,7 @@ public class GitHubService {
 
             gitUtil.add(filesToAdd);
             String commitMessage;
-            if(filesToAdd.size() == 1) {
+            if(filesToAdd.size() == 2) { // archives/channel.html + archive/yMd/channel.html 
                 commitMessage = new File(filesToAdd.get(0)).getName();
             }else {
                 commitMessage = "multiple files";
