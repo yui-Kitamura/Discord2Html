@@ -81,7 +81,7 @@ public class RunArchiveRunner implements IRunner {
                             GuildMessageChannel gmc = selected.asGuildMessageChannel();
                             if (gmc != null) {
                                 isTargetChannelMarked = true;
-                                run(gmc);
+                                run(gmc, false);
                                 continue; // processed target via channel option
                             }
                         }
@@ -99,7 +99,7 @@ public class RunArchiveRunner implements IRunner {
                                 GuildMessageChannel byId = member.getGuild().getChannelById(GuildMessageChannel.class, chId.getValue());
                                 if (byId != null) {
                                     isTargetChannelMarked = true;
-                                    run(byId);
+                                    run(byId, false);
                                     continue; // processed target via ID
                                 }
                             } catch (NumberFormatException ignore) {
@@ -113,21 +113,21 @@ public class RunArchiveRunner implements IRunner {
                     List<TextChannel> channels = member.getGuild().getTextChannelsByName(inputName, true);
                     for (GuildMessageChannel channel : channels) {
                         isTargetChannelMarked = true;
-                        run(channel);
+                        run(channel, false);
                     }
                     List<VoiceChannel> voiceChannels = member.getGuild().getVoiceChannelsByName(inputName, true);
                     for (GuildMessageChannel v : voiceChannels) {
                         isTargetChannelMarked = true;
-                        run(v);
+                        run(v, false);
                     }
                 }
             }
             if (isTargetChannelMarked == false) {
                 for (GuildMessageChannel c : member.getGuild().getTextChannels()) {
-                    run(c);
+                    run(c, false);
                 }
                 for (GuildMessageChannel v : member.getGuild().getVoiceChannels()) {
-                    run(v);
+                    run(v, false);
                 }
             }
             
@@ -166,7 +166,7 @@ public class RunArchiveRunner implements IRunner {
                 if(on.getValue() == now) {
                     List<Channels> chs = channelDao.selectAllInGuild(guilds.getGuildId());
                     for(Channels ch : chs) {
-                        run(jda.getJda().getGuildById(ch.getGuidId().getValue()).getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue()));
+                        run(jda.getJda().getGuildById(ch.getGuidId().getValue()).getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue()), true);
                     }
                     
                     // Push all generated files for this guild at once
@@ -194,8 +194,9 @@ public class RunArchiveRunner implements IRunner {
 
     /**
      * 処理本体
+     * @param scheduled true: 定期実行, false: 手動実行
      */
-    private void run(GuildMessageChannel channel){
+    private void run(GuildMessageChannel channel, boolean scheduled){
         //validate
         Channels targetChInfo = null;
         List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
@@ -212,36 +213,48 @@ public class RunArchiveRunner implements IRunner {
 
         channel.sendMessage("This channel is archive target. Start >>>").queue();
 
-        Calendar beginDate = Calendar.getInstance();
-        beginDate.add(Calendar.HOUR_OF_DAY, -3); //FIXME 3h固定で仮生成
+        // Determine begin/end using guild scheduled hours from DB
         Calendar endDate = Calendar.getInstance();
+        Calendar beginDate = getPreviousScheduledTime(endDate, new GuildId(channel.getGuild()));
 
+        // Collect messages after beginDate handling more than 100 via pagination
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
-        channel.getHistory().retrievePast(100)
-                .complete()
-                .stream()
-                .filter(msg -> {
-                    return msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
-                            && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant());
-                })
-                .sorted(Comparator.comparing(msg -> { return msg.getTimeCreated(); }))
-                .forEach(msg -> {
-                    if(msg.getMember() != null) {
-                        Users author = new Users(msg.getMember());
-                        if (marked.contains(author) == false) {
-                            usersDao.upsertUserInfo(author);
-                            marked.add(author);
+        var history = channel.getHistory();
+        boolean more = true;
+        while (more) {
+            var batch = history.retrievePast(100).complete();
+            if (batch == null || batch.isEmpty()) {
+                break;
+            }
+            // If the oldest message in this batch is before beginDate, we can stop after filtering
+            var oldest = batch.get(batch.size() - 1);
+            var oldestInstant = oldest.getTimeCreated().toInstant();
+            // Filter only messages within window and collect authors/anon
+            batch.stream()
+                    .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
+                            && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                    .forEach(msg -> {
+                        if(msg.getMember() != null) {
+                            Users author = new Users(msg.getMember());
+                            if (!marked.contains(author)) {
+                                usersDao.upsertUserInfo(author);
+                                marked.add(author);
+                            }
+                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
+                            if (author.getAnonStats() == null) {
+                                author.setAnonStats(new AnonStats(anonStatus));
+                            }
+                            messages.add(new MessageInfo(msg, author));
                         }
-
-                        UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
-                        if (author.getAnonStats() == null) {
-                            author.setAnonStats(new AnonStats(anonStatus));
-                        }
-                        
-                        messages.add(new MessageInfo(msg, author));
-                    }
-                });
+                    });
+            if (!oldestInstant.isAfter(beginDate.toInstant())) {
+                // we have reached messages at/before beginDate; stop paging
+                more = false;
+            }
+        }
+        // sort chronologically (createdTimestamp format is lexicographically sortable)
+        messages.sort(Comparator.comparing(MessageInfo::getCreatedTimestamp));
 
         Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginDate, endDate, 1);
         generatedFiles.add(generatedFile);
@@ -256,7 +269,50 @@ public class RunArchiveRunner implements IRunner {
             generatedFiles.add(channelArchivePath);
         }
 
+        // Log only when scheduled to mark last run time
+        if (scheduled) {
+            try {
+                channelDao.logChannelStatus(new ChannelId(channel));
+            } catch (Exception ignore) {
+                // logging failure should not break archive generation
+            }
+        }
+
         channel.sendMessage("archive created. task end <<<").queue();
+    }
+
+    private Calendar getPreviousScheduledTime(Calendar now, GuildId guildId) {
+        Calendar endCopy = (Calendar) now.clone();
+        List<RunsOn> runs = guildDao.getRunsOn(guildId);
+        if (runs == null || runs.isEmpty()) {
+            // fallback: if no schedule found
+            Calendar begin = (Calendar) now.clone();
+            begin.add(Calendar.HOUR_OF_DAY, -24);
+            return begin;
+        }
+        int currentHour = endCopy.get(Calendar.HOUR_OF_DAY);
+        RunsOn prev = null;
+        for (RunsOn r : runs) {
+            if (r.getValue() < currentHour) {
+                prev = r;
+            }
+        }
+        Calendar begin = (Calendar) now.clone();
+        if (prev != null) {
+            begin.set(Calendar.MINUTE, 0);
+            begin.set(Calendar.SECOND, 0);
+            begin.set(Calendar.MILLISECOND, 0);
+            begin.set(Calendar.HOUR_OF_DAY, prev.getValue());
+        } else {
+            // previous is yesterday's last run hour
+            RunsOn last = runs.get(runs.size() - 1);
+            begin.add(Calendar.DAY_OF_MONTH, -1);
+            begin.set(Calendar.MINUTE, 0);
+            begin.set(Calendar.SECOND, 0);
+            begin.set(Calendar.MILLISECOND, 0);
+            begin.set(Calendar.HOUR_OF_DAY, last.getValue());
+        }
+        return begin;
     }
 
     @Override
