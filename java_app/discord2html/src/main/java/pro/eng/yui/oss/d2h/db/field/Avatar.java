@@ -15,6 +15,10 @@ public class Avatar extends AbstVarChar {
     }
     
     public String getImgPath(UserId userId){
+        if (this.value == null || this.value.isEmpty()) {
+            // Fallback to Discord's default embed avatar when user has no custom avatar
+            return "https://cdn.discordapp.com/embed/avatars/0.png";
+        }
         return IMG_HOST + "/" + userId.toString() + "/" + this.value + ".png";
     }
 

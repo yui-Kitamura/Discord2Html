@@ -1,6 +1,8 @@
 package pro.eng.yui.oss.d2h.db.model;
 
+import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.User;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.field.*;
 
@@ -67,6 +69,18 @@ public class Users {
         this.nickname = new Nickname(member);
         this.user_name = new UserName(member.getUser());
         this.avatar = new Avatar(member.getUser());
+    }
+
+    /**
+     * Construct from a raw User (e.g., webhook/bot) and Guild context.
+     * Uses the User's global name as both username and nickname.
+     */
+    public Users(User user, Guild guild) {
+        this.guild_id = new GuildId(guild);
+        this.user_id = new UserId(user);
+        this.user_name = new UserName(user);
+        this.nickname = new Nickname(user.getName());
+        this.avatar = new Avatar(user);
     }
 
     @Override

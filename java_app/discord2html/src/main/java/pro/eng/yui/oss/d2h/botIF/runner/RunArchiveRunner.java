@@ -235,15 +235,25 @@ public class RunArchiveRunner implements IRunner {
                     .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
                             && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
                     .forEach(msg -> {
-                        if(msg.getMember() != null) {
-                            Users author = new Users(msg.getMember());
+                        Users author = null;
+                        if (msg.getMember() != null) {
+                            author = new Users(msg.getMember());
+                            // Determine anonymization based on member roles/settings
+                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
+                            author.setAnonStats(new AnonStats(anonStatus));
+                        } else {
+                            // Webhook/Bot or system-like messages (no Member)
+                            if (msg.getAuthor() != null) {
+                                author = new Users(msg.getAuthor(), channel.getGuild());
+                                // For bots/webhooks, force OPEN (not anonymized)
+                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
+                                author.setAnonStats(new AnonStats(anonStatus));
+                            }
+                        }
+                        if (author != null) {
                             if (!marked.contains(author)) {
                                 usersDao.upsertUserInfo(author);
                                 marked.add(author);
-                            }
-                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
-                            if (author.getAnonStats() == null) {
-                                author.setAnonStats(new AnonStats(anonStatus));
                             }
                             messages.add(new MessageInfo(msg, author));
                         }
