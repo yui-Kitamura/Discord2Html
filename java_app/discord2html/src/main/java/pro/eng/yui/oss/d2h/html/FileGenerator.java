@@ -31,6 +31,7 @@ public class FileGenerator {
 
     private final SimpleDateFormat timeFormat;
     private final SimpleDateFormat folderFormat;
+    private final SimpleDateFormat date8Format;
     private final ApplicationConfig appConfig;
     private final TemplateEngine templateEngine;
     private final GitUtil gitUtil;
@@ -43,6 +44,8 @@ public class FileGenerator {
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         this.folderFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         this.folderFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+        this.date8Format = new SimpleDateFormat("yyyyMMdd");
+        this.date8Format.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
     }
 
     public static String escapeHtml(String s) {
@@ -97,6 +100,13 @@ public class FileGenerator {
             writeIfChanged(output, htmlContent);
         } catch (IOException e) {
             throw new RuntimeException("Failed to generate HTML file", e);
+        }
+        
+        // Update per-day (date8) index for this channel and timestamp
+        try {
+            regenerateDailyIndex(channel.getName(), end);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to regenerate daily index page", e);
         }
         
         // After generating an archive page, refresh static listings for GitHub Pages
@@ -163,6 +173,37 @@ public class FileGenerator {
         Path index = base.resolve("index.html");
         String page = buildSimpleHtml("Discord アーカイブ一覧", "チャンネルを選択してください:", links);
         writeIfChanged(index, page);
+    }
+
+    private void regenerateDailyIndex(String channelName, Calendar end) throws IOException {
+        Path base = Paths.get(appConfig.getOutputPath());
+        if (!Files.exists(base)) {
+            return;
+        }
+        String date8 = date8Format.format(end.getTime());
+        // Collect all timestamp directories for this date
+        List<Path> tsDirs = listTimestampDirs(base).stream()
+                .filter(p -> p.getFileName().toString().startsWith(date8))
+                .sorted(Comparator.comparing((Path p) -> p.getFileName().toString()).reversed())
+                .toList();
+
+        List<String> links = new ArrayList<>();
+        for (Path tsDir : tsDirs) {
+            Path file = tsDir.resolve(channelName + ".html");
+            if (Files.exists(file)) {
+                String ts = tsDir.getFileName().toString();
+                // From archive/date8/channel.html to tsDir/channel.html -> ../../{ts}/{channel}.html
+                String href = String.format("../../%s/%s.html", ts, channelName);
+                String label = channelName + " (" + ts + ")";
+                links.add(String.format("<li><a href=\"%s\">%s</a></li>", href, escapeHtml(label)));
+            }
+        }
+
+        Path archiveBase = base.resolve("archive").resolve(date8);
+        Files.createDirectories(archiveBase);
+        Path dailyIndex = archiveBase.resolve(channelName + ".html");
+        String page = buildSimpleHtml(channelName + " の" + date8 + " のログ一覧", "同日のアーカイブへのリンク:", links);
+        writeIfChanged(dailyIndex, page);
     }
 
     private List<Path> listTimestampDirs(Path base) throws IOException {
