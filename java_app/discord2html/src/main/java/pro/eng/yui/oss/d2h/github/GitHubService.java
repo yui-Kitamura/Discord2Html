@@ -88,7 +88,13 @@ public class GitHubService {
             gitUtil.fetch();
 
             gitUtil.add(filesToAdd);
-            gitUtil.commit(GitHubConsts.COMMIT_PREFIX + "multiple files");
+            String commitMessage;
+            if(filesToAdd.size() == 1) {
+                commitMessage = new File(filesToAdd.get(0)).getName();
+            }else {
+                commitMessage = "multiple files";
+            }
+            gitUtil.commit(GitHubConsts.COMMIT_PREFIX + commitMessage);
 
             gitUtil.pullRebase();
             gitUtil.push();
