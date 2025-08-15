@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -73,7 +74,42 @@ public class RunArchiveRunner implements IRunner {
             boolean isTargetChannelMarked = false;
             for (OptionMapping om : options) {
                 if ("target".equals(om.getName())) {
-                    String inputName = om.getAsString();
+                    // CHANNEL型データ対応
+                    try {
+                        GuildChannelUnion selected = om.getAsChannel();
+                        if (selected != null && selected.getType().isMessage()) {
+                            GuildMessageChannel gmc = selected.asGuildMessageChannel();
+                            if (gmc != null) {
+                                isTargetChannelMarked = true;
+                                run(gmc);
+                                continue; // processed target via channel option
+                            }
+                        }
+                    } catch (Exception ignore) {
+                        // Fallback to string-based resolution below
+                    }
+
+                    // Fallback: resolve by ID (from raw ID or mention like <#1234567890>)
+                    String raw = om.getAsString();
+                    if (raw != null) {
+                        String idOnly = raw.replaceAll("[^0-9]", "");
+                        if (!idOnly.isEmpty()) {
+                            try {
+                                ChannelId chId = new ChannelId(Long.parseLong(idOnly));
+                                GuildMessageChannel byId = member.getGuild().getChannelById(GuildMessageChannel.class, chId.getValue());
+                                if (byId != null) {
+                                    isTargetChannelMarked = true;
+                                    run(byId);
+                                    continue; // processed target via ID
+                                }
+                            } catch (NumberFormatException ignore) {
+                                // continue to name-based search
+                            }
+                        }
+                    }
+
+                    // Legacy: resolve by channel name (case-insensitive)
+                    String inputName = raw;
                     List<TextChannel> channels = member.getGuild().getTextChannelsByName(inputName, true);
                     for (GuildMessageChannel channel : channels) {
                         isTargetChannelMarked = true;
