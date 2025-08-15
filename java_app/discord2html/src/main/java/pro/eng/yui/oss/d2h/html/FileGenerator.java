@@ -126,7 +126,8 @@ public class FileGenerator {
             Path file = tsDir.resolve(channelName + ".html");
             if (Files.exists(file)) {
                 String ts = tsDir.getFileName().toString();
-                String href = ".." + "/" + ts + "/" + channelName + ".html";
+                String date8 = ts.length() >= 8 ? ts.substring(0, 8) : ts; // fallback if unexpected
+                String href = "/Discord2Html/archive/" + date8 + "/" + channelName + ".html";
                 String label = channelName + " (" + ts + ")";
                 links.add(String.format("<li><a href=\"%s\">%s</a></li>", href, escapeHtml(label)));
             }
