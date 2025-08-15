@@ -20,6 +20,7 @@ public class FileGenerator {
     private static final String TEMPLATE_NAME = "template";
 
     private final SimpleDateFormat timeFormat;
+    private final SimpleDateFormat folderFormat;
     private final ApplicationConfig appConfig;
     private final TemplateEngine templateEngine;
     
@@ -28,6 +29,8 @@ public class FileGenerator {
         this.templateEngine = templateEngine;
         this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+        this.folderFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+        this.folderFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
     }
 
     public Path generate(
@@ -45,13 +48,16 @@ public class FileGenerator {
 
         String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
-        Path output = Path.of(appConfig.getOutputPath(), 
-                new SimpleDateFormat("yyyyMMddHHmmss").format(end.getTime()),
+        Path output = Path.of(
+                appConfig.getOutputPath(),
+                folderFormat.format(end.getTime()),
                 channel.getName()+ ".html"
         );
         try {
             Files.createDirectories(output.getParent());
-            output.toFile().createNewFile();
+            if (!Files.exists(output)) {
+                output.toFile().createNewFile();
+            }
         }catch(IOException ioe) {
             throw new RuntimeException("Failed to generate HTML file", ioe);
         }
