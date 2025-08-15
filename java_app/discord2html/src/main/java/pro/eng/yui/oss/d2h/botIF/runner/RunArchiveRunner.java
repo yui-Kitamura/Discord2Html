@@ -209,6 +209,16 @@ public class RunArchiveRunner implements IRunner {
 
         Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginDate, endDate, 1);
         generatedFiles.add(generatedFile);
+        // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
+        Path indexPath = Path.of(config.getOutputPath(), "index.html");
+        if (!generatedFiles.contains(indexPath)) {
+            generatedFiles.add(indexPath);
+        }
+        // Also include the per-channel archives/<channel>.html updated by FileGenerator (deduplicated)
+        Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getName() + ".html");
+        if (!generatedFiles.contains(channelArchivePath)) {
+            generatedFiles.add(channelArchivePath);
+        }
 
         channel.sendMessage("archive created. task end <<<").queue();
     }

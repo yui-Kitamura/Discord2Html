@@ -56,13 +56,30 @@ public class GitHubService {
         gitUtil.ensureRepoInitialized();
 
         String dateDir = GitHubConsts.DATE_FORMAT.format(new Date());
-        File targetDir = new File(repoDirFile, GitHubConsts.ARCHIVES_DIR + dateDir);
-        targetDir.mkdirs();
+        File dateArchiveDir = new File(repoDirFile, GitHubConsts.ARCHIVES_DIR + dateDir);
+        dateArchiveDir.mkdirs();
 
         // Copy all HTML files to the repository and collect paths for git add
         List<String> filesToAdd = new ArrayList<>();
         for (Path htmlFilePath : htmlFilePaths) {
-            File targetFile = new File(targetDir, htmlFilePath.getFileName().toString());
+            String fileName = htmlFilePath.getFileName().toString();
+            File targetFile;
+            if ("index.html".equalsIgnoreCase(fileName)) {
+                // Place index.html at gh_pages root
+                File ghPagesRoot = new File(repoDirFile, "gh_pages");
+                ghPagesRoot.mkdirs();
+                targetFile = new File(ghPagesRoot, "index.html");
+            } else if (htmlFilePath.getParent() != null &&
+                    htmlFilePath.getParent().getFileName() != null &&
+                    "archives".equalsIgnoreCase(htmlFilePath.getParent().getFileName().toString())) {
+                // Place archives/<channel>.html under gh_pages/archives/
+                File archivesRoot = new File(repoDirFile, "gh_pages/archives");
+                archivesRoot.mkdirs();
+                targetFile = new File(archivesRoot, fileName);
+            } else {
+                // Default: place under daily archive directory
+                targetFile = new File(dateArchiveDir, fileName);
+            }
             Files.copy(htmlFilePath, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             filesToAdd.add(getRelativePath(repoDirFile, targetFile));
         }
