@@ -14,9 +14,12 @@
     
     <update id="update" parameterType="Guilds">
         UPDATE guilds
-        SET
+        <set>
             guild_name = #{guild_name},
-            anon_cycle = #{anon_cycle}
+            <if test="anonCycle != null">
+                , anon_cycle = #{anon_cycle}
+            </if>
+        </set>
         WHERE guild_id = #{guild_id}
     </update>
     
