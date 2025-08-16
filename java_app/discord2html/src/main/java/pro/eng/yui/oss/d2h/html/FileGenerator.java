@@ -27,7 +27,18 @@ import java.util.stream.Collectors;
 @Service
 public class FileGenerator {
 
-    private static final String TEMPLATE_NAME = "template";
+    public static class Link {
+        private final String href;
+        private final String label;
+        public Link(String href, String label) {
+            this.href = href;
+            this.label = label;
+        }
+        public String getHref() { return href; }
+        public String getLabel() { return label; }
+    }
+
+    private static final String TEMPLATE_NAME = "message";
 
     private final SimpleDateFormat timeFormat;
     private final SimpleDateFormat folderFormat;
@@ -113,6 +124,7 @@ public class FileGenerator {
         try {
             regenerateChannelArchives(channel.getName());
             regenerateTopIndex();
+            regenerateHelpPage();
         } catch (IOException e) {
             // Do not fail the main generation if index regeneration fails; log via RuntimeException to keep visibility
             throw new RuntimeException("Failed to regenerate archives/index pages", e);
@@ -131,7 +143,7 @@ public class FileGenerator {
         // Sort by directory name (timestamp) descending
         timestampDirs.sort(Comparator.comparing((Path p) -> p.getFileName().toString()).reversed());
 
-        List<String> links = new ArrayList<>();
+        List<Link> items = new ArrayList<>();
         for (Path tsDir : timestampDirs) {
             Path file = tsDir.resolve(channelName + ".html");
             if (Files.exists(file)) {
@@ -139,13 +151,17 @@ public class FileGenerator {
                 String date8 = ts.length() >= 8 ? ts.substring(0, 8) : ts; // fallback if unexpected
                 String href = "/Discord2Html/archive/" + date8 + "/" + channelName + ".html";
                 String label = channelName + " (" + ts + ")";
-                links.add(String.format("<li><a href=\"%s\">%s</a></li>", href, escapeHtml(label)));
+                items.add(new Link(href, label));
             }
         }
         Path archivesDir = base.resolve("archives");
         Files.createDirectories(archivesDir);
         Path channelArchive = archivesDir.resolve(channelName + ".html");
-        String page = buildSimpleHtml(channelName + " のアーカイブ一覧", "以下のアーカイブから選択してください:", links);
+        Context ctx = new Context();
+        ctx.setVariable("title", channelName + " のアーカイブ一覧");
+        ctx.setVariable("description", "以下のアーカイブから選択してください:");
+        ctx.setVariable("items", items);
+        String page = templateEngine.process("list", ctx);
         writeIfChanged(channelArchive, page);
     }
 
@@ -165,13 +181,19 @@ public class FileGenerator {
                 }
             }
         }
-        // Build links to archives/channel.html
-        List<String> links = channelNames.stream()
+        // Build links list with Help at top and archives/channel.html entries
+        List<Link> items = new ArrayList<>();
+        items.add(new Link("help.html", "ヘルプ (/d2h コマンドの説明)"));
+        items.addAll(channelNames.stream()
                 .sorted()
-                .map(name -> String.format("<li><a href=\"archives/%s.html\">%s</a></li>", name, escapeHtml(name)))
-                .collect(Collectors.toList());
+                .map(name -> new Link("archives/" + name + ".html", name))
+                .collect(Collectors.toList()));
         Path index = base.resolve("index.html");
-        String page = buildSimpleHtml("Discord アーカイブ一覧", "チャンネルを選択してください:", links);
+        Context ctx = new Context();
+        ctx.setVariable("title", "Discord アーカイブ一覧");
+        ctx.setVariable("description", "チャンネルを選択してください:");
+        ctx.setVariable("items", items);
+        String page = templateEngine.process("list", ctx);
         writeIfChanged(index, page);
     }
 
@@ -187,7 +209,7 @@ public class FileGenerator {
                 .sorted(Comparator.comparing((Path p) -> p.getFileName().toString()).reversed())
                 .toList();
 
-        List<String> links = new ArrayList<>();
+        List<Link> items = new ArrayList<>();
         for (Path tsDir : tsDirs) {
             Path file = tsDir.resolve(channelName + ".html");
             if (Files.exists(file)) {
@@ -195,14 +217,18 @@ public class FileGenerator {
                 // From archive/date8/channel.html to tsDir/channel.html -> ../../{ts}/{channel}.html
                 String href = String.format("../../%s/%s.html", ts, channelName);
                 String label = channelName + " (" + ts + ")";
-                links.add(String.format("<li><a href=\"%s\">%s</a></li>", href, escapeHtml(label)));
+                items.add(new Link(href, label));
             }
         }
 
         Path archiveBase = base.resolve("archive").resolve(date8);
         Files.createDirectories(archiveBase);
         Path dailyIndex = archiveBase.resolve(channelName + ".html");
-        String page = buildSimpleHtml(channelName + " の" + date8 + " のログ一覧", "同日のアーカイブへのリンク:", links);
+        Context ctx = new Context();
+        ctx.setVariable("title", channelName + " の" + date8 + " のログ一覧");
+        ctx.setVariable("description", "同日のアーカイブへのリンク:");
+        ctx.setVariable("items", items);
+        String page = templateEngine.process("list", ctx);
         writeIfChanged(dailyIndex, page);
     }
 
@@ -221,6 +247,18 @@ public class FileGenerator {
         return result;
     }
 
+    private void regenerateHelpPage() throws IOException {
+        Path base = Paths.get(appConfig.getOutputPath());
+        if (!Files.exists(base)) {
+            return;
+        }
+        Path help = base.resolve("help.html");
+        Context ctx = new Context();
+        // If you need to add dynamic data later, set it here via ctx.setVariable(...)
+        String page = templateEngine.process("help", ctx);
+        writeIfChanged(help, page);
+    }
+
     private void writeIfChanged(Path target, String newContent) throws IOException {
         String existing = null;
         if (Files.exists(target)) {
@@ -231,33 +269,6 @@ public class FileGenerator {
                 writer.write(newContent);
             }
         }
-    }
-
-    private String buildSimpleHtml(String title, String description, List<String> listItems) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<!DOCTYPE html>\n");
-        sb.append("<html lang=\"ja\">\n");
-        sb.append("<head>\n");
-        sb.append("  <meta charset=\"UTF-8\">\n");
-        sb.append("  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n");
-        sb.append("  <title>").append(escapeHtml(title)).append("</title>\n");
-        sb.append("  <style>body{font-family:Segoe UI,Meiryo,sans-serif;background:#f8f9fb;color:#222;margin:0;padding:1em} .container{max-width:850px;margin:auto;background:#fff;padding:2em;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.06)} h1{margin-top:0} a{color:#0b6efd;text-decoration:none} a:hover{text-decoration:underline}</style>\n");
-        sb.append("</head>\n");
-        sb.append("<body>\n");
-        sb.append("<div class=\"container\">\n");
-        sb.append("  <h1>").append(escapeHtml(title)).append("</h1>\n");
-        if (description != null && !description.isEmpty()) {
-            sb.append("  <p>").append(escapeHtml(description)).append("</p>\n");
-        }
-        sb.append("  <ul>\n");
-        for (String li : listItems) {
-            sb.append("    ").append(li).append("\n");
-        }
-        sb.append("  </ul>\n");
-        sb.append("</div>\n");
-        sb.append("</body>\n");
-        sb.append("</html>\n");
-        return sb.toString();
     }
     
 }

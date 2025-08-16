@@ -264,6 +264,11 @@ public class RunArchiveRunner implements IRunner {
         if (!generatedFiles.contains(indexPath)) {
             generatedFiles.add(indexPath);
         }
+        // Include help.html so it will be placed at gh_pages root
+        Path helpPath = Path.of(config.getOutputPath(), "help.html");
+        if (!generatedFiles.contains(helpPath)) {
+            generatedFiles.add(helpPath);
+        }
         // Also include the per-channel archives/<channel>.html updated by FileGenerator (deduplicated)
         Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getName() + ".html");
         if (!generatedFiles.contains(channelArchivePath)) {

@@ -64,11 +64,11 @@ public class GitHubService {
         for (Path htmlFilePath : htmlFilePaths) {
             String fileName = htmlFilePath.getFileName().toString();
             File targetFile;
-            if ("index.html".equalsIgnoreCase(fileName)) {
-                // Place index.html at gh_pages root
+            if ("index.html".equalsIgnoreCase(fileName) || "help.html".equalsIgnoreCase(fileName)) {
+                // Place index.html and help.html at gh_pages root
                 File ghPagesRoot = new File(repoDirFile, "gh_pages");
                 ghPagesRoot.mkdirs();
-                targetFile = new File(ghPagesRoot, "index.html");
+                targetFile = new File(ghPagesRoot, fileName);
             } else if (htmlFilePath.getParent() != null &&
                     htmlFilePath.getParent().getFileName() != null &&
                     "archives".equalsIgnoreCase(htmlFilePath.getParent().getFileName().toString())) {
