@@ -3,6 +3,7 @@ package pro.eng.yui.oss.d2h.db.dao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
+import pro.eng.yui.oss.d2h.db.field.AnonCycle;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
 import pro.eng.yui.oss.d2h.db.mapper.GuildsMapper;
@@ -57,6 +58,10 @@ public class GuildsDAO {
         if(exists(newRecord.getGuildId())) {
             mapper.update(newRecord);
         }else{
+            // Ensure anon_cycle is set appropriately on registration (default 12)
+            if (newRecord.getAnonCycle() == null) {
+                newRecord.setAnonCycle(new AnonCycle(12));
+            }
             mapper.register(newRecord);
         }
     }

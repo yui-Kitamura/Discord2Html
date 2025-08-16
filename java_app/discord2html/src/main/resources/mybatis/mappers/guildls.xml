@@ -8,8 +8,8 @@
             (guild_id, guild_name, joined_time, 
              anon_cycle, last_anon_changed, runs_on_1)
         VALUES
-            (#{guild_id}, #{guild_name},CURRENT_TIMESTAMP,
-             12, CURRENT_TIMESTAMP, 0)
+            (#{guild_id}, #{guild_name}, CURRENT_TIMESTAMP,
+             #{anon_cycle}, CURRENT_TIMESTAMP, 0)
     </insert>
     
     <update id="update" parameterType="Guilds">
