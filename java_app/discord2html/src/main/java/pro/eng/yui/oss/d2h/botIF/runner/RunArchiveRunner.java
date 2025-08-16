@@ -208,7 +208,7 @@ public class RunArchiveRunner implements IRunner {
             }
         }
         if(targetChInfo == null) {
-            return;
+            throw new IllegalArgumentException("target channel is missed:" + channel);
         }
 
         channel.sendMessage("This channel is archive target. Start >>>").queue();
