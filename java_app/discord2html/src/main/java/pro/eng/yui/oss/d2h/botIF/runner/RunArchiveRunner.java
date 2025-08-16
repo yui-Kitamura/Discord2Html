@@ -30,10 +30,13 @@ import pro.eng.yui.oss.d2h.html.FileGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 
 import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
+import java.util.TimeZone;
 
 @Component
 public class RunArchiveRunner implements IRunner {
@@ -190,6 +193,16 @@ public class RunArchiveRunner implements IRunner {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
         var history = channel.getHistory();
+        // Prepare guild anonymization cycle settings
+        GuildId guildId = new GuildId(channel.getGuild());
+        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
+        int anonCycle = guildInfo.getAnonCycle().getValue();
+        if (anonCycle < 1 || 24 < anonCycle) { 
+            anonCycle = 24; 
+        }
+        final int finalAnonCycle = anonCycle;
+        final SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
+        ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         boolean more = true;
         while (more) {
             var batch = history.retrievePast(100).complete();
@@ -224,7 +237,15 @@ public class RunArchiveRunner implements IRunner {
                                 usersDao.upsertUserInfo(author);
                                 marked.add(author);
                             }
-                            messages.add(new MessageInfo(msg, author));
+                            // Build anonymization scope key: per guild, per day (Asia/Tokyo), per cycle index (hour/n)
+                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+                            Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                            calJst.setTime(msgDate);
+                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
+                            int cycleIndex = hour / finalAnonCycle;
+                            String dateStr = ymd.format(msgDate);
+                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
+                            messages.add(new MessageInfo(msg, author, scopeKey));
                         }
                     });
             if (!oldestInstant.isAfter(beginDate.toInstant())) {

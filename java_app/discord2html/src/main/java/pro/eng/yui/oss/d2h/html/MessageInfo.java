@@ -42,6 +42,12 @@ public class MessageInfo {
     public String getCreatedTimestamp(){
         return this.createdTimestamp;
     }
+
+    // Scope key for anonymization (e.g., guild-date-cycle). Nullable for backward compatibility.
+    private final String anonymizeScopeKey;
+    public String getAnonymizeScopeKey() {
+        return anonymizeScopeKey;
+    }
     
     private final List<Message.Attachment> attachments;
     public List<Message.Attachment> getAttachments(){
@@ -62,7 +68,26 @@ public class MessageInfo {
     public MessageInfo(Message msg, Users authorInfo){
         this.createdTimestamp = DATE_FORMAT.format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
+        this.anonymizeScopeKey = null;
         this.messageUserInfo = AnonymizationUtil.anonymizeUser(authorInfo);
+        this.contentRaw = extractContentIncludingEmbeds(msg);
+        this.attachments = msg.getAttachments();
+        this.reactions = msg.getReactions();
+        if(msg.getReferencedMessage() == null) {
+            this.refOriginMessageContent = null;
+        }else{
+            String content = extractContentIncludingEmbeds(msg.getReferencedMessage());
+            this.refOriginMessageContent = content.length() > 30 ? content.substring(0, 30) : content;
+        }
+    }
+
+    public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
+        this.createdTimestamp = DATE_FORMAT.format(Date.from(msg.getTimeCreated().toInstant()));
+        this.userInfo = authorInfo;
+        this.anonymizeScopeKey = anonymizeScopeKey;
+        this.messageUserInfo = (anonymizeScopeKey == null)
+                ? AnonymizationUtil.anonymizeUser(authorInfo)
+                : AnonymizationUtil.anonymizeUser(authorInfo, anonymizeScopeKey);
         this.contentRaw = extractContentIncludingEmbeds(msg);
         this.attachments = msg.getAttachments();
         this.reactions = msg.getReactions();
