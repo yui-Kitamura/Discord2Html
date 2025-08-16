@@ -85,40 +85,8 @@ public class RunArchiveRunner implements IRunner {
                                 continue; // processed target via channel option
                             }
                         }
-                    } catch (Exception ignore) {
-                        // Fallback to string-based resolution below
-                    }
-
-                    // Fallback: resolve by ID (from raw ID or mention like <#1234567890>)
-                    String raw = om.getAsString();
-                    if (raw != null) {
-                        String idOnly = raw.replaceAll("[^0-9]", "");
-                        if (!idOnly.isEmpty()) {
-                            try {
-                                ChannelId chId = new ChannelId(Long.parseLong(idOnly));
-                                GuildMessageChannel byId = member.getGuild().getChannelById(GuildMessageChannel.class, chId.getValue());
-                                if (byId != null) {
-                                    isTargetChannelMarked = true;
-                                    run(byId, false);
-                                    continue; // processed target via ID
-                                }
-                            } catch (NumberFormatException ignore) {
-                                // continue to name-based search
-                            }
-                        }
-                    }
-
-                    // Legacy: resolve by channel name (case-insensitive)
-                    String inputName = raw;
-                    List<TextChannel> channels = member.getGuild().getTextChannelsByName(inputName, true);
-                    for (GuildMessageChannel channel : channels) {
-                        isTargetChannelMarked = true;
-                        run(channel, false);
-                    }
-                    List<VoiceChannel> voiceChannels = member.getGuild().getVoiceChannelsByName(inputName, true);
-                    for (GuildMessageChannel v : voiceChannels) {
-                        isTargetChannelMarked = true;
-                        run(v, false);
+                    } catch (Exception unexpected) {
+                        throw new RuntimeException(unexpected); 
                     }
                 }
             }
@@ -208,7 +176,8 @@ public class RunArchiveRunner implements IRunner {
             }
         }
         if(targetChInfo == null) {
-            throw new IllegalArgumentException("target channel is missed:" + channel);
+            System.out.println(channel + " is not a target");
+            return;
         }
 
         channel.sendMessage("This channel is archive target. Start >>>").queue();
