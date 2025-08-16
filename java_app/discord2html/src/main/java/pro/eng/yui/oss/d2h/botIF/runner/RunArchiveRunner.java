@@ -196,6 +196,7 @@ public class RunArchiveRunner implements IRunner {
         // Prepare guild anonymization cycle settings
         GuildId guildId = new GuildId(channel.getGuild());
         Guilds guildInfo = guildDao.selectGuildInfo(guildId);
+        System.out.println(guildInfo);
         int anonCycle = guildInfo.getAnonCycle().getValue();
         if (anonCycle < 1 || 24 < anonCycle) { 
             anonCycle = 24; 
