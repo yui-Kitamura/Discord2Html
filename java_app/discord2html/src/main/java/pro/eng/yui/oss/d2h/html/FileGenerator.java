@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
@@ -93,43 +94,79 @@ public class FileGenerator {
         // remember guild context for subsequent index generation
         this.lastGuildId = channel.getGuildId();
 
-        Context context = new Context();
-        context.setVariable("channel", channel);
-        context.setVariable("messages", messages);
-        context.setVariable("begin", timeFormat.format(begin.getTime()));
-        context.setVariable("end", timeFormat.format(end.getTime()));
-        context.setVariable("sequence", seq);
+        // Normalize copies of begin/end to avoid mutating caller's calendars
+        Calendar cur = (Calendar) begin.clone();
+        Calendar until = (Calendar) end.clone();
 
-        String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
+        // Track affected date8 values for index regeneration
+        Set<String> affectedDate8 = new HashSet<>();
 
-        Path output = Path.of(
-                appConfig.getOutputPath(),
-                folderFormat.format(end.getTime()),
-                channel.getName()+ ".html"
-        );
-        try {
-            Files.createDirectories(output.getParent());
-            if (!Files.exists(output)) {
-                output.toFile().createNewFile();
+        Path lastOutput = null;
+
+        while (!cur.after(until)) {
+            // Segment end is end of current day (23:59:59) or the global end, whichever is earlier
+            Calendar segmentEnd = (Calendar) cur.clone();
+            segmentEnd.set(Calendar.HOUR_OF_DAY, 23);
+            segmentEnd.set(Calendar.MINUTE, 59);
+            segmentEnd.set(Calendar.SECOND, 59);
+            segmentEnd.set(Calendar.MILLISECOND, 999);
+            if (segmentEnd.after(until)) {
+                segmentEnd = (Calendar) until.clone();
             }
-        }catch(IOException ioe) {
-            throw new RuntimeException("Failed to generate HTML file", ioe);
+
+            // Filter messages for [cur, segmentEnd]
+            List<MessageInfo> segmentMessages = filterMessagesByRange(messages, cur, segmentEnd);
+
+            if (!segmentMessages.isEmpty()) {
+                Context context = new Context();
+                context.setVariable("channel", channel);
+                context.setVariable("messages", segmentMessages);
+                context.setVariable("begin", timeFormat.format(cur.getTime()));
+                context.setVariable("end", timeFormat.format(segmentEnd.getTime()));
+                context.setVariable("sequence", seq);
+
+                String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
+
+                Path output = Path.of(
+                        appConfig.getOutputPath(),
+                        folderFormat.format(segmentEnd.getTime()),
+                        channel.getName()+ ".html"
+                );
+                writeHtml(output, htmlContent);
+
+                lastOutput = output;
+
+                // Mark affected date8 for indices
+                affectedDate8.add(date8Format.format(segmentEnd.getTime()));
+            }
+
+            // Move to next day 00:00:00.000
+            Calendar next = (Calendar) cur.clone();
+            next.add(Calendar.DAY_OF_MONTH, 1);
+            next.set(Calendar.HOUR_OF_DAY, 0);
+            next.set(Calendar.MINUTE, 0);
+            next.set(Calendar.SECOND, 0);
+            next.set(Calendar.MILLISECOND, 0);
+            cur = next;
         }
         
+        // Update per-day (date8) index for all affected dates
         try {
-            writeIfChanged(output, htmlContent);
+            for (String d8 : affectedDate8) {
+                // Use a calendar set to the date for regenerateDailyIndex
+                Calendar any = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                any.set(Integer.parseInt(d8.substring(0,4)),
+                        Integer.parseInt(d8.substring(4,6)) - 1,
+                        Integer.parseInt(d8.substring(6,8)),
+                        0,0,0);
+                any.set(Calendar.MILLISECOND, 0);
+                regenerateDailyIndex(channel.getName(), any);
+            }
         } catch (IOException e) {
-            throw new RuntimeException("Failed to generate HTML file", e);
+            throw new RuntimeException("Failed to regenerate daily index page(s)", e);
         }
         
-        // Update per-day (date8) index for this channel and timestamp
-        try {
-            regenerateDailyIndex(channel.getName(), end);
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to regenerate daily index page", e);
-        }
-        
-        // After generating an archive page, refresh static listings for GitHub Pages
+        // After generating archive page(s), refresh static listings for GitHub Pages
         try {
             regenerateChannelArchives(channel.getName());
             regenerateTopIndex();
@@ -139,7 +176,7 @@ public class FileGenerator {
             throw new RuntimeException("Failed to regenerate archives/index pages", e);
         }
         
-        return output;
+        return lastOutput;
     }
 
     private void regenerateChannelArchives(String channelName) throws IOException {
@@ -276,6 +313,37 @@ public class FileGenerator {
         // If you need to add dynamic data later, set it here via ctx.setVariable(...)
         String page = templateEngine.process("help", ctx);
         writeIfChanged(help, page);
+    }
+
+    private List<MessageInfo> filterMessagesByRange(List<MessageInfo> messages, Calendar start, Calendar end) {
+        List<MessageInfo> result = new ArrayList<>();
+        for (MessageInfo m : messages) {
+            try {
+                Date d = timeFormat.parse(m.getCreatedTimestamp());
+                if (!d.before(start.getTime()) && !d.after(end.getTime())) {
+                    result.add(m);
+                }
+            } catch (Exception ignore) {
+                // Skip messages with unparsable timestamps
+            }
+        }
+        return result;
+    }
+
+    private void writeHtml(Path output, String htmlContent) {
+        try {
+            Files.createDirectories(output.getParent());
+            if (!Files.exists(output)) {
+                output.toFile().createNewFile();
+            }
+        } catch (IOException ioe) {
+            throw new RuntimeException("Failed to prepare HTML file", ioe);
+        }
+        try {
+            writeIfChanged(output, htmlContent);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to write HTML file", e);
+        }
     }
 
     private void writeIfChanged(Path target, String newContent) throws IOException {
