@@ -5,6 +5,9 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.github.GitUtil;
+import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
+import pro.eng.yui.oss.d2h.db.field.GuildId;
+import pro.eng.yui.oss.d2h.db.model.Guilds;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -46,11 +49,14 @@ public class FileGenerator {
     private final ApplicationConfig appConfig;
     private final TemplateEngine templateEngine;
     private final GitUtil gitUtil;
+    private final GuildsDAO guildsDao;
+    private Long lastGuildId = null;
     
-    public FileGenerator(ApplicationConfig config, TemplateEngine templateEngine, GitUtil gitUtil) {
+    public FileGenerator(ApplicationConfig config, TemplateEngine templateEngine, GitUtil gitUtil, GuildsDAO guildsDao) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
         this.gitUtil = gitUtil;
+        this.guildsDao = guildsDao;
         this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         this.folderFormat = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -84,6 +90,9 @@ public class FileGenerator {
             System.out.println("[GitSync] Skip or failed: " + e.getMessage());
         }
         
+        // remember guild context for subsequent index generation
+        this.lastGuildId = channel.getGuildId();
+
         Context context = new Context();
         context.setVariable("channel", channel);
         context.setVariable("messages", messages);
@@ -190,6 +199,19 @@ public class FileGenerator {
         Path index = base.resolve("index.html");
         Context ctx = new Context();
         ctx.setVariable("channels", items);
+        // Resolve guild name from DB if possible
+        String guildName = "Discord";
+        try {
+            if (lastGuildId != null) {
+                Guilds g = guildsDao.selectGuildInfo(new GuildId(lastGuildId));
+                if (g != null && g.getGuildName() != null) {
+                    guildName = g.getGuildName().getValue();
+                }
+            }
+        } catch (Exception ignore) {
+            // fallback to default on any error
+        }
+        ctx.setVariable("guildName", guildName);
         String page = templateEngine.process("top", ctx);
         writeIfChanged(index, page);
     }
