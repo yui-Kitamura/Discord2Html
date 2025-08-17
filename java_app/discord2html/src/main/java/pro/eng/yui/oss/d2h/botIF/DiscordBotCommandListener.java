@@ -110,7 +110,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             return;
         }
 
-        event.deferReply().queue();
+        IRunner runner = getRunnerBySub(sub);
+        if (runner != null) {
+            event.deferReply(runner.shouldDeferEphemeral()).queue();
+        } else {
+            event.deferReply().queue();
+        }
         try {
 
             bot.upsertGuildInfoToDB(event.getGuild());
@@ -196,9 +201,24 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     }
     
     private void runHelp(SlashCommandInteractionEvent event){
-        //do not need to check //if(hasAdminPermission(event) == false) == false)
+        // do not need to check admin for help
         helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()));
-        event.getHook().sendMessage(helpRunner.afterRunMessage()).queue();
+        event.getHook()
+                .sendMessage(helpRunner.afterRunMessage())
+                .setEphemeral(helpRunner.shouldDeferEphemeral())
+                .queue();
+    }
+    
+    private IRunner getRunnerBySub(String sub) {
+        return switch (sub) {
+            case "archive" -> archiveConfigRunner;
+            case "run" -> runArchiveRunner;
+            case "role" -> roleRunner;
+            case "anonymous" -> anonymousSettingRunner;
+            case "me" -> meRunner;
+            case "help" -> helpRunner;
+            default -> null;
+        };
     }
 
 }

@@ -10,6 +10,15 @@ public interface IRunner {
     /** 終了後replyするメッセージ */
     String afterRunMessage();
     
+    /**
+     * deferReply の引数に用いるフラグ。
+     * true = ephemeral（他人に見えない）。false = 通常表示。
+     * デフォルトは false。
+     */
+    default boolean shouldDeferEphemeral() {
+        return false;
+    }
+    
     default OptionMapping get(List<OptionMapping> options, String name){
         for(OptionMapping op : options) {
             if (op.getName().equalsIgnoreCase(name)) {
