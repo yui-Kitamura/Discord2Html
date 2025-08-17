@@ -124,6 +124,8 @@ public class FileGenerator {
                 context.setVariable("begin", timeFormat.format(cur.getTime()));
                 context.setVariable("end", timeFormat.format(segmentEnd.getTime()));
                 context.setVariable("sequence", seq);
+                context.setVariable("backToChannelHref", String.format("../archives/%s.html", channel.getName()));
+                context.setVariable("backToTopHref", "../../index.html");
 
                 String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 

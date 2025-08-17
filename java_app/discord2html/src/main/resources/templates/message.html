@@ -21,6 +21,11 @@
 </head>
 <body>
 <div class="container">
+  <nav class="nav" style="margin-bottom:1em;font-size:0.95em">
+    <a th:if="${backToChannelHref}" th:href="${backToChannelHref}" style="color:#4badec;text-decoration:none">チャンネル一覧</a>
+    <span th:if="${backToTopHref}" style="color:#777"> | </span>
+    <a th:if="${backToTopHref}" th:href="${backToTopHref}" style="color:#4badec;text-decoration:none">トップ</a>
+  </nav>
   <h1 th:text="${channel.name} + ' のアーカイブ'">Channel Archive</h1>
   <div class="meta">
     <span>期間: </span>
