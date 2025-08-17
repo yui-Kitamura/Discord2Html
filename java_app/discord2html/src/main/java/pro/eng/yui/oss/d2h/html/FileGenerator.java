@@ -183,17 +183,14 @@ public class FileGenerator {
         }
         // Build links list with Help at top and archives/channel.html entries
         List<Link> items = new ArrayList<>();
-        items.add(new Link("help.html", "ヘルプ (/d2h コマンドの説明)"));
         items.addAll(channelNames.stream()
                 .sorted()
                 .map(name -> new Link("archives/" + name + ".html", name))
                 .collect(Collectors.toList()));
         Path index = base.resolve("index.html");
         Context ctx = new Context();
-        ctx.setVariable("title", "Discord アーカイブ一覧");
-        ctx.setVariable("description", "チャンネルを選択してください:");
-        ctx.setVariable("items", items);
-        String page = templateEngine.process("list", ctx);
+        ctx.setVariable("channels", items);
+        String page = templateEngine.process("top", ctx);
         writeIfChanged(index, page);
     }
 
