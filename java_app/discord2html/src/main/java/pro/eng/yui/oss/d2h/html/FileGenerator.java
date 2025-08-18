@@ -374,7 +374,7 @@ public class FileGenerator {
     private void ensureStaticAssets() throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
-            return;
+            Files.createDirectories(base);
         }
         // Copy classpath:/static/css/style.css -> {output}/css/style.css
         Path cssDir = base.resolve("css");
