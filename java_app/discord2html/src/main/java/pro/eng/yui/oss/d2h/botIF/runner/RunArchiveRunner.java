@@ -87,6 +87,7 @@ public class RunArchiveRunner implements IRunner {
                             if (gmc != null) {
                                 isTargetChannelMarked = true;
                                 run(gmc, false);
+                                runActiveThreadsUnder(gmc, false);
                                 continue; // processed target via channel option
                             }
                         }
@@ -98,6 +99,7 @@ public class RunArchiveRunner implements IRunner {
             if (isTargetChannelMarked == false) {
                 for (GuildMessageChannel c : member.getGuild().getTextChannels()) {
                     run(c, false);
+                    runActiveThreadsUnder(c, false);
                 }
                 for (GuildMessageChannel v : member.getGuild().getVoiceChannels()) {
                     run(v, false);
@@ -148,23 +150,7 @@ public class RunArchiveRunner implements IRunner {
                         // Run archive for parent channel
                         run(parent, true);
                         // Also run for active threads under this parent channel
-                        try {
-                            TextChannel text = jda.getJda().getChannelById(TextChannel.class, ch.getChannelId().getValue());
-                            if (text != null) {
-                                List<ThreadChannel> threads = text.getThreadChannels();
-                                if (threads != null) {
-                                    for (ThreadChannel t : threads) {
-                                        boolean active = true;
-                                        try { active = !t.isArchived(); } catch (Throwable ignore) {}
-                                        if (active) {
-                                            run(t, true);
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (Throwable ignore) {
-                            // best-effort; skip if threads cannot be resolved
-                        }
+                        runActiveThreadsUnder(parent, true);
                     }
                     
                     // Push all generated files for this guild at once
@@ -362,6 +348,25 @@ public class RunArchiveRunner implements IRunner {
 
         if (!isThreadCh) {
             channel.sendMessage("archive created. task end <<<").queue();
+        }
+    }
+
+    private void runActiveThreadsUnder(GuildMessageChannel parent, boolean scheduled) {
+        try {
+            if (parent == null) { return; }
+            if (parent.getType().isThread()) {
+                return; // threads don't have sub-threads; and avoid reentrancy
+            }
+            TextChannel text = jda.getJda().getChannelById(TextChannel.class, parent.getIdLong());
+            if (text == null) { return; }
+            List<ThreadChannel> threads = text.getThreadChannels();
+            for (ThreadChannel t : threads) {
+                if (!t.isArchived()) {
+                    run(t, scheduled);
+                }
+            }
+        } catch (Throwable ignore) {
+            // best-effort; skip on any error
         }
     }
 
