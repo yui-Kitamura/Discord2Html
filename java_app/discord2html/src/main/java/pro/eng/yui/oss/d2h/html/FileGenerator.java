@@ -86,6 +86,13 @@ public class FileGenerator {
             System.out.println("[GitSync] Skip or failed: " + e.getMessage());
         }
         
+        // Ensure static assets like CSS exist in output directory
+        try {
+            ensureStaticAssets();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to prepare static assets", e);
+        }
+        
         // remember guild context for subsequent index generation
         this.lastGuildId = channel.getGuildId();
 
@@ -362,6 +369,34 @@ public class FileGenerator {
             try (FileWriter writer = new FileWriter(target.toString())) {
                 writer.write(newContent);
             }
+        }
+    }
+
+    /**
+     * Ensure required static assets (like CSS) are present under the output root for GitHub Pages/local viewing.
+     */
+    private void ensureStaticAssets() throws IOException {
+        Path base = Paths.get(appConfig.getOutputPath());
+        if (!Files.exists(base)) {
+            return;
+        }
+        // Copy classpath:/static/css/style.css -> {output}/css/style.css
+        Path cssDir = base.resolve("css");
+        Files.createDirectories(cssDir);
+        Path target = cssDir.resolve("style.css");
+        byte[] data = readClasspathResource("/static/css/style.css");
+        if (data != null) {
+            String newContent = new String(data, StandardCharsets.UTF_8);
+            writeIfChanged(target, newContent);
+        }
+    }
+
+    private byte[] readClasspathResource(String resourcePath) throws IOException {
+        try (var in = FileGenerator.class.getResourceAsStream(resourcePath)) {
+            if (in == null) {
+                return null;
+            }
+            return in.readAllBytes();
         }
     }
     
