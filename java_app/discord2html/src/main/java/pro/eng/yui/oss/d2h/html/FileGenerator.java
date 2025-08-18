@@ -216,7 +216,7 @@ public class FileGenerator {
             if (Files.exists(file)) {
                 String ts = tsDir.getFileName().toString();
                 String date8 = ts.length() >= 8 ? ts.substring(0, 8) : ts; // fallback if unexpected
-                String href = "/Discord2Html/archive/" + date8 + "/" + channelName + ".html";
+                String href = "/Discord2Html/archives/" + date8 + "/" + channelName + ".html";
                 String label = channelName + " (" + ts + ")";
                 items.add(new Link(href, label));
             }
@@ -300,7 +300,7 @@ public class FileGenerator {
             }
         }
 
-        Path archiveBase = base.resolve("archive").resolve(date8);
+        Path archiveBase = base.resolve("archives").resolve(date8);
         Files.createDirectories(archiveBase);
         Path dailyIndex = archiveBase.resolve(channelName + ".html");
         Context ctx = new Context();
