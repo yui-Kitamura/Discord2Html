@@ -61,6 +61,9 @@ public class GitHubService {
 
         // Copy all HTML files to the repository and collect paths for git add
         List<String> filesToAdd = new ArrayList<>();
+
+        // Ensure static assets exist under gh_pages and include them in the staging list
+        ensureStaticAssetsInRepo(repoDirFile, filesToAdd);
         for (Path htmlFilePath : htmlFilePaths) {
             String fileName = htmlFilePath.getFileName().toString();
             File targetFile;
@@ -137,5 +140,39 @@ public class GitHubService {
         }
         path.toFile().setReadable(true);
         Files.delete(path);
+    }
+
+    /**
+     * Ensure static assets (css/style.css, D2H_logo.png) exist under gh_pages in the repo
+     * and add their relative paths to filesToAdd for staging.
+     */
+    private void ensureStaticAssetsInRepo(File repoDirFile, List<String> filesToAdd) throws IOException {
+        File ghPagesRoot = new File(repoDirFile, "gh_pages");
+        File cssDir = new File(ghPagesRoot, "css");
+        cssDir.mkdirs();
+
+        // Write style.css from classpath to gh_pages/css/style.css
+        byte[] css = readClasspathResource("/static/css/style.css");
+        if (css != null) {
+            File styleCss = new File(cssDir, "style.css");
+            java.nio.file.Files.write(styleCss.toPath(), css);
+            filesToAdd.add(getRelativePath(repoDirFile, styleCss));
+        }
+        // Write logo to gh_pages/D2H_logo.png
+        byte[] logo = readClasspathResource("/D2H_logo.png");
+        if (logo != null) {
+            File logoFile = new File(ghPagesRoot, "D2H_logo.png");
+            java.nio.file.Files.write(logoFile.toPath(), logo);
+            filesToAdd.add(getRelativePath(repoDirFile, logoFile));
+        }
+    }
+
+    private byte[] readClasspathResource(String resourcePath) throws IOException {
+        try (var in = GitHubService.class.getResourceAsStream(resourcePath)) {
+            if (in == null) {
+                return null;
+            }
+            return in.readAllBytes();
+        }
     }
 }
