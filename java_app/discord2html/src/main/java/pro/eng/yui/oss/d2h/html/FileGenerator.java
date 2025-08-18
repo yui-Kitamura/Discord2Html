@@ -96,6 +96,11 @@ public class FileGenerator {
         // remember guild context for subsequent index generation
         this.lastGuildId = channel.getGuildId();
 
+        // If target is a Thread, generate a single archive file (no daily split)
+        if (channel.isThread()) {
+            return generateThreadArchive(channel, messages, begin, end, seq);
+        }
+
         // Normalize copies of begin/end to avoid mutating caller's calendars
         Calendar cur = (Calendar) begin.clone();
         Calendar until = (Calendar) end.clone();
@@ -129,8 +134,17 @@ public class FileGenerator {
                 context.setVariable("end", timeFormat.format(segmentEnd.getTime()));
                 context.setVariable("sequence", seq);
                 context.setVariable("backToChannelHref", String.format("../../archives/%s.html", channel.getName()));
-                context.setVariable("backToTopHref", "../../index.html");
+                context.setVariable("backToTopHref", "/Discord2Html/index.html");
                 context.setVariable("guildIconUrl", resolveGuildIconUrl());
+                // Add active thread links for this channel at the top
+                try {
+                    List<Link> activeThreadLinks = getActiveThreadLinks(channel);
+                    if (activeThreadLinks != null && !activeThreadLinks.isEmpty()) {
+                        context.setVariable("activeThreads", activeThreadLinks);
+                    }
+                } catch (Exception ignore) {
+                    // best-effort; ignore failures
+                }
 
                 String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
@@ -325,6 +339,68 @@ public class FileGenerator {
         writeIfChanged(help, page);
     }
 
+    private void regenerateThreadIndex(String parentChannelName) throws IOException {
+        Path base = Paths.get(appConfig.getOutputPath());
+        if (!Files.exists(base)) {
+            return;
+        }
+        Path parentThreadsDir = base.resolve("threads").resolve(parentChannelName);
+        if (!Files.exists(parentThreadsDir)) {
+            return; // nothing to index
+        }
+        List<Link> items = new ArrayList<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(parentThreadsDir, "*.html")) {
+            for (Path p : stream) {
+                String file = p.getFileName().toString();
+                String href = "/Discord2Html/threads/" + parentChannelName + "/" + file;
+                String label = file.replaceFirst("\\.html$", "");
+                items.add(new Link(href, label));
+            }
+        }
+        // write list page under archives/threads/{parent}/index.html
+        Path indexDir = base.resolve("archives").resolve("threads").resolve(parentChannelName);
+        Files.createDirectories(indexDir);
+        Path index = indexDir.resolve("index.html");
+        Context ctx = new Context();
+        ctx.setVariable("title", parentChannelName + " のスレッド一覧");
+        ctx.setVariable("description", "このチャンネルに属するスレッドのアーカイブ一覧");
+        ctx.setVariable("items", items);
+        ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        String page = templateEngine.process("list", ctx);
+        writeIfChanged(index, page);
+    }
+
+    private List<Link> getActiveThreadLinks(ChannelInfo channel) {
+        try {
+            if (channel == null) return List.of();
+            var jda = jdaProvider.getJda();
+            if (jda == null) return List.of();
+            var raw = jda.getChannelById(net.dv8tion.jda.api.entities.channel.concrete.TextChannel.class, channel.getChannelId());
+            if (raw == null) return List.of();
+            List<net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel> threads = raw.getThreadChannels();
+            if (threads == null || threads.isEmpty()) return List.of();
+            List<Link> links = new ArrayList<>();
+            for (net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel t : threads) {
+                boolean active = true;
+                try {
+                    active = !t.isArchived();
+                } catch (Throwable ignore) {
+                    // keep default
+                }
+                if (active) {
+                    String href = "/Discord2Html/threads/" + channel.getName() + "/thread-" + t.getId() + ".html";
+                    String label = t.getName();
+                    links.add(new Link(href, label));
+                }
+            }
+            // sort by label
+            links.sort(Comparator.comparing(Link::getLabel));
+            return links;
+        } catch (Throwable e) {
+            return List.of();
+        }
+    }
+
     private List<MessageInfo> filterMessagesByRange(List<MessageInfo> messages, Calendar start, Calendar end) {
         List<MessageInfo> result = new ArrayList<>();
         for (MessageInfo m : messages) {
@@ -425,5 +501,37 @@ public class FileGenerator {
             // ignore and return null
         }
         return null;
+    }
+
+    private Path generateThreadArchive(ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end, int seq) {
+        Context ctx = new Context();
+        ctx.setVariable("channel", channel);
+        ctx.setVariable("messages", messages);
+        ctx.setVariable("begin", timeFormat.format(begin.getTime()));
+        ctx.setVariable("end", timeFormat.format(end.getTime()));
+        ctx.setVariable("sequence", seq);
+        if (channel.getParentChannelName() != null) {
+            ctx.setVariable("backToChannelHref", String.format("/Discord2Html/archives/threads/%s/index.html", channel.getParentChannelName()));
+        } else {
+            ctx.setVariable("backToChannelHref", "/Discord2Html/index.html");
+        }
+        ctx.setVariable("backToTopHref", "/Discord2Html/index.html");
+        ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        String html = templateEngine.process(TEMPLATE_NAME, ctx);
+        Path out = Path.of(
+                appConfig.getOutputPath(),
+                "threads",
+                channel.getParentChannelName() == null ? "unknown" : channel.getParentChannelName(),
+                "thread-" + channel.getChannelId() + ".html"
+        );
+        writeHtml(out, html);
+        try {
+            if (channel.getParentChannelName() != null) {
+                regenerateThreadIndex(channel.getParentChannelName());
+            }
+        } catch (IOException ioe) {
+            throw new RuntimeException("Failed to regenerate thread index", ioe);
+        }
+        return out;
     }
 }
