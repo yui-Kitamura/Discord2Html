@@ -2,6 +2,8 @@ package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
@@ -137,7 +139,32 @@ public class RunArchiveRunner implements IRunner {
                 if(on.getValue() == now) {
                     List<Channels> chs = channelDao.selectAllInGuild(guilds.getGuildId());
                     for(Channels ch : chs) {
-                        run(jda.getJda().getGuildById(ch.getGuidId().getValue()).getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue()), true);
+                        GuildMessageChannel parent = 
+                                jda.getJda().getGuildById(ch.getGuidId().getValue())
+                                .getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue());
+                        if (parent == null) {
+                            continue;
+                        }
+                        // Run archive for parent channel
+                        run(parent, true);
+                        // Also run for active threads under this parent channel
+                        try {
+                            TextChannel text = jda.getJda().getChannelById(TextChannel.class, ch.getChannelId().getValue());
+                            if (text != null) {
+                                List<ThreadChannel> threads = text.getThreadChannels();
+                                if (threads != null) {
+                                    for (ThreadChannel t : threads) {
+                                        boolean active = true;
+                                        try { active = !t.isArchived(); } catch (Throwable ignore) {}
+                                        if (active) {
+                                            run(t, true);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (Throwable ignore) {
+                            // best-effort; skip if threads cannot be resolved
+                        }
                     }
                     
                     // Push all generated files for this guild at once
@@ -167,7 +194,7 @@ public class RunArchiveRunner implements IRunner {
      * 処理本体
      * @param scheduled true: 定期実行, false: 手動実行
      */
-    private void run(GuildMessageChannel channel, boolean scheduled){
+    private void run(final GuildMessageChannel channel, final boolean scheduled){
         //validate
         Channels targetChInfo = null;
         if (!scheduled) {
@@ -179,13 +206,27 @@ public class RunArchiveRunner implements IRunner {
                     break;
                 }
             }
-            if(targetChInfo == null) {
+            // Allow threads to be archived even if not registered in Channels
+            boolean isThread = false;
+            try {
+                isThread = channel.getType() != null && channel.getType().isThread();
+            } catch (Exception ignore) {
+                // keep default false
+            }
+            if(targetChInfo == null && !isThread) {
                 System.out.println(channel + " is not a target");
                 return;
             }
         }
 
-        channel.sendMessage("This channel is archive target. Start >>>").queue();
+        boolean isThreadCh = false;
+        try {
+            isThreadCh = (channel.getType() != null && channel.getType().isThread());
+        } catch (Exception ignore) {
+        }
+        if (!isThreadCh) {
+            channel.sendMessage("This channel is archive target. Start >>>").queue();
+        }
 
         // Determine begin/end using guild scheduled hours from DB
         Calendar endDate = Calendar.getInstance();
@@ -293,6 +334,19 @@ public class RunArchiveRunner implements IRunner {
             if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
                 generatedFiles.add(threadIndex);
             }
+            // If current channel is a thread, also ensure the parent thread index is included
+            try {
+                if (channel.getType() != null && channel.getType().isThread()) {
+                    ThreadChannel tc = (ThreadChannel) channel;
+                    if (tc.getParentMessageChannel() != null) {
+                        String parentName = tc.getParentMessageChannel().getName();
+                        Path parentIndex = Path.of(config.getOutputPath(), "archives", "threads", parentName, "index.html");
+                        if (Files.exists(parentIndex) && !generatedFiles.contains(parentIndex)) {
+                            generatedFiles.add(parentIndex);
+                        }
+                    }
+                }
+            } catch (Throwable ignore2) { /* ignore */ }
         } catch (Exception ignore) {
             // If scanning fails, skip silently
         }
@@ -306,7 +360,9 @@ public class RunArchiveRunner implements IRunner {
             }
         }
 
-        channel.sendMessage("archive created. task end <<<").queue();
+        if (!isThreadCh) {
+            channel.sendMessage("archive created. task end <<<").queue();
+        }
     }
 
     private Calendar getPreviousScheduledTime(Calendar now, GuildId guildId) {
