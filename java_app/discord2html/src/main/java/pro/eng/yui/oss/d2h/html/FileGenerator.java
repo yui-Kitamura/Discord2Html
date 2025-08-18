@@ -130,6 +130,7 @@ public class FileGenerator {
                 context.setVariable("sequence", seq);
                 context.setVariable("backToChannelHref", String.format("../../archives/%s.html", channel.getName()));
                 context.setVariable("backToTopHref", "../../index.html");
+                context.setVariable("guildIconUrl", resolveGuildIconUrl());
 
                 String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
@@ -213,6 +214,7 @@ public class FileGenerator {
         ctx.setVariable("title", channelName + " のアーカイブ一覧");
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", items);
+        ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         String page = templateEngine.process("list", ctx);
         writeIfChanged(channelArchive, page);
     }
@@ -255,14 +257,7 @@ public class FileGenerator {
             // fallback to default on any error
         }
         ctx.setVariable("guildName", guildName);
-        String iconUrl = null;
-        if (lastGuildId != null) {
-            Guild guild = jdaProvider.getJda().getGuildById(lastGuildId);
-            if (guild != null && guild.getIconUrl() != null && guild.getIconUrl().isEmpty() == false) {
-                iconUrl = guild.getIconUrl();
-            }
-        }
-        ctx.setVariable("guildIconUrl", iconUrl);
+        ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         String page = templateEngine.process("top", ctx);
         writeIfChanged(index, page);
     }
@@ -298,6 +293,7 @@ public class FileGenerator {
         ctx.setVariable("title", channelName + " の" + date8 + " のログ一覧");
         ctx.setVariable("description", "同日のアーカイブへのリンク:");
         ctx.setVariable("items", items);
+        ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         String page = templateEngine.process("list", ctx);
         writeIfChanged(dailyIndex, page);
     }
@@ -324,7 +320,7 @@ public class FileGenerator {
         }
         Path help = base.resolve("help.html");
         Context ctx = new Context();
-        // If you need to add dynamic data later, set it here via ctx.setVariable(...)
+        ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         String page = templateEngine.process("help", ctx);
         writeIfChanged(help, page);
     }
@@ -389,6 +385,19 @@ public class FileGenerator {
             String newContent = new String(data, StandardCharsets.UTF_8);
             writeIfChanged(target, newContent);
         }
+        // Copy D2H_logo.png from classpath root to output root for favicon/header in help.html
+        Path logoTarget = base.resolve("D2H_logo.png");
+        byte[] logo = readClasspathResource("/D2H_logo.png");
+        if (logo != null) {
+            boolean shouldWrite = true;
+            if (Files.exists(logoTarget)) {
+                byte[] existing = Files.readAllBytes(logoTarget);
+                shouldWrite = (existing == null || existing.length != logo.length || !java.util.Arrays.equals(existing, logo));
+            }
+            if (shouldWrite) {
+                Files.write(logoTarget, logo);
+            }
+        }
     }
 
     private byte[] readClasspathResource(String resourcePath) throws IOException {
@@ -399,5 +408,22 @@ public class FileGenerator {
             return in.readAllBytes();
         }
     }
-    
+
+    /**
+     * Resolve current guild icon URL if available.
+     */
+    private String resolveGuildIconUrl() {
+        if (lastGuildId == null) {
+            return null;
+        }
+        try {
+            Guild guild = jdaProvider.getJda().getGuildById(lastGuildId);
+            if (guild != null && guild.getIconUrl() != null && guild.getIconUrl().isEmpty() == false) {
+                return guild.getIconUrl();
+            }
+        } catch (Exception ignore) {
+            // ignore and return null
+        }
+        return null;
+    }
 }
