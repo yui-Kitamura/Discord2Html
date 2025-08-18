@@ -1,8 +1,10 @@
 package pro.eng.yui.oss.d2h.html;
 
+import net.dv8tion.jda.api.entities.Guild;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
+import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.github.GitUtil;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
@@ -51,13 +53,15 @@ public class FileGenerator {
     private final TemplateEngine templateEngine;
     private final GitUtil gitUtil;
     private final GuildsDAO guildsDao;
+    private final DiscordJdaProvider jdaProvider;
     private Long lastGuildId = null;
     
-    public FileGenerator(ApplicationConfig config, TemplateEngine templateEngine, GitUtil gitUtil, GuildsDAO guildsDao) {
+    public FileGenerator(ApplicationConfig config, TemplateEngine templateEngine, GitUtil gitUtil, GuildsDAO guildsDao, DiscordJdaProvider jdaProvider) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
         this.gitUtil = gitUtil;
         this.guildsDao = guildsDao;
+        this.jdaProvider = jdaProvider;
         this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         this.folderFormat = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -244,6 +248,14 @@ public class FileGenerator {
             // fallback to default on any error
         }
         ctx.setVariable("guildName", guildName);
+        String iconUrl = null;
+        if (lastGuildId != null) {
+            Guild guild = jdaProvider.getJda().getGuildById(lastGuildId);
+            if (guild != null && guild.getIconUrl() != null && guild.getIconUrl().isEmpty() == false) {
+                iconUrl = guild.getIconUrl();
+            }
+        }
+        ctx.setVariable("guildIconUrl", iconUrl);
         String page = templateEngine.process("top", ctx);
         writeIfChanged(index, page);
     }
