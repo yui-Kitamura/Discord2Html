@@ -84,7 +84,7 @@ section {
     margin: .2em 0 .8em;
 }
 .guild-header { display: flex; align-items: center; gap: .6em; }
-.guild-icon { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #23272a; }
+.guild-icon { margin-bottom: 21px; width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #23272a; }
 
 /* Message view (message.html) */
 .message {
