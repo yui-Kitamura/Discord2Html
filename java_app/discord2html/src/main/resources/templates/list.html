@@ -12,7 +12,10 @@
   <nav class="nav">
     <a href="/Discord2Html/index.html">トップ</a>
   </nav>
-  <h1 th:text="${title}">Title</h1>
+  <header class="guild-header">
+    <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="${guildName} + ' アイコン'" />
+    <h1 th:text="${title}">Title</h1>
+  </header>
   <p th:if="${description}" th:text="${description}">Description</p>
   <ul>
     <li th:each="it : ${items}">
