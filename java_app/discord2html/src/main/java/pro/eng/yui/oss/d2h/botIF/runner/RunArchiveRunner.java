@@ -21,6 +21,8 @@ import pro.eng.yui.oss.d2h.db.field.AnonStats;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
+import pro.eng.yui.oss.d2h.db.field.Status;
+import pro.eng.yui.oss.d2h.consts.ChannelStatus;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.db.model.Users;

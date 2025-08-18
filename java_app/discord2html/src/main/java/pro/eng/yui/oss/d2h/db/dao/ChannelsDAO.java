@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.db.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import pro.eng.yui.oss.d2h.consts.ChannelStatus;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
@@ -101,6 +102,7 @@ public class ChannelsDAO {
         ChannelLog param = new ChannelLog();
         try {
             param.setChannelId(Objects.requireNonNull(chId));
+            param.setStatus(new Status(ChannelStatus.MONITOR));
         }catch(NullPointerException npe) {
             throw new IllegalArgumentException(npe);
         }
