@@ -299,9 +299,13 @@ public class RunArchiveRunner implements IRunner {
             generatedFiles.add(helpPath);
         }
         // Also include the per-channel archives/<channel>.html updated by FileGenerator (deduplicated)
-        Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getName() + ".html");
-        if (!generatedFiles.contains(channelArchivePath)) {
-            generatedFiles.add(channelArchivePath);
+        // NOTE: For thread channels, the file name is t-<id>.html under archives/<parent>/threads/, not <channelName>.html.
+        // Therefore, only add archives/<channelName>.html for non-thread channels and if it exists.
+        if (!isThreadCh) {
+            Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getName() + ".html");
+            if (Files.exists(channelArchivePath) && !generatedFiles.contains(channelArchivePath)) {
+                generatedFiles.add(channelArchivePath);
+            }
         }
         // Include thread archive files under archives/<channel>/threads/*.html
         try {
