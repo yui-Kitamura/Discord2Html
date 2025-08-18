@@ -344,7 +344,7 @@ public class FileGenerator {
         if (!Files.exists(base)) {
             return;
         }
-        Path parentThreadsDir = base.resolve("threads").resolve(parentChannelName);
+        Path parentThreadsDir = base.resolve("archives").resolve(parentChannelName).resolve("threads");
         if (!Files.exists(parentThreadsDir)) {
             return; // nothing to index
         }
@@ -352,7 +352,7 @@ public class FileGenerator {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(parentThreadsDir, "*.html")) {
             for (Path p : stream) {
                 String file = p.getFileName().toString();
-                String href = "/Discord2Html/threads/" + parentChannelName + "/" + file;
+                String href = "/Discord2Html/archives/" + parentChannelName + "/threads/" + file;
                 String label = file.replaceFirst("\\.html$", "");
                 items.add(new Link(href, label));
             }
@@ -388,7 +388,7 @@ public class FileGenerator {
                     // keep default
                 }
                 if (active) {
-                    String href = "/Discord2Html/threads/" + channel.getName() + "/thread-" + t.getId() + ".html";
+                    String href = "/Discord2Html/archives/" + channel.getName() + "/threads/t-" + t.getId() + ".html";
                     String label = t.getName();
                     links.add(new Link(href, label));
                 }
@@ -520,9 +520,10 @@ public class FileGenerator {
         String html = templateEngine.process(TEMPLATE_NAME, ctx);
         Path out = Path.of(
                 appConfig.getOutputPath(),
-                "threads",
+                "archives",
                 channel.getParentChannelName() == null ? "unknown" : channel.getParentChannelName(),
-                "thread-" + channel.getChannelId() + ".html"
+                "threads",
+                "t-" + channel.getChannelId() + ".html"
         );
         writeHtml(out, html);
         try {
