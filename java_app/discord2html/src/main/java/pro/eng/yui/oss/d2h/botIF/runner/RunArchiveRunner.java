@@ -2,8 +2,6 @@ package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
-import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
@@ -21,8 +19,6 @@ import pro.eng.yui.oss.d2h.db.field.AnonStats;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
-import pro.eng.yui.oss.d2h.db.field.Status;
-import pro.eng.yui.oss.d2h.consts.ChannelStatus;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.db.model.Users;
@@ -31,6 +27,8 @@ import pro.eng.yui.oss.d2h.html.ChannelInfo;
 import pro.eng.yui.oss.d2h.html.FileGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -277,6 +275,26 @@ public class RunArchiveRunner implements IRunner {
         Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getName() + ".html");
         if (!generatedFiles.contains(channelArchivePath)) {
             generatedFiles.add(channelArchivePath);
+        }
+        // Include thread archive files under archives/<channel>/threads/*.html
+        try {
+            Path threadsDir = Path.of(config.getOutputPath(), "archives", channel.getName(), "threads");
+            if (Files.exists(threadsDir) && Files.isDirectory(threadsDir)) {
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(threadsDir, "*.html")) {
+                    for (Path p : stream) {
+                        if (!generatedFiles.contains(p)) {
+                            generatedFiles.add(p);
+                        }
+                    }
+                }
+            }
+            // Include thread index at archives/threads/<channel>/index.html
+            Path threadIndex = Path.of(config.getOutputPath(), "archives", "threads", channel.getName(), "index.html");
+            if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
+                generatedFiles.add(threadIndex);
+            }
+        } catch (Exception ignore) {
+            // If scanning fails, skip silently
         }
 
         // Log only when scheduled to mark last run time
