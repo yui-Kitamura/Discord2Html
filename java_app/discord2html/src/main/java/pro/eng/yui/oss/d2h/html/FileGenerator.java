@@ -55,6 +55,7 @@ public class FileGenerator {
     private final GuildsDAO guildsDao;
     private final DiscordJdaProvider jdaProvider;
     private Long lastGuildId = null;
+    private final String botVersion;
     
     public FileGenerator(ApplicationConfig config, TemplateEngine templateEngine, GitUtil gitUtil, GuildsDAO guildsDao, DiscordJdaProvider jdaProvider) {
         this.appConfig = config;
@@ -68,6 +69,7 @@ public class FileGenerator {
         this.folderFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         this.date8Format = new SimpleDateFormat("yyyyMMdd");
         this.date8Format.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+        this.botVersion = VersionUtil.getVersion();
     }
 
     public Path generate(
@@ -136,6 +138,7 @@ public class FileGenerator {
                 context.setVariable("backToChannelHref", String.format("../../archives/%s.html", channel.getName()));
                 context.setVariable("backToTopHref", "/Discord2Html/index.html");
                 context.setVariable("guildIconUrl", resolveGuildIconUrl());
+                context.setVariable("botVersion", botVersion);
                 // Add active thread links for this channel at the top
                 try {
                     List<Link> activeThreadLinks = getActiveThreadLinks(channel);
@@ -229,6 +232,7 @@ public class FileGenerator {
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", items);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
         writeIfChanged(channelArchive, page);
     }
@@ -272,6 +276,7 @@ public class FileGenerator {
         }
         ctx.setVariable("guildName", guildName);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("top", ctx);
         writeIfChanged(index, page);
     }
@@ -308,6 +313,7 @@ public class FileGenerator {
         ctx.setVariable("description", "同日のアーカイブへのリンク:");
         ctx.setVariable("items", items);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
         writeIfChanged(dailyIndex, page);
     }
@@ -335,6 +341,7 @@ public class FileGenerator {
         Path help = base.resolve("help.html");
         Context ctx = new Context();
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("help", ctx);
         writeIfChanged(help, page);
     }
@@ -366,6 +373,7 @@ public class FileGenerator {
         ctx.setVariable("description", "このチャンネルに属するスレッドのアーカイブ一覧");
         ctx.setVariable("items", items);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
         writeIfChanged(index, page);
     }
