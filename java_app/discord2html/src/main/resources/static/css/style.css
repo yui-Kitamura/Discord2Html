@@ -41,7 +41,6 @@ a {
     color: var(--link);
     text-decoration: none;
 }
-
 a:hover {
     text-decoration: underline;
 }
@@ -58,11 +57,20 @@ a:hover {
 }
 
 /* Footer */
-.footer { text-align: center; margin-top: 2em; font-size: 0.9em; }
+.footer {
+    text-align: center;
+    margin-top: 2em;
+    font-size: 0.9em;
+}
 
 /* Lists */
-ul { line-height: 1.8; padding-left: 1.2em; }
-section { margin: 1.2em 0; }
+ul {
+    line-height: 1.8;
+    padding-left: 1.2em;
+}
+section { 
+    margin: 1.2em 0;
+}
 
 /* Cards and sections used on top.html */
 .card {
@@ -71,7 +79,10 @@ section { margin: 1.2em 0; }
   padding: 1em;
   border-radius: 8px;
 }
-.subtitle { color: var(--muted); margin: .2em 0 .8em; }
+.subtitle { 
+    color: var(--muted);
+    margin: .2em 0 .8em;
+}
 .guild-header { display: flex; align-items: center; gap: .6em; }
 .guild-icon { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; background: #23272a; }
 
@@ -127,7 +138,9 @@ section { margin: 1.2em 0; }
     margin-top: 6px;
 }
 
-hr { border: none; height: 1px; background: var(--divider); margin: 2em 0; }
+hr { 
+    border: none; height: 1px; background: var(--divider); margin: 2em 0;
+}
 
 /* Help page elements */
 code { background: #2b2f33; padding: .1em .3em; border-radius: 4px; }
