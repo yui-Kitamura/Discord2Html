@@ -67,14 +67,17 @@ public class GitHubService {
         for (Path htmlFilePath : htmlFilePaths) {
             String fileName = htmlFilePath.getFileName().toString();
             File targetFile;
-            if ("index.html".equalsIgnoreCase(fileName) || "help.html".equalsIgnoreCase(fileName)) {
-                // Place index.html and help.html at gh_pages root
+            // Normalize path for checks
+            String normalized = htmlFilePath.toString().replace('\\', '/');
+            boolean isTopLevelIndexOrHelp = ("index.html".equalsIgnoreCase(fileName) || "help.html".equalsIgnoreCase(fileName))
+                    && !normalized.contains("/archives/");
+            if (isTopLevelIndexOrHelp) {
+                // Place top-level index.html and help.html at gh_pages root
                 File ghPagesRoot = new File(repoDirFile, "gh_pages");
                 ghPagesRoot.mkdirs();
                 targetFile = new File(ghPagesRoot, fileName);
             } else {
                 // If the path is under any 'archives' sub-tree, mirror it under gh_pages
-                String normalized = htmlFilePath.toString().replace('\\', '/');
                 int idx = normalized.indexOf("/archives/");
                 if (idx >= 0) {
                     String subPath = normalized.substring(idx + 1); // keep starting at 'archives/...'
