@@ -102,6 +102,8 @@ public class FileGenerator {
         Set<String> affectedDate8 = new HashSet<>();
 
         Path lastOutput = null;
+        // Capture a per-execution timestamp directory name so each run creates a new archive folder
+        String runTimestamp = folderFormat.format(Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo")).getTime());
 
         while (!cur.after(until)) {
             // Segment end is end of current day (23:59:59) or the global end, whichever is earlier
@@ -131,7 +133,7 @@ public class FileGenerator {
 
                 Path output = Path.of(
                         appConfig.getOutputPath(),
-                        folderFormat.format(segmentEnd.getTime()),
+                        runTimestamp,
                         channel.getName()+ ".html"
                 );
                 writeHtml(output, htmlContent);

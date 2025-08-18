@@ -170,17 +170,19 @@ public class RunArchiveRunner implements IRunner {
     private void run(GuildMessageChannel channel, boolean scheduled){
         //validate
         Channels targetChInfo = null;
-        List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
-        ChannelId targetChannelId = new ChannelId(channel);
-        for(Channels c : activate) {
-            if(c.getChannelId().equals(targetChannelId)) {
-                targetChInfo = c;
-                break;
+        if (!scheduled) {
+            List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
+            ChannelId targetChannelId = new ChannelId(channel);
+            for(Channels c : activate) {
+                if(c.getChannelId().equals(targetChannelId)) {
+                    targetChInfo = c;
+                    break;
+                }
             }
-        }
-        if(targetChInfo == null) {
-            System.out.println(channel + " is not a target");
-            return;
+            if(targetChInfo == null) {
+                System.out.println(channel + " is not a target");
+                return;
+            }
         }
 
         channel.sendMessage("This channel is archive target. Start >>>").queue();
