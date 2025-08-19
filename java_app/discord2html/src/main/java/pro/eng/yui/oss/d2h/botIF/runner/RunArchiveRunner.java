@@ -268,6 +268,12 @@ public class RunArchiveRunner implements IRunner {
             beginDate = getPreviousScheduledTime(endDate, new GuildId(channel.getGuild()));
         }
 
+        // Prepare endDate for file output naming. At 00:00 scheduled runs, use previous day (endDate - 1ms)
+        Calendar endDateForOutput = (Calendar) endDate.clone();
+        if (scheduled && nowJst.get(Calendar.HOUR_OF_DAY) == 0) {
+            endDateForOutput.add(Calendar.MILLISECOND, -1);
+        }
+
         // Retrieve messages differently for normal channels vs threads
         List<MessageInfo> messages;
         Calendar beginForOutput = (Calendar) beginDate.clone();
@@ -302,7 +308,7 @@ public class RunArchiveRunner implements IRunner {
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
         }
         
-        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, endDate, 1);
+        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, endDateForOutput, 1);
         generatedFiles.add(generatedFile);
         // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
         Path indexPath = Path.of(config.getOutputPath(), "index.html");
