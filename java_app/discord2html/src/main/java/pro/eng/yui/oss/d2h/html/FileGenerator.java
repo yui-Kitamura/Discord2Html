@@ -528,6 +528,7 @@ public class FileGenerator {
         }
         ctx.setVariable("backToTopHref", "/Discord2Html/index.html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        ctx.setVariable("botVersion", botVersion);
         String html = templateEngine.process(TEMPLATE_NAME, ctx);
         Path out = Path.of(
                 appConfig.getOutputPath(),
