@@ -215,10 +215,14 @@ public class FileGenerator {
             throw new RuntimeException("Failed to regenerate daily index page(s)", e);
         }
         
-        // After generating archive page(s), refresh static listings for GitHub Pages
+        // After generating archive page(s), update listing pages by prepending new links without scanning directories
         try {
-            regenerateChannelArchives(channel.getChannelId());
-            regenerateTopIndex();
+            // Prepend per-channel archive links for each affected date
+            for (String d8 : affectedDate8) {
+                prependChannelArchiveEntry(channel.getChannelId(), d8);
+            }
+            // Ensure the top index contains the channel link at the beginning
+            prependTopIndexChannel(channel.getChannelId());
             regenerateHelpPage();
         } catch (IOException e) {
             // Do not fail the main generation if index regeneration fails; log via RuntimeException to keep visibility
@@ -228,15 +232,104 @@ public class FileGenerator {
         return lastOutput;
     }
 
+    private void prependChannelArchiveEntry(ChannelId channelId, String date8) throws IOException {
+        Path base = Paths.get(appConfig.getOutputPath());
+        if (!Files.exists(base)) {
+            return;
+        }
+        Path archivesRoot = base.resolve("archives");
+        Files.createDirectories(archivesRoot);
+        // Build single link for the given date without scanning directories
+        String href = basePrefix() + "/archives/" + date8 + "/" + channelId + ".html";
+        // Resolve display name from JDA for labels
+        String displayName = channelId.toString();
+        try {
+            var tc = jdaProvider.getJda().getTextChannelById(channelId.getValue());
+            if (tc != null && tc.getName() != null && !tc.getName().isEmpty()) {
+                displayName = tc.getName();
+            }
+        } catch (Throwable ignore) {}
+        // Determine display timestamp similar to regenerateChannelArchives
+        String displayTs;
+        try {
+            String today8 = date8Format.format(Calendar.getInstance().getTime());
+            Path file = archivesRoot.resolve(date8).resolve(channelId.toString() + ".html");
+            if (today8.equals(date8) && Files.exists(file)) {
+                displayTs = timeFormat.format(new Date(Files.getLastModifiedTime(file).toMillis()));
+            } else {
+                Date endOfDay = folderFormat.parse(date8 + "235959");
+                displayTs = timeFormat.format(endOfDay);
+            }
+        } catch (Exception e) {
+            displayTs = date8;
+        }
+        String label = displayName + " (" + displayTs + ")";
+        List<Link> items = new ArrayList<>();
+        items.add(new Link(href, label));
+        Path channelArchive = archivesRoot.resolve(channelId.toString() + ".html");
+        List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
+        Context ctx = new Context();
+        ctx.setVariable("title", displayName + " のアーカイブ一覧");
+        ctx.setVariable("description", "以下のアーカイブから選択してください:");
+        ctx.setVariable("items", merged);
+        ctx.setVariable("threadIndexHref", basePrefix() + "/archives/threads/" + channelId + "/index.html");
+        ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        ctx.setVariable("botVersion", botVersion);
+        String page = templateEngine.process("list", ctx);
+        writeIfChanged(channelArchive, page);
+    }
+
+    private void prependTopIndexChannel(ChannelId channelId) throws IOException {
+        Path base = Paths.get(appConfig.getOutputPath());
+        if (!Files.exists(base)) { return; }
+        Path index = base.resolve("index.html");
+        // Build channel link
+        String label = channelId.toString();
+        try {
+            var tc = jdaProvider.getJda().getTextChannelById(channelId.getValue());
+            if (tc != null && tc.getName() != null && !tc.getName().isEmpty()) { label = tc.getName(); }
+        } catch (Throwable ignore) {}
+        Link link = new Link("archives/" + channelId + ".html", label);
+        List<Link> items = new ArrayList<>();
+        items.add(link);
+        List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(index));
+        Context ctx = new Context();
+        ctx.setVariable("channels", merged);
+        String guildName = "Discord";
+        try {
+            if (lastGuildId != null) {
+                Guilds g = guildsDao.selectGuildInfo(new GuildId(lastGuildId));
+                if (g != null && g.getGuildName() != null) { guildName = g.getGuildName().getValue(); }
+            }
+        } catch (Exception ignore) {}
+        ctx.setVariable("guildName", guildName);
+        ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
+        ctx.setVariable("botVersion", botVersion);
+        String page = templateEngine.process("top", ctx);
+        writeIfChanged(index, page);
+    }
+
     private void regenerateChannelArchives(ChannelId channelId) throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
             return;
         }
-        // Find all timestamp directories and collect files for this channel
-        List<Path> timestampDirs = listTimestampDirs(base);
-        // Sort by directory name (timestamp) descending
-        timestampDirs.sort(Comparator.comparing((Path p) -> p.getFileName().toString()).reversed());
+        Path archivesRoot = base.resolve("archives");
+        if (!Files.exists(archivesRoot) || !Files.isDirectory(archivesRoot)) {
+            return;
+        }
+        // Find all date (yyyyMMdd) directories and collect daily files for this channel
+        List<Path> dateDirs = new ArrayList<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(archivesRoot)) {
+            for (Path p : stream) {
+                String name = p.getFileName().toString();
+                if (Files.isDirectory(p) && name.matches("\\d{8}")) {
+                    dateDirs.add(p);
+                }
+            }
+        }
+        // Sort by directory name (date) descending
+        dateDirs.sort(Comparator.comparing((Path p) -> p.getFileName().toString()).reversed());
 
         List<Link> items = new ArrayList<>();
         // Resolve display name from JDA for labels
@@ -247,11 +340,10 @@ public class FileGenerator {
                 displayName = tc.getName();
             }
         } catch (Throwable ignore) {}
-        for (Path tsDir : timestampDirs) {
-            Path file = tsDir.resolve(channelId.toString() + ".html");
+        for (Path dateDir : dateDirs) {
+            String date8 = dateDir.getFileName().toString();
+            Path file = dateDir.resolve(channelId.toString() + ".html");
             if (Files.exists(file)) {
-                String ts = tsDir.getFileName().toString();
-                String date8 = ts.length() >= 8 ? ts.substring(0, 8) : ts; // fallback if unexpected
                 String href = basePrefix() + "/archives/" + date8 + "/" + channelId + ".html";
 
                 // Display timestamp policy for channel archive list:
@@ -270,15 +362,14 @@ public class FileGenerator {
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    displayTs = ts;
+                    displayTs = date8;
                 }
                 String label = displayName + " (" + displayTs + ")";
                 items.add(new Link(href, label));
             }
         }
-        Path archivesDir = base.resolve("archives");
-        Files.createDirectories(archivesDir);
-        Path channelArchive = archivesDir.resolve(channelId.toString() + ".html");
+        Path channelArchive = archivesRoot.resolve(channelId.toString() + ".html");
+        Files.createDirectories(archivesRoot);
         // If no items found, avoid overwriting an existing archive list to preserve past links
         if (items.isEmpty() && Files.exists(channelArchive)) {
             return;
@@ -301,15 +392,34 @@ public class FileGenerator {
         if (!Files.exists(base)) {
             return;
         }
+        Path archivesRoot = base.resolve("archives");
+        if (!Files.exists(archivesRoot) || !Files.isDirectory(archivesRoot)) {
+            return;
+        }
+        // Collect channelIds by scanning daily archive folders (yyyyMMdd)
         Set<String> channelIds = new HashSet<>();
-        for (Path tsDir : listTimestampDirs(base)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(tsDir, "*.html")) {
-                for (Path p : stream) {
-                    String fileName = p.getFileName().toString();
-                    if (fileName.toLowerCase().endsWith(".html")) {
-                        channelIds.add(fileName.substring(0, fileName.length() - 5));
+        try (DirectoryStream<Path> days = Files.newDirectoryStream(archivesRoot)) {
+            for (Path dayDir : days) {
+                String name = dayDir.getFileName().toString();
+                if (!Files.isDirectory(dayDir) || !name.matches("\\d{8}")) {
+                    continue;
+                }
+                try (DirectoryStream<Path> htmls = Files.newDirectoryStream(dayDir, "*.html")) {
+                    for (Path p : htmls) {
+                        String fileName = p.getFileName().toString();
+                        if (fileName.toLowerCase().endsWith(".html")) {
+                            channelIds.add(fileName.substring(0, fileName.length() - 5));
+                        }
                     }
                 }
+            }
+        }
+        // Ensure per-channel list pages exist for each discovered channel
+        for (String id : channelIds) {
+            try {
+                regenerateChannelArchives(new ChannelId(Long.parseLong(id)));
+            } catch (Throwable ignore) {
+                // best-effort, continue
             }
         }
         // Build links list with Help at top and archives/channelId.html entries
@@ -744,6 +854,8 @@ public class FileGenerator {
         try {
             if (channel.getParentChannelId() != null) {
                 regenerateThreadIndex(channel.getParentChannelId());
+                // Also ensure the parent channel's archive list page exists/updated
+                regenerateChannelArchives(channel.getParentChannelId());
             }
         } catch (IOException ioe) {
             throw new RuntimeException("Failed to regenerate thread index", ioe);
