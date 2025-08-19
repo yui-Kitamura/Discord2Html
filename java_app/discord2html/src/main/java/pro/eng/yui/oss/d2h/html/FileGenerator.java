@@ -277,6 +277,10 @@ public class FileGenerator {
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
         writeIfChanged(channelArchive, page);
+        // Ensure the thread index page exists for this channel (even if no thread pages yet)
+        try {
+            regenerateThreadIndex(channelId);
+        } catch (IOException ignore) { /* best-effort */ }
     }
 
     private void prependTopIndexChannel(ChannelId channelId) throws IOException {
@@ -378,7 +382,7 @@ public class FileGenerator {
         // Exclude thread index link from items to avoid duplication in the list
         final String threadIndexNorm = "archives/" + channelId + "/threads/index.html";
         merged = merged.stream()
-                .filter(l -> !normalizeHref(l.getHref()).equals(threadIndexNorm))
+                .filter(l -> !normalizeHref(l.getHref()).endsWith(threadIndexNorm))
                 .collect(Collectors.toList());
         Context ctx = new Context();
         ctx.setVariable("title", displayName + " のアーカイブ一覧");
@@ -389,6 +393,10 @@ public class FileGenerator {
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
+        // Ensure the thread index page exists for this channel
+        try {
+            regenerateThreadIndex(channelId);
+        } catch (IOException ignore) { /* best-effort */ }
         writeIfChanged(channelArchive, page);
     }
 
@@ -638,9 +646,8 @@ public class FileGenerator {
             return;
         }
         Path parentThreadsDir = base.resolve("archives").resolve(parentChannelId.toString()).resolve("threads");
-        if (!Files.exists(parentThreadsDir)) {
-            return; // nothing to index
-        }
+        // Ensure the directory exists so we can still generate an empty index page
+        Files.createDirectories(parentThreadsDir);
         List<Link> items = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(parentThreadsDir, "*.html")) {
             for (Path p : stream) {
@@ -668,8 +675,8 @@ public class FileGenerator {
                 items.add(new Link(href, updatedLabel));
             }
         }
-        // write list page under archives/threads/{parent}/index.html
-        Path indexDir = base.resolve("archives").resolve(parentChannelId.toString()).resolve("threads");
+        // write list page under archives/<parent>/threads/index.html
+        Path indexDir = parentThreadsDir;
         Files.createDirectories(indexDir);
         Path index = indexDir.resolve("index.html");
         // resolve display name of parent channel for title
