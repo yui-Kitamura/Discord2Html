@@ -13,8 +13,13 @@ import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.github.GitUtil;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
+import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
+import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
+import pro.eng.yui.oss.d2h.db.model.Users;
+import pro.eng.yui.oss.d2h.consts.UserAnon;
+import pro.eng.yui.oss.d2h.db.field.AnonStats;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -65,17 +70,22 @@ public class FileGenerator {
     private final TemplateEngine templateEngine;
     private final GitUtil gitUtil;
     private final GuildsDAO guildsDao;
+    private final UsersDAO usersDao;
+    private final AnonStatsDAO anonStatsDao;
     private final DiscordJdaProvider jdaProvider;
     private Long lastGuildId = null;
     private final String botVersion;
     
     public FileGenerator(ApplicationConfig config, Secrets secrets, TemplateEngine templateEngine,
                          GitUtil gitUtil, GuildsDAO guildsDao,
+                         UsersDAO usersDao, AnonStatsDAO anonStatsDao,
                          DiscordJdaProvider jdaProvider) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
         this.gitUtil = gitUtil;
         this.guildsDao = guildsDao;
+        this.usersDao = usersDao;
+        this.anonStatsDao = anonStatsDao;
         this.jdaProvider = jdaProvider;
         this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
@@ -318,47 +328,154 @@ public class FileGenerator {
             return;
         }
         String date8 = date8Format.format(end.getTime());
-        // Collect all timestamp directories for this date
-        List<Path> tsDirs = listTimestampDirs(base).stream()
-                .filter(p -> p.getFileName().toString().startsWith(date8))
-                .sorted(Comparator.comparing((Path p) -> p.getFileName().toString()).reversed())
-                .toList();
 
-        List<Link> items = new ArrayList<>();
-        for (Path tsDir : tsDirs) {
-            Path file = tsDir.resolve(channelName + ".html");
-            if (Files.exists(file)) {
-                String ts = tsDir.getFileName().toString();
-                // From archive/date8/channel.html to tsDir/channel.html -> ../../{ts}/{channel}.html
-                String href = String.format("../../%s/%s.html", ts, channelName);
-                String displayTs;
-                try {
-                    displayTs = timeFormat.format(folderFormat.parse(ts));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    displayTs = ts;
-                }
-                String label = channelName + " (" + displayTs + ")";
-                items.add(new Link(href, label));
-            }
+        // Compute begin/end range for the day in Asia/Tokyo
+        Calendar beginCal = (Calendar) end.clone();
+        beginCal.set(Calendar.HOUR_OF_DAY, 0);
+        beginCal.set(Calendar.MINUTE, 0);
+        beginCal.set(Calendar.SECOND, 0);
+        beginCal.set(Calendar.MILLISECOND, 0);
+
+        Calendar endCal = (Calendar) end.clone();
+        Calendar now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+        String today8 = date8Format.format(now.getTime());
+        if (today8.equals(date8)) {
+            // keep current time (truncate to minutes for display only)
+        } else {
+            endCal.set(Calendar.HOUR_OF_DAY, 23);
+            endCal.set(Calendar.MINUTE, 59);
+            endCal.set(Calendar.SECOND, 59);
+            endCal.set(Calendar.MILLISECOND, 999);
         }
 
+        // Resolve channel from JDA using lastGuildId and channel name
+        List<MessageInfo> messages = new ArrayList<>();
+        try {
+            if (lastGuildId != null) {
+                Guild guild = jdaProvider.getJda().getGuildById(lastGuildId);
+                if (guild != null) {
+                    TextChannel target = null;
+                    for (TextChannel tc : guild.getTextChannels()) {
+                        if (tc.getName().equalsIgnoreCase(channelName)) {
+                            target = tc;
+                            break;
+                        }
+                    }
+                    if (target != null) {
+                        messages = fetchMessagesForDaily(target, beginCal, endCal);
+                    }
+                }
+            }
+        } catch (Throwable ignore) {
+            // Fall through with empty messages on errors
+        }
+
+        // Sort chronologically just in case
+        messages.sort(Comparator.comparing(MessageInfo::getCreatedTimestamp));
+
+        // Prepare output path
         Path archiveBase = base.resolve("archives").resolve(date8);
         Files.createDirectories(archiveBase);
-        Path dailyIndex = archiveBase.resolve(channelName + ".html");
-        // If no items for this date, keep existing daily list if present
-        if (items.isEmpty() && Files.exists(dailyIndex)) {
+        Path dailyCombined = archiveBase.resolve(channelName + ".html");
+
+        // If nothing to output, preserve existing daily file
+        if (messages.isEmpty() && Files.exists(dailyCombined)) {
             return;
         }
-        List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(dailyIndex));
+
+        // Template variables
+        String yyyy = date8.substring(0, 4);
+        String mm = date8.substring(4, 6);
+        String dd = date8.substring(6, 8);
+        String humanDate = yyyy + "/" + mm + "/" + dd;
+
+        // Determine daily end text: if target date is today, end at current HH:mm; otherwise 23:59:59
+        String endText;
+        if (today8.equals(date8)) {
+            SimpleDateFormat hm = new SimpleDateFormat("HH:mm");
+            hm.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+            endText = humanDate + " " + hm.format(now.getTime());
+        } else {
+            endText = humanDate + " 23:59:59";
+        }
+
         Context ctx = new Context();
-        ctx.setVariable("title", channelName + " の" + date8 + " のログ一覧");
-        ctx.setVariable("description", "同日のアーカイブへのリンク:");
-        ctx.setVariable("items", merged);
+        ctx.setVariable("channelName", channelName);
+        ctx.setVariable("humanDate", humanDate);
+        ctx.setVariable("endText", endText);
+        ctx.setVariable("messages", messages);
+        ctx.setVariable("backToTopHref", "/Discord2Html/index.html");
+        ctx.setVariable("backToChannelHref", "/Discord2Html/archives/" + channelName + ".html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
-        String page = templateEngine.process("list", ctx);
-        writeIfChanged(dailyIndex, page);
+
+        String rendered = templateEngine.process("daily", ctx);
+        writeIfChanged(dailyCombined, rendered);
+    }
+
+    private List<MessageInfo> fetchMessagesForDaily(TextChannel channel, Calendar beginDate, Calendar endDate) {
+        List<MessageInfo> messages = new ArrayList<>();
+        List<Users> marked = new ArrayList<>();
+        try {
+            var history = channel.getHistory();
+            GuildId guildId = new GuildId(channel.getGuild());
+            Guilds guildInfo = guildsDao.selectGuildInfo(guildId);
+            int anonCycle = guildInfo != null && guildInfo.getAnonCycle() != null ? guildInfo.getAnonCycle().getValue() : 24;
+            if (anonCycle < 1 || 24 < anonCycle) { 
+                anonCycle = 24; 
+            }
+            final int finalAnonCycle = anonCycle;
+            boolean more = true;
+            while (more) {
+                var batch = history.retrievePast(100).complete();
+                if (batch == null || batch.isEmpty()) {
+                    break;
+                }
+                var oldest = batch.get(batch.size() - 1);
+                var oldestInstant = oldest.getTimeCreated().toInstant();
+                batch.stream()
+                        .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
+                                && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                        .forEach(msg -> {
+                            Users author = null;
+                            if (msg.getMember() != null) {
+                                author = new Users(msg.getMember());
+                                try {
+                                    var anon = anonStatsDao.extractAnonStats(msg.getMember());
+                                    author.setAnonStats(new AnonStats(anon));
+                                } catch (Exception ignore) {
+                                    // fallback below if needed
+                                }
+                            } else if (msg.getAuthor() != null) {
+                                author = new Users(msg.getAuthor(), channel.getGuild());
+                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
+                                author.setAnonStats(new AnonStats(anonStatus));
+                            }
+                            if (author != null) {
+                                try {
+                                    if (!marked.contains(author)) {
+                                        usersDao.upsertUserInfo(author);
+                                        marked.add(author);
+                                    }
+                                } catch (Exception ignore) { /* ignore DB issues */ }
+                                Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+                                Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                                calJst.setTime(msgDate);
+                                int hour = calJst.get(Calendar.HOUR_OF_DAY);
+                                int cycleIndex = hour / finalAnonCycle;
+                                String dateStr = date8Format.format(msgDate);
+                                String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
+                                messages.add(new MessageInfo(msg, author, scopeKey));
+                            }
+                        });
+                if (!oldestInstant.isAfter(beginDate.toInstant())) {
+                    more = false;
+                }
+            }
+        } catch (Throwable ignore) {
+            // best-effort: return what we have
+        }
+        return messages;
     }
 
     private List<Path> listTimestampDirs(Path base) throws IOException {

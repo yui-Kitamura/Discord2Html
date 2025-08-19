@@ -241,9 +241,23 @@ public class RunArchiveRunner implements IRunner {
             channel.sendMessage("This channel is archive target. Start >>>").queue();
         }
 
-        // Determine begin/end using guild scheduled hours from DB
-        Calendar endDate = Calendar.getInstance();
-        Calendar beginDate = getPreviousScheduledTime(endDate, new GuildId(channel.getGuild()));
+        // Determine begin/end using guild scheduled hours from DB (JST)
+        Calendar nowJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+        Calendar endDate;
+        Calendar beginDate;
+        if (scheduled && nowJst.get(Calendar.HOUR_OF_DAY) == 0) {
+            // At 00:00 on day n, capture full previous day (d-1 00:00:00 to d 00:00:00)
+            endDate = (Calendar) nowJst.clone();
+            endDate.set(Calendar.MINUTE, 0);
+            endDate.set(Calendar.SECOND, 0);
+            endDate.set(Calendar.MILLISECOND, 0);
+
+            beginDate = (Calendar) endDate.clone();
+            beginDate.add(Calendar.DAY_OF_MONTH, -1);
+        } else {
+            endDate = nowJst;
+            beginDate = getPreviousScheduledTime(endDate, new GuildId(channel.getGuild()));
+        }
 
         // Retrieve messages differently for normal channels vs threads
         List<MessageInfo> messages;
