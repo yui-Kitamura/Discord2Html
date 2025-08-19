@@ -279,6 +279,8 @@ public class FileGenerator {
         ctx.setVariable("title", channelName + " のアーカイブ一覧");
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
+        // Add link to this channel's thread list page
+        ctx.setVariable("threadIndexHref", "/Discord2Html/archives/threads/" + channelName + "/index.html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
