@@ -42,6 +42,11 @@
       <div>指定ロール所持ユーザの匿名設定を一括で変更します。</div>
     </li>
     <li>
+      <div class="cmd">/d2h schedule <span class="args">cycle:&lt;0-23&gt;</span></div>
+      <div class="perm">権限: 管理者のみ</div>
+      <div>サーバーの自動アーカイブ実行周期を設定します。起算時刻は 0:00 で、例: cycle=6 の場合 0, 6, 12, 18 時に実行します。<br>0を指定すると深夜0時の1回だけ実行します。</div>
+    </li>
+    <li>
       <div class="cmd">/d2h anonymous <span class="args">menu:cycle cycle:&lt;数値&gt;</span></div>
       <div class="perm">権限: 管理者のみ</div>
       <div>サーバーの匿名名前サイクル時間を変更します。<br>推奨レンジ: 1〜24（時間）。</div>
@@ -74,7 +79,7 @@
   <p class="footer">
     <a href="https://github.com/yui-Kitamura/Discord2Html" target="_blank">GitHub Repository:
       yui-Kitamura/Discord2Html</a>
-    <span> | bot ver1.1.1@d83c754</span>
+    <span> | bot ver1.1.1@cd28ea5</span>
   </p>
 </footer>
 </body>
