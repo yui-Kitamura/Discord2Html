@@ -2,12 +2,13 @@ package pro.eng.yui.oss.d2h.db.field;
 
 import java.util.Comparator;
 
-public abstract class RunsOn extends AbstInt {
+public class RunsOn extends AbstInt {
     
     public RunsOn(int value){
         super(value);
+        // allow hour-of-day values 0-23
         if(value < 0 || 23 < value) {
-            throw new IllegalArgumentException("runs on time value must between 0-23");
+            throw new IllegalArgumentException("runs on time value must be between 0-23");
         }
     }
 

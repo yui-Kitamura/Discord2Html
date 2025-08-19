@@ -56,6 +56,9 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                                     .addChoice("open", "open")
                     )
             ,
+            new SubcommandData("schedule", "change auto-archive cycle hours (start at 0:00JST)")
+                    .addOption(OptionType.INTEGER, "cycle", "execute every N hours (1-23), starting at 0:00, if 0 then only midnight", true)
+            ,
             new SubcommandData("help", "send you about this bots command help")
     );
 
@@ -66,12 +69,13 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private final HelpRunner helpRunner;
     private final RunArchiveRunner runArchiveRunner;
     private final ArchiveConfigRunner archiveConfigRunner;
+    private final AutoArchiveScheduleRunner autoArchiveScheduleRunner;
 
     @Autowired
     public DiscordBotCommandListener(DiscordBotUtils bot,
                                      HelpRunner help, MeRunner me, RoleRunner role,
                                      AnonymousSettingRunner anon, RunArchiveRunner run,
-                                     ArchiveConfigRunner archive){
+                                     ArchiveConfigRunner archive, AutoArchiveScheduleRunner schedule){
         this.bot = bot;
         this.roleRunner = role;
         this.anonymousSettingRunner = anon;
@@ -79,6 +83,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         this.helpRunner = help;
         this.runArchiveRunner = run;
         this.archiveConfigRunner = archive;
+        this.autoArchiveScheduleRunner = schedule;
     }
 
     @Override
@@ -128,6 +133,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "anonymous" -> runAnonymous(event);
                 case "me" -> runMe(event);
                 case "help" -> runHelp(event);
+                case "schedule" -> runSchedule(event);
                 default -> {
                     event.getHook()
                             .sendMessage("unknown subcommand. Use `/d2h help`")
@@ -208,6 +214,17 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 .setEphemeral(helpRunner.shouldDeferEphemeral())
                 .queue();
     }
+
+    private void runSchedule(SlashCommandInteractionEvent event){
+        if(hasAdminPermission(event) == false) {
+            return;
+        }
+        if(isAcceptedChannel(event.getGuildChannel()) == false) {
+            return;
+        }
+        autoArchiveScheduleRunner.run(event.getGuild(), event.getOptions());
+        event.getHook().sendMessage(autoArchiveScheduleRunner.afterRunMessage()).queue();
+    }
     
     private IRunner getRunnerBySub(String sub) {
         return switch (sub) {
@@ -217,6 +234,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             case "anonymous" -> anonymousSettingRunner;
             case "me" -> meRunner;
             case "help" -> helpRunner;
+            case "schedule" -> autoArchiveScheduleRunner;
             default -> null;
         };
     }

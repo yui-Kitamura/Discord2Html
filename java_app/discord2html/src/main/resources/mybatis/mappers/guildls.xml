@@ -6,10 +6,10 @@
     <insert id="register" parameterType="Guilds">
         INSERT INTO guilds
             (guild_id, guild_name, joined_time, 
-             anon_cycle, last_anon_changed, runs_on_1)
+             anon_cycle, last_anon_changed, runs_on)
         VALUES
             (#{guild_id}, #{guild_name}, CURRENT_TIMESTAMP,
-             #{anon_cycle}, CURRENT_TIMESTAMP, 0)
+             #{anon_cycle}, CURRENT_TIMESTAMP, 12)
     </insert>
     
     <update id="update" parameterType="Guilds">
@@ -17,22 +17,23 @@
         <set>
             guild_name = #{guild_name},
             <if test="anonCycle != null">
-                , anon_cycle = #{anon_cycle}
+                anon_cycle = #{anon_cycle},
             </if>
+            runs_on = #{runs_on, jdbcType=INTEGER}
         </set>
         WHERE guild_id = #{guild_id}
     </update>
     
     <select id="selectOne" parameterType="Guilds">
         SELECT 
-            guild_id, guild_name, joined_time, anon_cycle, runs_on_1, runs_on_2, runs_on_3, runs_on_4
+            guild_id, guild_name, joined_time, anon_cycle, runs_on
         FROM guilds
         WHERE guild_id = #{guild_id}
     </select>
     
     <select id="selectAll">
         SELECT
-            guild_id, guild_name, joined_time, anon_cycle, runs_on_1, runs_on_2, runs_on_3, runs_on_4
+            guild_id, guild_name, joined_time, anon_cycle, runs_on
         FROM guilds
     </select>
     
