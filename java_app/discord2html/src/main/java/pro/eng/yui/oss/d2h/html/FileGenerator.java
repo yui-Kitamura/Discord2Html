@@ -643,6 +643,14 @@ public class FileGenerator {
         }
         for (Link l : existing) {
             String key = normalizeHref(l.getHref());
+            String norm = key == null ? "" : key;
+            // Allow only archive-like links:
+            // - archives/... (top page and channel archive pages)
+            // - ../ or ../../ ... (daily index page relative links)
+            boolean allowed = norm.startsWith("archives/") || norm.startsWith("../");
+            if (!allowed) {
+                continue;
+            }
             if (!byHref.containsKey(key)) {
                 byHref.put(key, l);
             }
