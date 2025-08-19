@@ -30,6 +30,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class FileGenerator {
@@ -46,6 +50,8 @@ public class FileGenerator {
     }
 
     private static final String TEMPLATE_NAME = "message";
+    // --- Utilities to preserve/merge existing list links ---
+    private static final Pattern A_TAG_PATTERN = Pattern.compile("<a\\s+[^>]*href=\\\"([^\\\"]+)\\\"[^>]*>([^<]+)</a>", Pattern.CASE_INSENSITIVE);
 
     private final SimpleDateFormat timeFormat;
     private final SimpleDateFormat folderFormat;
@@ -230,10 +236,15 @@ public class FileGenerator {
         Path archivesDir = base.resolve("archives");
         Files.createDirectories(archivesDir);
         Path channelArchive = archivesDir.resolve(channelName + ".html");
+        // If no items found, avoid overwriting an existing archive list to preserve past links
+        if (items.isEmpty() && Files.exists(channelArchive)) {
+            return;
+        }
+        List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
         Context ctx = new Context();
         ctx.setVariable("title", channelName + " のアーカイブ一覧");
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
-        ctx.setVariable("items", items);
+        ctx.setVariable("items", merged);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
@@ -263,8 +274,13 @@ public class FileGenerator {
                 .map(name -> new Link("archives/" + name + ".html", name))
                 .collect(Collectors.toList()));
         Path index = base.resolve("index.html");
+        // Preserve existing index if nothing to list (e.g., output cleared)
+        if (items.isEmpty() && Files.exists(index)) {
+            return;
+        }
+        List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(index));
         Context ctx = new Context();
-        ctx.setVariable("channels", items);
+        ctx.setVariable("channels", merged);
         // Resolve guild name from DB if possible
         String guildName = "Discord";
         try {
@@ -311,10 +327,15 @@ public class FileGenerator {
         Path archiveBase = base.resolve("archives").resolve(date8);
         Files.createDirectories(archiveBase);
         Path dailyIndex = archiveBase.resolve(channelName + ".html");
+        // If no items for this date, keep existing daily list if present
+        if (items.isEmpty() && Files.exists(dailyIndex)) {
+            return;
+        }
+        List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(dailyIndex));
         Context ctx = new Context();
         ctx.setVariable("title", channelName + " の" + date8 + " のログ一覧");
         ctx.setVariable("description", "同日のアーカイブへのリンク:");
-        ctx.setVariable("items", items);
+        ctx.setVariable("items", merged);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
@@ -546,5 +567,55 @@ public class FileGenerator {
             throw new RuntimeException("Failed to regenerate thread index", ioe);
         }
         return out;
+    }
+
+    private List<Link> readExistingLinks(Path file) {
+        try {
+            if (Files.exists(file)) {
+                String html = Files.readString(file, StandardCharsets.UTF_8);
+                Matcher m = A_TAG_PATTERN.matcher(html);
+                List<Link> links = new ArrayList<>();
+                while (m.find()) {
+                    String href = m.group(1);
+                    String label = m.group(2);
+                    links.add(new Link(href, label));
+                }
+                return links;
+            }
+        } catch (IOException ignore) {
+            // best effort
+        }
+        return List.of();
+    }
+
+    private String normalizeHref(String href) {
+        if (href == null) { return ""; }
+        if (href.startsWith("/Discord2Html/")) {
+            return href.substring("/Discord2Html/".length());
+        }
+        // also strip leading ./ if any
+        if (href.startsWith("./")) {
+            return href.substring(2);
+        }
+        return href;
+    }
+
+    /**
+     * Use LinkedHashMap to keep insertion order: 
+     * prefer newly computed order then append any missing existing
+     */
+    private List<Link> mergeLinksPreserveAll(List<Link> newlyComputed, List<Link> existing) {
+
+        Map<String, Link> byHref = new LinkedHashMap<>();
+        for (Link l : newlyComputed) {
+            byHref.put(normalizeHref(l.getHref()), l);
+        }
+        for (Link l : existing) {
+            String key = normalizeHref(l.getHref());
+            if (!byHref.containsKey(key)) {
+                byHref.put(key, l);
+            }
+        }
+        return new ArrayList<>(byHref.values());
     }
 }
