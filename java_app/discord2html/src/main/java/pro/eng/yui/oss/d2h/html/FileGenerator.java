@@ -375,6 +375,11 @@ public class FileGenerator {
             return;
         }
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
+        // Exclude thread index link from items to avoid duplication in the list
+        final String threadIndexNorm = "archives/threads/" + channelId + "/index.html";
+        merged = merged.stream()
+                .filter(l -> !normalizeHref(l.getHref()).equals(threadIndexNorm))
+                .collect(Collectors.toList());
         Context ctx = new Context();
         ctx.setVariable("title", displayName + " のアーカイブ一覧");
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
