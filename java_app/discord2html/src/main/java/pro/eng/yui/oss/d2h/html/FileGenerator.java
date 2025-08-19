@@ -1,6 +1,8 @@
 package pro.eng.yui.oss.d2h.html;
 
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -399,7 +401,25 @@ public class FileGenerator {
                 String file = p.getFileName().toString();
                 String href = "/Discord2Html/archives/" + parentChannelName + "/threads/" + file;
                 String label = file.replaceFirst("\\.html$", "");
-                items.add(new Link(href, label));
+                // Derive thread name from JDA if possible (filename is t-<id>.html)
+                String threadName = label;
+                String idPart = label;
+                if (label.startsWith("t-")) {
+                    idPart = label.substring(2);
+                }
+                ThreadChannel thread = jdaProvider.getJda().getThreadChannelById(idPart);
+                if (thread != null && !thread.getName().isEmpty()) {
+                    threadName = thread.getName();
+                }
+                String updatedLabel = threadName;
+                try {
+                    updatedLabel = threadName
+                            + " (" + timeFormat.format(new Date(Files.getLastModifiedTime(p).toMillis()))
+                            + ")";
+                } catch (IOException ignore) {
+                    // ignore and use threadName only
+                }
+                items.add(new Link(href, updatedLabel));
             }
         }
         // write list page under archives/threads/{parent}/index.html
