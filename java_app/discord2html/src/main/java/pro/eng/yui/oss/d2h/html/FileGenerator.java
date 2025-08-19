@@ -153,39 +153,40 @@ public class FileGenerator {
             // Filter messages for [cur, segmentEnd]
             List<MessageInfo> segmentMessages = filterMessagesByRange(messages, cur, segmentEnd);
 
-            if (!segmentMessages.isEmpty()) {
-                Context context = new Context();
-                context.setVariable("channel", channel);
-                context.setVariable("messages", segmentMessages);
-                context.setVariable("begin", timeFormat.format(cur.getTime()));
-                context.setVariable("end", timeFormat.format(segmentEnd.getTime()));
-                context.setVariable("sequence", seq);
-                context.setVariable("backToChannelHref", String.format("../../archives/%s.html", channel.getChannelId().toString()));
-                context.setVariable("backToTopHref", basePrefix() + "/index.html");
-                context.setVariable("guildIconUrl", resolveGuildIconUrl());
-                context.setVariable("botVersion", botVersion);
-                // Add active thread links for this channel at the top
-                try {
-                    List<Link> activeThreadLinks = getActiveThreadLinks(channel);
-                    if (activeThreadLinks != null && !activeThreadLinks.isEmpty()) {
-                        context.setVariable("activeThreads", activeThreadLinks);
-                    }
-                } catch (Exception ignore) {
-                    // best-effort; ignore failures
+            // Always render the template, even if segmentMessages is empty.
+            Context context = new Context();
+            context.setVariable("channel", channel);
+            context.setVariable("messages", segmentMessages);
+            context.setVariable("begin", timeFormat.format(cur.getTime()));
+            context.setVariable("end", timeFormat.format(segmentEnd.getTime()));
+            context.setVariable("sequence", seq);
+            context.setVariable("backToChannelHref", String.format("../../archives/%s.html", channel.getChannelId().toString()));
+            context.setVariable("backToTopHref", basePrefix() + "/index.html");
+            context.setVariable("guildIconUrl", resolveGuildIconUrl());
+            context.setVariable("botVersion", botVersion);
+            // Add active thread links for this channel at the top
+            try {
+                List<Link> activeThreadLinks = getActiveThreadLinks(channel);
+                if (activeThreadLinks != null && !activeThreadLinks.isEmpty()) {
+                    context.setVariable("activeThreads", activeThreadLinks);
                 }
+            } catch (Exception ignore) {
+                // best-effort; ignore failures
+            }
 
-                String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
+            String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
-                Path output = Path.of(
-                        appConfig.getOutputPath(),
-                        runTimestamp,
-                        channel.getChannelId().toString() + ".html"
-                );
-                writeHtml(output, htmlContent);
+            Path output = Path.of(
+                    appConfig.getOutputPath(),
+                    runTimestamp,
+                    channel.getChannelId().toString() + ".html"
+            );
+            writeHtml(output, htmlContent);
 
-                lastOutput = output;
+            lastOutput = output;
 
-                // Mark affected date8 for indices
+            // Mark affected date8 for indices only when there were messages
+            if (!segmentMessages.isEmpty()) {
                 affectedDate8.add(date8Format.format(segmentEnd.getTime()));
             }
 
