@@ -15,11 +15,13 @@
     <update id="update" parameterType="Guilds">
         UPDATE guilds
         <set>
-            guild_name = #{guild_name},
+            guild_name = #{guild_name}
             <if test="anonCycle != null">
-                anon_cycle = #{anon_cycle},
+                ,anon_cycle = #{anon_cycle}
             </if>
-            runs_on = #{runs_on, jdbcType=INTEGER}
+            <if test="runsOn != null">
+                ,runs_on = #{runs_on, jdbcType=INTEGER}
+            </if>
         </set>
         WHERE guild_id = #{guild_id}
     </update>
