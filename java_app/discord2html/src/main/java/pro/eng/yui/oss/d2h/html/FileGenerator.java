@@ -161,7 +161,7 @@ public class FileGenerator {
                 context.setVariable("end", timeFormat.format(segmentEnd.getTime()));
                 context.setVariable("sequence", seq);
                 context.setVariable("backToChannelHref", String.format("../../archives/%s.html", channel.getChannelId().toString()));
-                context.setVariable("backToTopHref", "/Discord2Html/index.html");
+                context.setVariable("backToTopHref", basePrefix() + "/index.html");
                 context.setVariable("guildIconUrl", resolveGuildIconUrl());
                 context.setVariable("botVersion", botVersion);
                 // Add active thread links for this channel at the top
@@ -252,7 +252,7 @@ public class FileGenerator {
             if (Files.exists(file)) {
                 String ts = tsDir.getFileName().toString();
                 String date8 = ts.length() >= 8 ? ts.substring(0, 8) : ts; // fallback if unexpected
-                String href = "/Discord2Html/archives/" + date8 + "/" + channelId + ".html";
+                String href = basePrefix() + "/archives/" + date8 + "/" + channelId + ".html";
 
                 // Display timestamp policy for channel archive list:
                 // - If the date is today (Asia/Tokyo), show the file's last updated time (最終更新日時)
@@ -289,7 +289,7 @@ public class FileGenerator {
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
         // Add link to this channel's thread list page
-        ctx.setVariable("threadIndexHref", "/Discord2Html/archives/threads/" + channelId + "/index.html");
+        ctx.setVariable("threadIndexHref", basePrefix() + "/archives/threads/" + channelId + "/index.html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
@@ -430,8 +430,8 @@ public class FileGenerator {
         ctx.setVariable("humanDate", humanDate);
         ctx.setVariable("endText", endText);
         ctx.setVariable("messages", messages);
-        ctx.setVariable("backToTopHref", "/Discord2Html/index.html");
-        ctx.setVariable("backToChannelHref", "/Discord2Html/archives/" + channelId + ".html");
+        ctx.setVariable("backToTopHref", basePrefix() + "/index.html");
+        ctx.setVariable("backToChannelHref", basePrefix() + "/archives/" + channelId + ".html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
 
@@ -545,7 +545,7 @@ public class FileGenerator {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(parentThreadsDir, "*.html")) {
             for (Path p : stream) {
                 String file = p.getFileName().toString();
-                String href = "/Discord2Html/archives/" + parentChannelId + "/threads/" + file;
+                String href = basePrefix() + "/archives/" + parentChannelId + "/threads/" + file;
                 String label = file.replaceFirst("\\.html$", "");
                 // Derive thread name from JDA if possible (filename is t-<id>.html)
                 String threadName = label;
@@ -599,7 +599,7 @@ public class FileGenerator {
             List<Link> links = new ArrayList<>();
             for (ThreadChannel t : threads) {
                 if (!t.isArchived()) {
-                    String href = "/Discord2Html/archives/" + String.valueOf(channel.getChannelId()) + "/threads/t-" + t.getId() + ".html";
+                    String href = basePrefix() + "/archives/" + String.valueOf(channel.getChannelId()) + "/threads/t-" + t.getId() + ".html";
                     String label = t.getName();
                     links.add(new Link(href, label));
                 }
@@ -723,13 +723,13 @@ public class FileGenerator {
         ctx.setVariable("sequence", seq);
         if (channel.getParentChannelName() != null) {
             // Links for thread page navigation
-            ctx.setVariable("backToParentThreadsHref", String.format("/Discord2Html/archives/threads/%s/index.html", channel.getParentChannelId().toString()));
-            ctx.setVariable("backToParentArchiveHref", String.format("/Discord2Html/archives/%s.html", channel.getParentChannelId().toString()));
+            ctx.setVariable("backToParentThreadsHref", String.format(basePrefix() + "/archives/threads/%s/index.html", channel.getParentChannelId().toString()));
+            ctx.setVariable("backToParentArchiveHref", String.format(basePrefix() + "/archives/%s.html", channel.getParentChannelId().toString()));
         } else {
-            ctx.setVariable("backToParentThreadsHref", "/Discord2Html/index.html");
-            ctx.setVariable("backToParentArchiveHref", "/Discord2Html/index.html");
+            ctx.setVariable("backToParentThreadsHref", basePrefix() + "/index.html");
+            ctx.setVariable("backToParentArchiveHref", basePrefix() + "/index.html");
         }
-        ctx.setVariable("backToTopHref", "/Discord2Html/index.html");
+        ctx.setVariable("backToTopHref", repoBase() + "/index.html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         String html = templateEngine.process(THREAD_TEMPLATE_NAME, ctx);
@@ -770,16 +770,43 @@ public class FileGenerator {
         return List.of();
     }
 
+    private String repoBase() {
+        try {
+            String name = appConfig.getGithubRepoName();
+            if (name == null) { return ""; }
+            name = name.trim();
+            while (name.startsWith("/")) { 
+                name = name.substring(1); 
+            }
+            while (name.endsWith("/")) {
+                name = name.substring(0, name.length() - 1); 
+            }
+            return name;
+        } catch (Exception ignore) {
+            return "";
+        }
+    }
+
+    private String basePrefix() {
+        String base = repoBase();
+        return (base == null || base.isEmpty()) ? "" : "/" + base;
+    }
+
     private String normalizeHref(String href) {
         if (href == null) { return ""; }
-        if (href.startsWith("/Discord2Html/")) {
-            return href.substring("/Discord2Html/".length());
+        String val = href;
+        String base = repoBase();
+        if (base != null && !base.isEmpty()) {
+            String pref = "/" + base + "/";
+            if (val.startsWith(pref)) {
+                val = val.substring(pref.length());
+            }
         }
         // also strip leading ./ if any
-        if (href.startsWith("./")) {
-            return href.substring(2);
+        if (val.startsWith("./")) {
+            val = val.substring(2);
         }
-        return href;
+        return val;
     }
 
     /**

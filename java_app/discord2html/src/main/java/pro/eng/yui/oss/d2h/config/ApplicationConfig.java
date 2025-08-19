@@ -31,6 +31,12 @@ public class ApplicationConfig {
     public boolean getPushToGitHub(){
         return pushToGitHub;
     }
+
+    @Value("${github.repo.name}")
+    private String githubRepoName;
+    public String getGithubRepoName() {
+        return githubRepoName;
+    }
     
     @Bean
     public ForwardedHeaderFilter forwardedHeaderFilter(){
