@@ -106,7 +106,7 @@ public class ChannelsDAO {
         }catch(NullPointerException npe) {
             throw new IllegalArgumentException(npe);
         }
-        mapper.updateChannelStatus(param);
+        mapper.logChannelStatus(param);
     }
     
     

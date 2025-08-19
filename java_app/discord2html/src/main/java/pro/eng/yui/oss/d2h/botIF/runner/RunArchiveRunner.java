@@ -151,7 +151,7 @@ public class RunArchiveRunner implements IRunner {
         for(Guilds guilds : allGuilds) {
             for(RunsOn on : guilds.getRunsOn()) {
                 if(on.getValue() == now) {
-                    List<Channels> chs = channelDao.selectAllInGuild(guilds.getGuildId());
+                    List<Channels> chs = channelDao.selectChannelArchiveDo(guilds.getGuildId());
                     for(Channels ch : chs) {
                         GuildMessageChannel parent = 
                                 jda.getJda().getGuildById(ch.getGuidId().getValue())
