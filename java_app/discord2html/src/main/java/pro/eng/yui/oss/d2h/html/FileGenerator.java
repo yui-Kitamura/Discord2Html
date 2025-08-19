@@ -2,7 +2,9 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -437,31 +439,22 @@ public class FileGenerator {
         writeIfChanged(index, page);
     }
 
-    private List<Link> getActiveThreadLinks(ChannelInfo channel) {
+    private List<Link> getActiveThreadLinks(@NotNull ChannelInfo channel) {
         try {
-            if (channel == null) return List.of();
-            var jda = jdaProvider.getJda();
-            if (jda == null) return List.of();
-            var raw = jda.getChannelById(net.dv8tion.jda.api.entities.channel.concrete.TextChannel.class, channel.getChannelId());
-            if (raw == null) return List.of();
-            List<net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel> threads = raw.getThreadChannels();
-            if (threads == null || threads.isEmpty()) return List.of();
+            JDA jda = jdaProvider.getJda();
+            TextChannel raw = jda.getChannelById(TextChannel.class, channel.getChannelId());
+            if (raw == null) { return List.of(); }
+            List<ThreadChannel> threads = raw.getThreadChannels();
             List<Link> links = new ArrayList<>();
-            for (net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel t : threads) {
-                boolean active = true;
-                try {
-                    active = !t.isArchived();
-                } catch (Throwable ignore) {
-                    // keep default
-                }
-                if (active) {
+            for (ThreadChannel t : threads) {
+                if (!t.isArchived()) {
                     String href = "/Discord2Html/archives/" + channel.getName() + "/threads/t-" + t.getId() + ".html";
                     String label = t.getName();
                     links.add(new Link(href, label));
                 }
             }
-            // sort by label
-            links.sort(Comparator.comparing(Link::getLabel));
+            // sort by id(t-href)
+            links.sort(Comparator.comparing(Link::getHref));
             return links;
         } catch (Throwable e) {
             return List.of();
