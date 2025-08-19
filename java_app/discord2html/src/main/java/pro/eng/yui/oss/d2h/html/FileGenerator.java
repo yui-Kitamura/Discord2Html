@@ -614,21 +614,6 @@ public class FileGenerator {
         return messages;
     }
 
-    private List<Path> listTimestampDirs(Path base) throws IOException {
-        if (!Files.exists(base) || !Files.isDirectory(base)) {
-            return Collections.emptyList();
-        }
-        List<Path> result = new ArrayList<>();
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(base)) {
-            for (Path p : stream) {
-                if (Files.isDirectory(p) && p.getFileName().toString().matches("\\d{14}")) {
-                    result.add(p);
-                }
-            }
-        }
-        return result;
-    }
-
     private void regenerateHelpPage() throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
