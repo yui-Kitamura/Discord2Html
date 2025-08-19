@@ -41,6 +41,8 @@ import java.util.regex.Pattern;
 public class FileGenerator {
 
     public static class Link {
+        // --- Utilities to preserve/merge existing list links ---
+        public static final Pattern A_TAG_PATTERN = Pattern.compile("<a\\s+[^>]*href=\\\"([^\\\"]+)\\\"[^>]*>([^<]+)</a>", Pattern.CASE_INSENSITIVE);
         private final String href;
         private final String label;
         public Link(String href, String label) {
@@ -53,8 +55,6 @@ public class FileGenerator {
 
     private static final String TEMPLATE_NAME = "message";
     private static final String THREAD_TEMPLATE_NAME = "thread_message";
-    // --- Utilities to preserve/merge existing list links ---
-    private static final Pattern A_TAG_PATTERN = Pattern.compile("<a\\s+[^>]*href=\\\"([^\\\"]+)\\\"[^>]*>([^<]+)</a>", Pattern.CASE_INSENSITIVE);
 
     private final SimpleDateFormat timeFormat;
     private final SimpleDateFormat folderFormat;
@@ -234,9 +234,9 @@ public class FileGenerator {
                 String href = "/Discord2Html/archives/" + date8 + "/" + channelName + ".html";
                 String displayTs;
                 try {
-                    Date parsed = folderFormat.parse(ts);
-                    displayTs = timeFormat.format(parsed);
+                    displayTs = timeFormat.format(folderFormat.parse(ts));
                 } catch (Exception e) {
+                    e.printStackTrace();
                     displayTs = ts;
                 }
                 String label = channelName + " (" + displayTs + ")";
@@ -331,9 +331,9 @@ public class FileGenerator {
                 String href = String.format("../../%s/%s.html", ts, channelName);
                 String displayTs;
                 try {
-                    Date parsed = folderFormat.parse(ts);
-                    displayTs = timeFormat.format(parsed);
+                    displayTs = timeFormat.format(folderFormat.parse(ts));
                 } catch (Exception e) {
+                    e.printStackTrace();
                     displayTs = ts;
                 }
                 String label = channelName + " (" + displayTs + ")";
@@ -611,7 +611,7 @@ public class FileGenerator {
         try {
             if (Files.exists(file)) {
                 String html = Files.readString(file, StandardCharsets.UTF_8);
-                Matcher m = A_TAG_PATTERN.matcher(html);
+                Matcher m = Link.A_TAG_PATTERN.matcher(html);
                 List<Link> links = new ArrayList<>();
                 while (m.find()) {
                     String href = m.group(1);
