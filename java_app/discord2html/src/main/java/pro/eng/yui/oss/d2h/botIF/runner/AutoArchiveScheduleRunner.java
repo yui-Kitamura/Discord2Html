@@ -20,6 +20,7 @@ import java.util.List;
 public class AutoArchiveScheduleRunner implements IRunner {
 
     private final GuildsDAO guildsDAO;
+    private volatile String lastRunsOnListMessage = "auto archive schedule has changed";
 
     @Autowired
     public AutoArchiveScheduleRunner(GuildsDAO guildsDAO) {
@@ -42,10 +43,20 @@ public class AutoArchiveScheduleRunner implements IRunner {
         Guilds current = guildsDAO.selectGuildInfo(new GuildId(guild));
         current.setRunsOn(new RunsOn(cycle));
         guildsDAO.upsertGuildInfo(current);
+        
+        // prepare latest runsOnList string for afterRunMessage
+        List<RunsOn> runsList = current.getRunsOnList();
+        StringBuilder sb = new StringBuilder("[");
+        for(RunsOn r : runsList) {
+            sb.append(r.toString()) .append(",");           
+        }
+        sb.delete(sb.length()-1, sb.length());
+        sb.append("]");
+        lastRunsOnListMessage = "new scheduled hours are: " + sb.toString();
     }
 
     @Override
     public String afterRunMessage() {
-        return "auto archive schedule has changed";
+        return lastRunsOnListMessage;
     }
 }

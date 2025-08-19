@@ -17,6 +17,7 @@
     <h1 th:text="${title}">Title</h1>
   </header>
   <p th:if="${description}" th:text="${description}">Description</p>
+  <p th:if="${threadIndexHref}"><a th:href="${threadIndexHref}">このチャンネルのスレッド一覧を見る</a></p>
   <ul>
     <li th:each="it : ${items}">
       <a th:href="${it.href}" th:text="${it.label}">link</a>
