@@ -43,6 +43,10 @@ public class HelpRunner implements IRunner {
         sb.append("  権限: 管理者のみ\n");
         sb.append("  指定ロール所持ユーザの匿名設定を一括で変更します。\n");
         sb.append("\n");
+        sb.append("- /d2h schedule cycle:<0-23>\n");
+        sb.append("  権限: 管理者のみ\n");
+        sb.append("  サーバーの自動アーカイブ実行周期（時間）を設定します。起算時刻は 0:00 です。例: cycle=6 の場合 0, 6, 12, 18 時に実行します。\n0を指定すると深夜0時の1回だけ実行します。");
+        sb.append("\n");
         sb.append("- /d2h anonymous menu:cycle cycle:<数値>\n");
         sb.append("  権限: 管理者のみ\n");
         sb.append("  サーバーの匿名名前サイクル時間を変更します。推奨レンジ: 1〜24（時間）。\n");

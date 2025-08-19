@@ -52,44 +52,23 @@ public class Guilds {
         return last_anon_changed;
     }
     
-    public RunsOn1 runs_on_1;
-    public void setRunsOn1(RunsOn1 newValue) {
-        this.runs_on_1 = newValue;
+    public RunsOn runs_on;
+    public void setRunsOn(RunsOn newValue) {
+        this.runs_on = newValue;
     }
-    public RunsOn getRunsOn1() {
-        return runs_on_1;
-    }
-
-    public RunsOn2 runs_on_2;
-    public void setRunsOn2(RunsOn2 newValue) {
-        this.runs_on_2 = newValue;
-    }
-    public RunsOn getRunsOn2() {
-        return runs_on_2;
-    }
-
-    public RunsOn3 runs_on_3;
-    public void setRunsOn3(RunsOn3 newValue) {
-        this.runs_on_3 = newValue;
-    }
-    public RunsOn getRunsOn3() {
-        return runs_on_3;
-    }
-
-    public RunsOn4 runs_on_4;
-    public void setRunsOn4(RunsOn4 newValue) {
-        this.runs_on_4 = newValue;
-    }
-    public RunsOn getRunsOn4() {
-        return runs_on_4;
+    public RunsOn getRunsOnCycle() {
+        return runs_on;
     }
     
     public List<RunsOn> getRunsOn(){
         List<RunsOn> result = new ArrayList<>();
-        if(runs_on_1 != null){ result.add(runs_on_1); }
-        if(runs_on_2 != null){ result.add(runs_on_2); }
-        if(runs_on_3 != null){ result.add(runs_on_3); }
-        if(runs_on_4 != null){ result.add(runs_on_4); }
+        if (runs_on == null || runs_on.getValue() <= 0 || 24 <= runs_on.getValue()) {
+            result.add(new RunsOn(0){});
+            return result;
+        }
+        for (int hour = 0; hour < 24; hour += runs_on.getValue()) {
+            result.add(new RunsOn(hour));
+        }
         result.sort(RunsOn.getListComparator());
         return result;
     }
@@ -106,10 +85,7 @@ public class Guilds {
         hash = hash * 31 + (joined_time == null ? 0 : joined_time.hashCode());
         hash = hash * 31 + (anon_cycle == null ? 0 : anon_cycle.hashCode());
         hash = hash * 31 + (last_anon_changed == null ? 0 : last_anon_changed.hashCode());
-        hash = hash * 31 + (runs_on_1 == null ? 0 : runs_on_1.hashCode());
-        hash = hash * 31 + (runs_on_2 == null ? 0 : runs_on_2.hashCode());
-        hash = hash * 31 + (runs_on_3 == null ? 0 : runs_on_3.hashCode());
-        hash = hash * 31 + (runs_on_4 == null ? 0 : runs_on_4.hashCode());
+        hash = hash * 31 + (runs_on == null ? 0 : runs_on.hashCode());
         return hash;
     }
     
@@ -134,16 +110,7 @@ public class Guilds {
         if(!Objects.equals(last_anon_changed, other.last_anon_changed)){
             return false;
         }
-        if(!Objects.equals(runs_on_1, other.runs_on_1)){
-            return false;
-        }
-        if(!Objects.equals(runs_on_2, other.runs_on_2)){
-            return false;
-        }
-        if(!Objects.equals(runs_on_3, other.runs_on_3)){
-            return false;
-        }
-        if(!Objects.equals(runs_on_4, other.runs_on_4)){
+        if(!Objects.equals(runs_on, other.runs_on)){
             return false;
         }
         return true;
