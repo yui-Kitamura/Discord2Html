@@ -67,6 +67,19 @@
     <strong>実行場所の制限:</strong> すべてのコマンドは「管理タグ付きチャンネル」でのみ有効です。その他のチャンネルで実行すると拒否されます。
   </div>
 
+  <h2>「管理タグ付きチャンネル」とは</h2>
+  <p>
+    この用語は、サーバーロール <code>D2H-admin</code> がそのチャンネルに対して
+    <strong>メッセージ履歴の閲覧（Permission.MESSAGE_HISTORY）</strong> 権限を持っているかどうかで判定されます。
+  </p>
+  <ul>
+    <li>ボット参加時に <code>D2H-admin</code> ロールが自動作成され、全チャンネルで同権限が「拒否」に初期化されます。</li>
+    <li>運用者が「管理タグ」を付けたいチャンネルでは、該当チャンネルの権限設定で <code>D2H-admin</code> ロールに
+      <strong>メッセージ履歴</strong> 権限を「許可」に変更してください。</li>
+    <li>上記が「許可」になっているチャンネルのみが、コマンド実行可能な「管理タグ付きチャンネル」として扱われます（カテゴリーは対象外）。</li>
+    <li>実務上はテキストチャンネルでの設定を推奨します。</li>
+  </ul>
+
   <h2>アーカイブの出力</h2>
   <ul>
     <li>チャンネルごとのインデックス: <code>archives/$channel$.html</code></li>
@@ -79,7 +92,7 @@
   <p class="footer">
     <a href="https://github.com/yui-Kitamura/Discord2Html" target="_blank">GitHub Repository:
       yui-Kitamura/Discord2Html</a>
-    <span> | bot ver1.1.2@939c515</span>
+    <span> | bot ver1.1.2@f501e83</span>
   </p>
 </footer>
 </body>
