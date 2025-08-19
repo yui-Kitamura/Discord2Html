@@ -11,6 +11,7 @@ import org.thymeleaf.context.Context;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.config.Secrets;
+import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.github.GitUtil;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
@@ -159,7 +160,7 @@ public class FileGenerator {
                 context.setVariable("begin", timeFormat.format(cur.getTime()));
                 context.setVariable("end", timeFormat.format(segmentEnd.getTime()));
                 context.setVariable("sequence", seq);
-                context.setVariable("backToChannelHref", String.format("../../archives/%s.html", channel.getName()));
+                context.setVariable("backToChannelHref", String.format("../../archives/%s.html", channel.getChannelId().toString()));
                 context.setVariable("backToTopHref", "/Discord2Html/index.html");
                 context.setVariable("guildIconUrl", resolveGuildIconUrl());
                 context.setVariable("botVersion", botVersion);
@@ -178,7 +179,7 @@ public class FileGenerator {
                 Path output = Path.of(
                         appConfig.getOutputPath(),
                         runTimestamp,
-                        channel.getName()+ ".html"
+                        channel.getChannelId().toString() + ".html"
                 );
                 writeHtml(output, htmlContent);
 
@@ -208,7 +209,7 @@ public class FileGenerator {
                         Integer.parseInt(d8.substring(6,8)),
                         0,0,0);
                 any.set(Calendar.MILLISECOND, 0);
-                regenerateDailyIndex(channel.getName(), any);
+                regenerateDailyIndex(channel.getChannelId(), any);
             }
         } catch (IOException e) {
             throw new RuntimeException("Failed to regenerate daily index page(s)", e);
@@ -216,7 +217,7 @@ public class FileGenerator {
         
         // After generating archive page(s), refresh static listings for GitHub Pages
         try {
-            regenerateChannelArchives(channel.getName());
+            regenerateChannelArchives(channel.getChannelId());
             regenerateTopIndex();
             regenerateHelpPage();
         } catch (IOException e) {
@@ -227,7 +228,7 @@ public class FileGenerator {
         return lastOutput;
     }
 
-    private void regenerateChannelArchives(String channelName) throws IOException {
+    private void regenerateChannelArchives(ChannelId channelId) throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
             return;
@@ -238,12 +239,20 @@ public class FileGenerator {
         timestampDirs.sort(Comparator.comparing((Path p) -> p.getFileName().toString()).reversed());
 
         List<Link> items = new ArrayList<>();
+        // Resolve display name from JDA for labels
+        String displayName = channelId.toString();
+        try {
+            var tc = jdaProvider.getJda().getTextChannelById(channelId.getValue());
+            if (tc != null && tc.getName() != null && !tc.getName().isEmpty()) {
+                displayName = tc.getName();
+            }
+        } catch (Throwable ignore) {}
         for (Path tsDir : timestampDirs) {
-            Path file = tsDir.resolve(channelName + ".html");
+            Path file = tsDir.resolve(channelId.toString() + ".html");
             if (Files.exists(file)) {
                 String ts = tsDir.getFileName().toString();
                 String date8 = ts.length() >= 8 ? ts.substring(0, 8) : ts; // fallback if unexpected
-                String href = "/Discord2Html/archives/" + date8 + "/" + channelName + ".html";
+                String href = "/Discord2Html/archives/" + date8 + "/" + channelId + ".html";
 
                 // Display timestamp policy for channel archive list:
                 // - If the date is today (Asia/Tokyo), show the file's last updated time (最終更新日時)
@@ -263,24 +272,24 @@ public class FileGenerator {
                     e.printStackTrace();
                     displayTs = ts;
                 }
-                String label = channelName + " (" + displayTs + ")";
+                String label = displayName + " (" + displayTs + ")";
                 items.add(new Link(href, label));
             }
         }
         Path archivesDir = base.resolve("archives");
         Files.createDirectories(archivesDir);
-        Path channelArchive = archivesDir.resolve(channelName + ".html");
+        Path channelArchive = archivesDir.resolve(channelId.toString() + ".html");
         // If no items found, avoid overwriting an existing archive list to preserve past links
         if (items.isEmpty() && Files.exists(channelArchive)) {
             return;
         }
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
         Context ctx = new Context();
-        ctx.setVariable("title", channelName + " のアーカイブ一覧");
+        ctx.setVariable("title", displayName + " のアーカイブ一覧");
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
         // Add link to this channel's thread list page
-        ctx.setVariable("threadIndexHref", "/Discord2Html/archives/threads/" + channelName + "/index.html");
+        ctx.setVariable("threadIndexHref", "/Discord2Html/archives/threads/" + channelId + "/index.html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
@@ -292,22 +301,31 @@ public class FileGenerator {
         if (!Files.exists(base)) {
             return;
         }
-        Set<String> channelNames = new HashSet<>();
+        Set<String> channelIds = new HashSet<>();
         for (Path tsDir : listTimestampDirs(base)) {
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(tsDir, "*.html")) {
                 for (Path p : stream) {
                     String fileName = p.getFileName().toString();
                     if (fileName.toLowerCase().endsWith(".html")) {
-                        channelNames.add(fileName.substring(0, fileName.length() - 5));
+                        channelIds.add(fileName.substring(0, fileName.length() - 5));
                     }
                 }
             }
         }
-        // Build links list with Help at top and archives/channel.html entries
+        // Build links list with Help at top and archives/channelId.html entries
         List<Link> items = new ArrayList<>();
-        items.addAll(channelNames.stream()
+        items.addAll(channelIds.stream()
                 .sorted()
-                .map(name -> new Link("archives/" + name + ".html", name))
+                .map(id -> {
+                    String label = id;
+                    try {
+                        var tc = jdaProvider.getJda().getTextChannelById(id);
+                        if (tc != null && tc.getName() != null && !tc.getName().isEmpty()) {
+                            label = tc.getName();
+                        }
+                    } catch (Throwable ignore) {}
+                    return new Link("archives/" + id + ".html", label);
+                })
                 .collect(Collectors.toList()));
         Path index = base.resolve("index.html");
         // Preserve existing index if nothing to list (e.g., output cleared)
@@ -336,7 +354,7 @@ public class FileGenerator {
         writeIfChanged(index, page);
     }
 
-    private void regenerateDailyIndex(String channelName, Calendar end) throws IOException {
+    private void regenerateDailyIndex(ChannelId channelId, Calendar end) throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
             return;
@@ -362,23 +380,17 @@ public class FileGenerator {
             endCal.set(Calendar.MILLISECOND, 999);
         }
 
-        // Resolve channel from JDA using lastGuildId and channel name
+        // Resolve channel from JDA using channel ID
         List<MessageInfo> messages = new ArrayList<>();
+        TextChannel target = null;
+        String displayChannelName = channelId.toString();
         try {
-            if (lastGuildId != null) {
-                Guild guild = jdaProvider.getJda().getGuildById(lastGuildId);
-                if (guild != null) {
-                    TextChannel target = null;
-                    for (TextChannel tc : guild.getTextChannels()) {
-                        if (tc.getName().equalsIgnoreCase(channelName)) {
-                            target = tc;
-                            break;
-                        }
-                    }
-                    if (target != null) {
-                        messages = fetchMessagesForDaily(target, beginCal, endCal);
-                    }
+            target = jdaProvider.getJda().getTextChannelById(channelId.getValue());
+            if (target != null) {
+                if (target.getName() != null && !target.getName().isEmpty()) {
+                    displayChannelName = target.getName();
                 }
+                messages = fetchMessagesForDaily(target, beginCal, endCal);
             }
         } catch (Throwable ignore) {
             // Fall through with empty messages on errors
@@ -390,7 +402,7 @@ public class FileGenerator {
         // Prepare output path
         Path archiveBase = base.resolve("archives").resolve(date8);
         Files.createDirectories(archiveBase);
-        Path dailyCombined = archiveBase.resolve(channelName + ".html");
+        Path dailyCombined = archiveBase.resolve(channelId.toString() + ".html");
 
         // If nothing to output, preserve existing daily file
         if (messages.isEmpty() && Files.exists(dailyCombined)) {
@@ -414,12 +426,12 @@ public class FileGenerator {
         }
 
         Context ctx = new Context();
-        ctx.setVariable("channelName", channelName);
+        ctx.setVariable("channelName", displayChannelName);
         ctx.setVariable("humanDate", humanDate);
         ctx.setVariable("endText", endText);
         ctx.setVariable("messages", messages);
         ctx.setVariable("backToTopHref", "/Discord2Html/index.html");
-        ctx.setVariable("backToChannelHref", "/Discord2Html/archives/" + channelName + ".html");
+        ctx.setVariable("backToChannelHref", "/Discord2Html/archives/" + channelId + ".html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
 
@@ -520,12 +532,12 @@ public class FileGenerator {
         writeIfChanged(help, page);
     }
 
-    private void regenerateThreadIndex(String parentChannelName) throws IOException {
+    private void regenerateThreadIndex(ChannelId parentChannelId) throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
             return;
         }
-        Path parentThreadsDir = base.resolve("archives").resolve(parentChannelName).resolve("threads");
+        Path parentThreadsDir = base.resolve("archives").resolve(parentChannelId.toString()).resolve("threads");
         if (!Files.exists(parentThreadsDir)) {
             return; // nothing to index
         }
@@ -533,7 +545,7 @@ public class FileGenerator {
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(parentThreadsDir, "*.html")) {
             for (Path p : stream) {
                 String file = p.getFileName().toString();
-                String href = "/Discord2Html/archives/" + parentChannelName + "/threads/" + file;
+                String href = "/Discord2Html/archives/" + parentChannelId + "/threads/" + file;
                 String label = file.replaceFirst("\\.html$", "");
                 // Derive thread name from JDA if possible (filename is t-<id>.html)
                 String threadName = label;
@@ -557,11 +569,19 @@ public class FileGenerator {
             }
         }
         // write list page under archives/threads/{parent}/index.html
-        Path indexDir = base.resolve("archives").resolve("threads").resolve(parentChannelName);
+        Path indexDir = base.resolve("archives").resolve("threads").resolve(parentChannelId.toString());
         Files.createDirectories(indexDir);
         Path index = indexDir.resolve("index.html");
+        // resolve display name of parent channel for title
+        String parentDisplayName = parentChannelId.toString();
+        try {
+            var tc = jdaProvider.getJda().getTextChannelById(parentChannelId.getValue());
+            if (tc != null && tc.getName() != null && !tc.getName().isEmpty()) {
+                parentDisplayName = tc.getName();
+            }
+        } catch (Throwable ignore) {}
         Context ctx = new Context();
-        ctx.setVariable("title", parentChannelName + " のスレッド一覧");
+        ctx.setVariable("title", parentDisplayName + " のスレッド一覧");
         ctx.setVariable("description", "このチャンネルに属するスレッドのアーカイブ一覧");
         ctx.setVariable("items", items);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
@@ -573,13 +593,13 @@ public class FileGenerator {
     private List<Link> getActiveThreadLinks(@NotNull ChannelInfo channel) {
         try {
             JDA jda = jdaProvider.getJda();
-            TextChannel raw = jda.getChannelById(TextChannel.class, channel.getChannelId());
+            TextChannel raw = jda.getChannelById(TextChannel.class, channel.getChannelId().getValue());
             if (raw == null) { return List.of(); }
             List<ThreadChannel> threads = raw.getThreadChannels();
             List<Link> links = new ArrayList<>();
             for (ThreadChannel t : threads) {
                 if (!t.isArchived()) {
-                    String href = "/Discord2Html/archives/" + channel.getName() + "/threads/t-" + t.getId() + ".html";
+                    String href = "/Discord2Html/archives/" + String.valueOf(channel.getChannelId()) + "/threads/t-" + t.getId() + ".html";
                     String label = t.getName();
                     links.add(new Link(href, label));
                 }
@@ -703,8 +723,8 @@ public class FileGenerator {
         ctx.setVariable("sequence", seq);
         if (channel.getParentChannelName() != null) {
             // Links for thread page navigation
-            ctx.setVariable("backToParentThreadsHref", String.format("/Discord2Html/archives/threads/%s/index.html", channel.getParentChannelName()));
-            ctx.setVariable("backToParentArchiveHref", String.format("/Discord2Html/archives/%s.html", channel.getParentChannelName()));
+            ctx.setVariable("backToParentThreadsHref", String.format("/Discord2Html/archives/threads/%s/index.html", channel.getParentChannelId().toString()));
+            ctx.setVariable("backToParentArchiveHref", String.format("/Discord2Html/archives/%s.html", channel.getParentChannelId().toString()));
         } else {
             ctx.setVariable("backToParentThreadsHref", "/Discord2Html/index.html");
             ctx.setVariable("backToParentArchiveHref", "/Discord2Html/index.html");
@@ -716,14 +736,14 @@ public class FileGenerator {
         Path out = Path.of(
                 appConfig.getOutputPath(),
                 "archives",
-                channel.getParentChannelName() == null ? "unknown" : channel.getParentChannelName(),
+                channel.getParentChannelId() == null ? "unknown" : channel.getParentChannelId().toString(),
                 "threads",
-                "t-" + channel.getChannelId() + ".html"
+                "t-" + channel.getChannelId().toString() + ".html"
         );
         writeHtml(out, html);
         try {
-            if (channel.getParentChannelName() != null) {
-                regenerateThreadIndex(channel.getParentChannelName());
+            if (channel.getParentChannelId() != null) {
+                regenerateThreadIndex(channel.getParentChannelId());
             }
         } catch (IOException ioe) {
             throw new RuntimeException("Failed to regenerate thread index", ioe);
