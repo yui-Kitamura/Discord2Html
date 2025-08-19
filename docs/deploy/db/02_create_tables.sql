@@ -5,7 +5,7 @@ CREATE TABLE guilds
     joined_time TIMESTAMP,
     anon_cycle  INT DEFAULT 12 NOT NULL,
     last_anon_changed TIMESTAMP,
-    runs_on     INT NOT NULL
+    runs_on     INT DEFAULT 12 NOT NULL
 );
 
 CREATE TABLE channels

@@ -58,9 +58,12 @@ public class GuildsDAO {
         if(exists(newRecord.getGuildId())) {
             mapper.update(newRecord);
         }else{
-            // Ensure anon_cycle is set appropriately on registration (default 12)
+            // Ensure on registration (default 12)
             if (newRecord.getAnonCycle() == null) {
                 newRecord.setAnonCycle(new AnonCycle(12));
+            }
+            if (newRecord.getRunsOn() == null) {
+                newRecord.setRunsOn(new RunsOn(12));
             }
             mapper.register(newRecord);
         }
