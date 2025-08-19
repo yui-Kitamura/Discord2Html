@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title th:text="${channel.name} + ' のアーカイブ'">アーカイブ</title>
+  <title th:text="${channel.parentChannelName + ' # ' + channel.name} + ' のアーカイブ'">アーカイブ</title>
   <link rel="stylesheet" href="/Discord2Html/css/style.css" />
   <link rel="icon" th:if="${guildIconUrl}" th:href="${guildIconUrl}" />
 </head>
@@ -12,23 +12,19 @@
   <nav class="nav">
     <a th:if="${backToTopHref}" th:href="${backToTopHref}">トップ</a>
     <span class="sep" th:if="${backToTopHref}">|</span>
-    <a th:if="${backToChannelHref}" th:href="${backToChannelHref}">チャンネル一覧</a>
+    <a th:if="${backToParentArchiveHref}" th:href="${backToParentArchiveHref}">親チャンネルのアーカイブ一覧に戻る</a>
+    <span class="sep" th:if="${backToParentArchiveHref}">|</span>
+    <a th:if="${backToParentThreadsHref}" th:href="${backToParentThreadsHref}">親チャンネルに属するスレッドの一覧に戻る</a>
   </nav>
   <div class="guild-header">
     <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="${guildName} + ' アイコン'" />
-    <h1 th:text="${channel.name} + ' のアーカイブ'">Channel Archive</h1>
+    <h1 th:text="${channel.parentChannelName + ' # ' + channel.name} + ' のアーカイブ'">Thread Archive</h1>
   </div>
   <div class="meta">
     <span>期間: </span>
     <span th:text="${begin}">begin</span>
     <span> 〜 </span>
     <span th:text="${end}">end</span>
-  </div>
-  <div th:if="${activeThreads != null and !#lists.isEmpty(activeThreads)}" class="active-threads">
-    <h2>アクティブなスレッド</h2>
-    <ul>
-      <li th:each="t : ${activeThreads}"><a th:href="${t.href}" th:text="${t.label}">thread</a></li>
-    </ul>
   </div>
   <h2>メッセージアーカイブ</h2>
   <div th:if="${#lists.isEmpty(messages)}">
