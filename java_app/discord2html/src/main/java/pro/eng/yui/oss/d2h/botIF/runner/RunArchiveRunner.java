@@ -314,7 +314,7 @@ public class RunArchiveRunner implements IRunner {
         if (!generatedFiles.contains(helpPath)) {
             generatedFiles.add(helpPath);
         }
-        // Also include the per-channel archives/<channel>.html updated by FileGenerator (deduplicated)
+        // Also include the per-channel archives/<channelId>.html updated by FileGenerator (deduplicated)
         // NOTE: For thread channels, the file name is t-<id>.html under archives/<parent>/threads/, not <channelName>.html.
         // Therefore, only add archives/<channelName>.html for non-thread channels and if it exists.
         if (!isThreadCh) {
@@ -323,9 +323,9 @@ public class RunArchiveRunner implements IRunner {
                 generatedFiles.add(channelArchivePath);
             }
         }
-        // Include thread archive files under archives/<channel>/threads/*.html
+        // Include thread archive files under archives/<channelId>/threads/*.html
         try {
-            Path threadsDir = Path.of(config.getOutputPath(), "archives", channel.getName(), "threads");
+            Path threadsDir = Path.of(config.getOutputPath(), "archives", channel.getId(), "threads");
             if (Files.exists(threadsDir) && Files.isDirectory(threadsDir)) {
                 try (DirectoryStream<Path> stream = Files.newDirectoryStream(threadsDir, "*.html")) {
                     for (Path p : stream) {
@@ -345,8 +345,8 @@ public class RunArchiveRunner implements IRunner {
                 if (channel.getType() != null && channel.getType().isThread()) {
                     ThreadChannel tc = (ThreadChannel) channel;
                     if (tc.getParentMessageChannel() != null) {
-                        String parentName = tc.getParentMessageChannel().getName();
-                        Path parentIndex = Path.of(config.getOutputPath(), "archives", "threads", parentName, "index.html");
+                        String parentId = tc.getParentMessageChannel().getId();
+                        Path parentIndex = Path.of(config.getOutputPath(), "archives", parentId, "threads", "index.html");
                         if (Files.exists(parentIndex) && !generatedFiles.contains(parentIndex)) {
                             generatedFiles.add(parentIndex);
                         }

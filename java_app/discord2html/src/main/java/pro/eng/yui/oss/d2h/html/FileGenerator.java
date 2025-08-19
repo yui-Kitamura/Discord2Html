@@ -272,7 +272,7 @@ public class FileGenerator {
         ctx.setVariable("title", displayName + " のアーカイブ一覧");
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
-        ctx.setVariable("threadIndexHref", basePrefix() + "/archives/threads/" + channelId + "/index.html");
+        ctx.setVariable("threadIndexHref", basePrefix() + "/archives/" + channelId + "/threads/index.html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
@@ -376,7 +376,7 @@ public class FileGenerator {
         }
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
         // Exclude thread index link from items to avoid duplication in the list
-        final String threadIndexNorm = "archives/threads/" + channelId + "/index.html";
+        final String threadIndexNorm = "archives/" + channelId + "/threads/index.html";
         merged = merged.stream()
                 .filter(l -> !normalizeHref(l.getHref()).equals(threadIndexNorm))
                 .collect(Collectors.toList());
@@ -385,7 +385,7 @@ public class FileGenerator {
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
         // Add link to this channel's thread list page
-        ctx.setVariable("threadIndexHref", basePrefix() + "/archives/threads/" + channelId + "/index.html");
+        ctx.setVariable("threadIndexHref", basePrefix() + "/archives/" + channelId + "/threads/index.html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("list", ctx);
@@ -669,7 +669,7 @@ public class FileGenerator {
             }
         }
         // write list page under archives/threads/{parent}/index.html
-        Path indexDir = base.resolve("archives").resolve("threads").resolve(parentChannelId.toString());
+        Path indexDir = base.resolve("archives").resolve(parentChannelId.toString()).resolve("threads");
         Files.createDirectories(indexDir);
         Path index = indexDir.resolve("index.html");
         // resolve display name of parent channel for title
@@ -823,7 +823,7 @@ public class FileGenerator {
         ctx.setVariable("sequence", seq);
         if (channel.getParentChannelName() != null) {
             // Links for thread page navigation
-            ctx.setVariable("backToParentThreadsHref", String.format(basePrefix() + "/archives/threads/%s/index.html", channel.getParentChannelId().toString()));
+            ctx.setVariable("backToParentThreadsHref", String.format(basePrefix() + "/archives/%s/threads/index.html", channel.getParentChannelId().toString()));
             ctx.setVariable("backToParentArchiveHref", String.format(basePrefix() + "/archives/%s.html", channel.getParentChannelId().toString()));
         } else {
             ctx.setVariable("backToParentThreadsHref", basePrefix() + "/index.html");
