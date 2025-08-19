@@ -52,6 +52,7 @@ public class FileGenerator {
     }
 
     private static final String TEMPLATE_NAME = "message";
+    private static final String THREAD_TEMPLATE_NAME = "thread_message";
     // --- Utilities to preserve/merge existing list links ---
     private static final Pattern A_TAG_PATTERN = Pattern.compile("<a\\s+[^>]*href=\\\"([^\\\"]+)\\\"[^>]*>([^<]+)</a>", Pattern.CASE_INSENSITIVE);
 
@@ -577,14 +578,17 @@ public class FileGenerator {
         ctx.setVariable("end", timeFormat.format(end.getTime()));
         ctx.setVariable("sequence", seq);
         if (channel.getParentChannelName() != null) {
-            ctx.setVariable("backToChannelHref", String.format("/Discord2Html/archives/threads/%s/index.html", channel.getParentChannelName()));
+            // Links for thread page navigation
+            ctx.setVariable("backToParentThreadsHref", String.format("/Discord2Html/archives/threads/%s/index.html", channel.getParentChannelName()));
+            ctx.setVariable("backToParentArchiveHref", String.format("/Discord2Html/archives/%s.html", channel.getParentChannelName()));
         } else {
-            ctx.setVariable("backToChannelHref", "/Discord2Html/index.html");
+            ctx.setVariable("backToParentThreadsHref", "/Discord2Html/index.html");
+            ctx.setVariable("backToParentArchiveHref", "/Discord2Html/index.html");
         }
         ctx.setVariable("backToTopHref", "/Discord2Html/index.html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
-        String html = templateEngine.process(TEMPLATE_NAME, ctx);
+        String html = templateEngine.process(THREAD_TEMPLATE_NAME, ctx);
         Path out = Path.of(
                 appConfig.getOutputPath(),
                 "archives",
