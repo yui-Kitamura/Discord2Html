@@ -235,11 +235,8 @@ public class RunArchiveRunner implements IRunner {
             }
         }
 
-        boolean isThreadCh = false;
-        try {
-            isThreadCh = (channel.getType() != null && channel.getType().isThread());
-        } catch (Exception ignore) {
-        }
+        final boolean isThreadCh = channel.getType().isThread();
+        
         if (!isThreadCh) {
             channel.sendMessage("This channel is archive target. Start >>>").queue();
         }
@@ -269,7 +266,19 @@ public class RunArchiveRunner implements IRunner {
         }
         // sort chronologically
         messages.sort(Comparator.comparing(MessageInfo::getCreatedTimestamp));
-
+        
+        // For threads: ensure beginForOutput reflects the earliest message timestamp (after sorting)
+        if (isThreadCh && !messages.isEmpty()) {
+            try {
+                SimpleDateFormat ts = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                ts.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+                Date first = ts.parse(messages.get(0).getCreatedTimestamp());
+                Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                cal.setTime(first);
+                beginForOutput = cal;
+            } catch (Exception ignore) { /* keep prior beginForOutput */ }
+        }
+        
         Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, endDate, 1);
         generatedFiles.add(generatedFile);
         // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
