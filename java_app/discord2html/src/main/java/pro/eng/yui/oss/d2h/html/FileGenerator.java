@@ -229,7 +229,14 @@ public class FileGenerator {
                 String ts = tsDir.getFileName().toString();
                 String date8 = ts.length() >= 8 ? ts.substring(0, 8) : ts; // fallback if unexpected
                 String href = "/Discord2Html/archives/" + date8 + "/" + channelName + ".html";
-                String label = channelName + " (" + ts + ")";
+                String displayTs;
+                try {
+                    Date parsed = folderFormat.parse(ts);
+                    displayTs = timeFormat.format(parsed);
+                } catch (Exception e) {
+                    displayTs = ts;
+                }
+                String label = channelName + " (" + displayTs + ")";
                 items.add(new Link(href, label));
             }
         }
@@ -319,7 +326,14 @@ public class FileGenerator {
                 String ts = tsDir.getFileName().toString();
                 // From archive/date8/channel.html to tsDir/channel.html -> ../../{ts}/{channel}.html
                 String href = String.format("../../%s/%s.html", ts, channelName);
-                String label = channelName + " (" + ts + ")";
+                String displayTs;
+                try {
+                    Date parsed = folderFormat.parse(ts);
+                    displayTs = timeFormat.format(parsed);
+                } catch (Exception e) {
+                    displayTs = ts;
+                }
+                String label = channelName + " (" + displayTs + ")";
                 items.add(new Link(href, label));
             }
         }
