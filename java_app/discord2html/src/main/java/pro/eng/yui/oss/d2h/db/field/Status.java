@@ -7,7 +7,7 @@ public class Status extends AbstVarChar {
     public static int LIMIT = 50;
     
     public Status(String value){
-        super(value, LIMIT);
+        super(value == null ? null : value.toUpperCase(), LIMIT);
         if(ChannelStatus.validName(value) == false) {
             throw new IllegalArgumentException(value);
         }

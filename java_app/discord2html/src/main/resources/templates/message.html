@@ -24,6 +24,12 @@
     <span> 〜 </span>
     <span th:text="${end}">end</span>
   </div>
+  <div th:if="${activeThreads != null and !#lists.isEmpty(activeThreads)}" class="active-threads">
+    <h2>アクティブなスレッド</h2>
+    <ul>
+      <li th:each="t : ${activeThreads}"><a th:href="${t.href}" th:text="${t.label}">thread</a></li>
+    </ul>
+  </div>
   <div th:if="${#lists.isEmpty(messages)}">
     期間内のメッセージはありません。
   </div>
@@ -51,5 +57,10 @@
     </div>
   </div>
 </div>
+<footer>
+  <p class="footer">
+    <span th:text="'bot ver' + ${botVersion}">bot ver1.1.0</span>
+  </p>
+</footer>
 </body>
 </html>

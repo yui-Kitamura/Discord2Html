@@ -23,4 +23,10 @@ public class Secrets {
     public String getGitHubToken(){
         return github_token;
     }
+
+    @Value("${d2h.bot.version}")
+    private String bot_version;
+    public String getBotVersion() {
+        return bot_version;
+    }
 }

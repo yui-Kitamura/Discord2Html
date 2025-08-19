@@ -67,21 +67,29 @@ public class GitHubService {
         for (Path htmlFilePath : htmlFilePaths) {
             String fileName = htmlFilePath.getFileName().toString();
             File targetFile;
-            if ("index.html".equalsIgnoreCase(fileName) || "help.html".equalsIgnoreCase(fileName)) {
-                // Place index.html and help.html at gh_pages root
+            // Normalize path for checks
+            String normalized = htmlFilePath.toString().replace('\\', '/');
+            boolean isTopLevelIndexOrHelp = ("index.html".equalsIgnoreCase(fileName) || "help.html".equalsIgnoreCase(fileName))
+                    && !normalized.contains("/archives/");
+            if (isTopLevelIndexOrHelp) {
+                // Place top-level index.html and help.html at gh_pages root
                 File ghPagesRoot = new File(repoDirFile, "gh_pages");
                 ghPagesRoot.mkdirs();
                 targetFile = new File(ghPagesRoot, fileName);
-            } else if (htmlFilePath.getParent() != null &&
-                    htmlFilePath.getParent().getFileName() != null &&
-                    "archives".equalsIgnoreCase(htmlFilePath.getParent().getFileName().toString())) {
-                // Place archives/<channel>.html under gh_pages/archives/
-                File archivesRoot = new File(repoDirFile, "gh_pages/archives");
-                archivesRoot.mkdirs();
-                targetFile = new File(archivesRoot, fileName);
             } else {
-                // Default: place under daily archive directory
-                targetFile = new File(dateArchiveDir, fileName);
+                // If the path is under any 'archives' sub-tree, mirror it under gh_pages
+                int idx = normalized.indexOf("/archives/");
+                if (idx >= 0) {
+                    String subPath = normalized.substring(idx + 1); // keep starting at 'archives/...'
+                    File ghPagesRoot = new File(repoDirFile, "gh_pages");
+                    targetFile = new File(ghPagesRoot, subPath);
+                    if (targetFile.getParentFile() != null) {
+                        targetFile.getParentFile().mkdirs();
+                    }
+                } else {
+                    // Default: place under daily archive directory
+                    targetFile = new File(dateArchiveDir, fileName);
+                }
             }
             Files.copy(htmlFilePath, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
             filesToAdd.add(getRelativePath(repoDirFile, targetFile));

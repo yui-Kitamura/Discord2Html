@@ -10,7 +10,7 @@ public class GitHubConsts {
     /**
      * Directory in the repository where archives are stored
      */
-    public static final String ARCHIVES_DIR = "gh_pages/archive/";
+    public static final String ARCHIVES_DIR = "gh_pages/archives/";
     
     /**
      * Date format for archive directory structure

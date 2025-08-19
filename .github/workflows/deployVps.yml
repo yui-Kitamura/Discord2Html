@@ -32,6 +32,9 @@ jobs:
           echo "discord.bot.token=${DISCORD_BOT_TOKEN}" >> java_app/discord2html/src/main/resources/secret.properties
           echo "spring.datasource.password=${DATABASE_PASS}" >> java_app/discord2html/src/main/resources/secret.properties
           echo "github.token=${GH_TOKEN}" >> java_app/discord2html/src/main/resources/secret.properties
+          POM_VER=$(mvn -q -DforceStdout -f java_app/discord2html/pom.xml help:evaluate -Dexpression=project.version)
+          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+          echo "d2h.bot.version=${POM_VER}@${SHORT_SHA}" >> java_app/discord2html/src/main/resources/secret.properties
           mvn -B package --file java_app/discord2html/pom.xml
           
       - name: Upload jar to VPS
