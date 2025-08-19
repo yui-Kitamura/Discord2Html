@@ -6,6 +6,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
+import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.github.GitUtil;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
@@ -57,7 +58,9 @@ public class FileGenerator {
     private Long lastGuildId = null;
     private final String botVersion;
     
-    public FileGenerator(ApplicationConfig config, TemplateEngine templateEngine, GitUtil gitUtil, GuildsDAO guildsDao, DiscordJdaProvider jdaProvider) {
+    public FileGenerator(ApplicationConfig config, Secrets secrets, TemplateEngine templateEngine,
+                         GitUtil gitUtil, GuildsDAO guildsDao,
+                         DiscordJdaProvider jdaProvider) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
         this.gitUtil = gitUtil;
@@ -69,7 +72,7 @@ public class FileGenerator {
         this.folderFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         this.date8Format = new SimpleDateFormat("yyyyMMdd");
         this.date8Format.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-        this.botVersion = VersionUtil.getVersion();
+        this.botVersion = secrets.getBotVersion();
     }
 
     public Path generate(
