@@ -244,9 +244,21 @@ public class FileGenerator {
                 String ts = tsDir.getFileName().toString();
                 String date8 = ts.length() >= 8 ? ts.substring(0, 8) : ts; // fallback if unexpected
                 String href = "/Discord2Html/archives/" + date8 + "/" + channelName + ".html";
+
+                // Display timestamp policy for channel archive list:
+                // - If the date is today (Asia/Tokyo), show the file's last updated time (最終更新日時)
+                // - Otherwise, show the end of that day as 23:59:59
                 String displayTs;
                 try {
-                    displayTs = timeFormat.format(folderFormat.parse(ts));
+                    String today8 = date8Format.format(Calendar.getInstance().getTime());
+                    if (today8.equals(date8)) {
+                        // Use the last modified time of the generated daily file
+                        displayTs = timeFormat.format(new Date(Files.getLastModifiedTime(file).toMillis()));
+                    } else {
+                        // Use 23:59:59 of the archive date
+                        Date endOfDay = folderFormat.parse(date8 + "235959");
+                        displayTs = timeFormat.format(endOfDay);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                     displayTs = ts;
