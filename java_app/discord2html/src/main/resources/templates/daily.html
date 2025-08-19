@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title th:text="${channelName} + ' の ' + ${humanDate} + ' アーカイブ'">日次アーカイブ</title>
+  <link rel="stylesheet" href="/Discord2Html/css/style.css" />
+  <link rel="icon" th:if="${guildIconUrl}" th:href="${guildIconUrl}" />
+</head>
+<body>
+<div class="container">
+  <nav class="nav">
+    <a th:href="${backToTopHref}">トップ</a>
+    <span class="sep">|</span>
+    <a th:href="${backToChannelHref}">チャンネル一覧</a>
+  </nav>
+  <div class="guild-header">
+    <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" alt="guild icon" />
+    <h1 th:text="${channelName} + ' の ' + ${humanDate} + ' アーカイブ'">Daily Archive</h1>
+  </div>
+  <div class="meta">
+    <span>期間: </span>
+    <span th:text="${humanDate} + ' 00:00:00'">begin</span>
+    <span> 〜 </span>
+    <span th:text="${endText}">end</span>
+  </div>
+  <h2>メッセージアーカイブ</h2>
+  <div th:if="${#lists.isEmpty(messages)}">
+    期間内のメッセージはありません。
+  </div>
+  <div th:each="msg : ${messages}" class="message">
+    <img class="avatar" th:src="${msg.getAvatarUrl()}" alt="avatar"/>
+    <div>
+      <div class="meta">
+        <span class="author" th:text="${msg.getUsername()}">ユーザー名</span>
+        <span class="timestamp" th:text="${msg.getCreatedTimestamp()}">日付</span>
+      </div>
+      <div class="content" th:utext="${msg.getContentHtml()}">メッセージ</div>
+      <div class="attachments" th:if="${msg.getAttachments() != null and !#lists.isEmpty(msg.getAttachments())}">
+        <div th:each="att : ${msg.getAttachments()}">
+          <div th:if="${att.isImage()}">
+            <a th:href="${att.getUrl()}" target="_blank" rel="noopener">
+              <img th:src="${att.getUrl()}" th:alt="${att.getFileName()}" />
+            </a>
+          </div>
+          <div th:if="${!att.isImage()}">
+            <a class="attachment-link" th:href="${att.getUrl()}" th:text="${att.getFileName()}" target="_blank" rel="noopener"></a>
+            <span th:if="${att.getSize() > 0}" th:text="' (' + att.getSize() + ' bytes)'"> サイズ </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>
+  <p class="footer">
+    <span th:text="'bot ver' + ${botVersion}">bot ver1.1.0</span>
+  </p>
+</footer>
+</body>
+</html>
