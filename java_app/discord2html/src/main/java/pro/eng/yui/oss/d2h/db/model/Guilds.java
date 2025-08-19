@@ -56,11 +56,11 @@ public class Guilds {
     public void setRunsOn(RunsOn newValue) {
         this.runs_on = newValue;
     }
-    public RunsOn getRunsOnCycle() {
+    public RunsOn getRunsOn() {
         return runs_on;
     }
     
-    public List<RunsOn> getRunsOn(){
+    public List<RunsOn> getRunsOnList(){
         List<RunsOn> result = new ArrayList<>();
         if (runs_on == null || runs_on.getValue() <= 0 || 24 <= runs_on.getValue()) {
             result.add(new RunsOn(0){});

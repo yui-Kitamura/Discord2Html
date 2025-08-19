@@ -149,7 +149,7 @@ public class RunArchiveRunner implements IRunner {
         
         List<Guilds> allGuilds = guildDao.selectAll();
         for(Guilds guilds : allGuilds) {
-            for(RunsOn on : guilds.getRunsOn()) {
+            for(RunsOn on : guilds.getRunsOnList()) {
                 if(on.getValue() == now) {
                     List<Channels> chs = channelDao.selectChannelArchiveDo(guilds.getGuildId());
                     for(Channels ch : chs) {

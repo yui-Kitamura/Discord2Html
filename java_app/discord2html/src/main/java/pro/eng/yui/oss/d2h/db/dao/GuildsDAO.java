@@ -72,7 +72,7 @@ public class GuildsDAO {
     public List<RunsOn> getRunsOn(GuildId id){
         if(exists(id)) {
             Guilds g = selectGuildInfo(id);
-            return g.getRunsOn();
+            return g.getRunsOnList();
         }else {
             return Collections.emptyList();
         }
