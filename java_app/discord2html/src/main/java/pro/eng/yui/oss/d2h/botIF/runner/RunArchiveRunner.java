@@ -80,9 +80,23 @@ public class RunArchiveRunner implements IRunner {
             for (OptionMapping om : options) {
                 if ("target".equals(om.getName())) {
                     // CHANNEL型データ対応
-                    try {
-                        GuildChannelUnion selected = om.getAsChannel();
-                        if (selected != null && selected.getType().isMessage()) {
+                    GuildChannelUnion selected = om.getAsChannel();
+                    if (selected != null) {
+                        if (selected.getType().isThread()) {
+                            // threadの直接指定をNGにする
+                            isTargetChannelMarked = true; // prevent full-guild run on invalid target
+                            try {
+                                List<Channels> loggingChannels = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
+                                for (Channels sendTo : loggingChannels) {
+                                    jda.getJda().getGuildById(sendTo.getGuidId().getValue())
+                                            .getChannelById(GuildMessageChannel.class, sendTo.getChannelId().getValue())
+                                            .sendMessage("targetオプションはチャンネルのみ指定できます。スレッドは直接指定できません。親チャンネルを指定してください。")
+                                            .queue();
+                                }
+                            } catch (Exception ignore) { /* ignore */ }
+                            continue;
+                        }
+                        if (selected.getType().isMessage()) {
                             GuildMessageChannel gmc = selected.asGuildMessageChannel();
                             if (gmc != null) {
                                 isTargetChannelMarked = true;
@@ -91,8 +105,6 @@ public class RunArchiveRunner implements IRunner {
                                 continue; // processed target via channel option
                             }
                         }
-                    } catch (Exception unexpected) {
-                        throw new RuntimeException(unexpected); 
                     }
                 }
             }
@@ -183,7 +195,25 @@ public class RunArchiveRunner implements IRunner {
     private void run(final GuildMessageChannel channel, final boolean scheduled){
         //validate
         Channels targetChInfo = null;
-        if (!scheduled) {
+        if (scheduled) {
+            // scheduled execution: ensure non-thread channels are MONITOR in DB
+            if (channel.getType().isThread() == false) {
+                List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
+                ChannelId targetChannelId = new ChannelId(channel);
+                boolean monitored = false;
+                for (Channels c : activate) {
+                    if (c.getChannelId().equals(targetChannelId)) {
+                        monitored = true;
+                        targetChInfo = c;
+                        break;
+                    }
+                }
+                if (!monitored) {
+                    System.out.println(channel + " is not MONITOR on scheduled run");
+                    return;
+                }
+            }
+        } else {
             List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
             ChannelId targetChannelId = new ChannelId(channel);
             for(Channels c : activate) {
