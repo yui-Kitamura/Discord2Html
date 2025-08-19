@@ -21,6 +21,15 @@ public class MessageInfo {
     public String getContentRaw() {
         return this.contentRaw;
     }
+    /**
+     * HTML-renderable content with https:// links converted to <a href="url">url</a>(label) form.
+     * - Markdown [label](https://url) becomes <a href="url">url</a>(label)
+     * - Plain https://url becomes <a href="url">url</a>
+     * Non-link parts are HTML-escaped for safety.
+     */
+    public String getContentHtml() {
+        return toHtmlWithLinks(this.contentRaw);
+    }
     
     private final Users userInfo;
     public Users getUserInfo(){
@@ -97,6 +106,34 @@ public class MessageInfo {
             String content = extractContentIncludingEmbeds(msg.getReferencedMessage());
             this.refOriginMessageContent = content.length() > 30 ? content.substring(0, 30) : content;
         }
+    }
+    
+    public static String toHtmlWithLinks(String content) {
+        String escaped = htmlEscape(content == null ? "" : content);
+        // 1) Markdown-style: [label](https://url)
+        escaped = escaped.replaceAll("\\[([^\\]]+)\\]\\((https://[^)\\s]+)\\)",
+                "<a href=\"$2\">$2</a>($1)");
+        // 2) Plain https://... (stop before whitespace, <, ), or an HTML entity starting with & that is NOT &amp;). Allow &amp; within URLs for query params.
+        escaped = escaped.replaceAll("(?<![\\\"'>])https://[^\\s<)]+?(?=(?:&(?!amp;))|\\s|<|\\)|$)",
+                "<a href=\"$0\">$0</a>");
+        return escaped;
+    }
+    
+    public static String htmlEscape(String s) {
+        if (s == null) return "";
+        StringBuilder sb = new StringBuilder(s.length() + 16);
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '&' -> sb.append("&amp;");
+                case '<' -> sb.append("&lt;");
+                case '>' -> sb.append("&gt;");
+                case '"' -> sb.append("&quot;");
+                case '\'' -> sb.append("&#39;");
+                default -> sb.append(c);
+            }
+        }
+        return sb.toString();
     }
 
     private static String extractContentIncludingEmbeds(Message msg) {

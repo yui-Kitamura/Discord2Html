@@ -37,7 +37,7 @@
         <span class="author" th:text="${msg.getUsername()}">ユーザー名</span>
         <span class="timestamp" th:text="${msg.getCreatedTimestamp()}">日付</span>
       </div>
-      <div class="content" th:utext="${msg.getContentRaw()}">メッセージ</div>
+      <div class="content" th:utext="${msg.getContentHtml()}">メッセージ</div>
       <div class="attachments" th:if="${msg.getAttachments() != null and !#lists.isEmpty(msg.getAttachments())}">
         <div th:each="att : ${msg.getAttachments()}">
           <div th:if="${att.isImage()}">
