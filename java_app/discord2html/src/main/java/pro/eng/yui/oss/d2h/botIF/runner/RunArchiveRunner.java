@@ -254,7 +254,16 @@ public class RunArchiveRunner implements IRunner {
 
             beginDate = (Calendar) endDate.clone();
             beginDate.add(Calendar.DAY_OF_MONTH, -1);
+        } else if (!scheduled) {
+            // Manual run: always archive from today's 00:00 to now (JST)
+            endDate = nowJst;
+            beginDate = (Calendar) nowJst.clone();
+            beginDate.set(Calendar.HOUR_OF_DAY, 0);
+            beginDate.set(Calendar.MINUTE, 0);
+            beginDate.set(Calendar.SECOND, 0);
+            beginDate.set(Calendar.MILLISECOND, 0);
         } else {
+            // Scheduled (non-midnight) run: use previous scheduled time window
             endDate = nowJst;
             beginDate = getPreviousScheduledTime(endDate, new GuildId(channel.getGuild()));
         }
