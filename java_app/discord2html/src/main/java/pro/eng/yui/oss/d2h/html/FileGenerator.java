@@ -660,6 +660,9 @@ public class FileGenerator {
                 if (label.startsWith("t-")) {
                     idPart = label.substring(2);
                 }
+                if (label.equals("index")) {
+                    continue;
+                }
                 ThreadChannel thread = jdaProvider.getJda().getThreadChannelById(idPart);
                 if (thread != null && !thread.getName().isEmpty()) {
                     threadName = thread.getName();
