@@ -248,75 +248,29 @@ public class RunArchiveRunner implements IRunner {
         Calendar endDate = Calendar.getInstance();
         Calendar beginDate = getPreviousScheduledTime(endDate, new GuildId(channel.getGuild()));
 
-        // Collect messages after beginDate handling more than 100 via pagination
-        List<MessageInfo> messages = new ArrayList<>();
-        List<Users> marked = new ArrayList<>();
-        var history = channel.getHistory();
-        // Prepare guild anonymization cycle settings
-        GuildId guildId = new GuildId(channel.getGuild());
-        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
-        System.out.println(guildInfo);
-        int anonCycle = guildInfo.getAnonCycle().getValue();
-        if (anonCycle < 1 || 24 < anonCycle) { 
-            anonCycle = 24; 
-        }
-        final int finalAnonCycle = anonCycle;
-        final SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
-        ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-        boolean more = true;
-        while (more) {
-            var batch = history.retrievePast(100).complete();
-            if (batch == null || batch.isEmpty()) {
-                break;
+        // Retrieve messages differently for normal channels vs threads
+        List<MessageInfo> messages;
+        Calendar beginForOutput = (Calendar) beginDate.clone();
+        if (isThreadCh && channel instanceof ThreadChannel) {
+            messages = getMessagesForThread((ThreadChannel) channel, endDate);
+            // adjust begin date to earliest message for display if available
+            if (!messages.isEmpty()) {
+                try {
+                    SimpleDateFormat ts = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+                    ts.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+                    Date first = ts.parse(messages.get(0).getCreatedTimestamp());
+                    Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                    cal.setTime(first);
+                    beginForOutput = cal;
+                } catch (Exception ignore) { /* leave beginForOutput as is */ }
             }
-            // If the oldest message in this batch is before beginDate, we can stop after filtering
-            var oldest = batch.get(batch.size() - 1);
-            var oldestInstant = oldest.getTimeCreated().toInstant();
-            // Filter only messages within window and collect authors/anon
-            batch.stream()
-                    .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
-                            && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
-                    .forEach(msg -> {
-                        Users author = null;
-                        if (msg.getMember() != null) {
-                            author = new Users(msg.getMember());
-                            // Determine anonymization based on member roles/settings
-                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
-                            author.setAnonStats(new AnonStats(anonStatus));
-                        } else {
-                            // Webhook/Bot or system-like messages (no Member)
-                            if (msg.getAuthor() != null) {
-                                author = new Users(msg.getAuthor(), channel.getGuild());
-                                // For bots/webhooks, force OPEN (not anonymized)
-                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
-                                author.setAnonStats(new AnonStats(anonStatus));
-                            }
-                        }
-                        if (author != null) {
-                            if (!marked.contains(author)) {
-                                usersDao.upsertUserInfo(author);
-                                marked.add(author);
-                            }
-                            // Build anonymization scope key: per guild, per day (Asia/Tokyo), per cycle index (hour/n)
-                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
-                            calJst.setTime(msgDate);
-                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                            int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = ymd.format(msgDate);
-                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                            messages.add(new MessageInfo(msg, author, scopeKey));
-                        }
-                    });
-            if (!oldestInstant.isAfter(beginDate.toInstant())) {
-                // we have reached messages at/before beginDate; stop paging
-                more = false;
-            }
+        } else {
+            messages = getMessagesForMessageChannel(channel, beginDate, endDate);
         }
-        // sort chronologically (createdTimestamp format is lexicographically sortable)
+        // sort chronologically
         messages.sort(Comparator.comparing(MessageInfo::getCreatedTimestamp));
 
-        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginDate, endDate, 1);
+        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, endDate, 1);
         generatedFiles.add(generatedFile);
         // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
         Path indexPath = Path.of(config.getOutputPath(), "index.html");
@@ -402,6 +356,120 @@ public class RunArchiveRunner implements IRunner {
         } catch (Throwable ignore) {
             // best-effort; skip on any error
         }
+    }
+
+    // メッセージ取得（通常のメッセージチャンネル向け）
+    private List<MessageInfo> getMessagesForMessageChannel(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
+        List<MessageInfo> messages = new ArrayList<>();
+        List<Users> marked = new ArrayList<>();
+        var history = channel.getHistory();
+        GuildId guildId = new GuildId(channel.getGuild());
+        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
+        int anonCycle = guildInfo.getAnonCycle().getValue();
+        if (anonCycle < 1 || 24 < anonCycle) {
+            anonCycle = 24;
+        }
+        final int finalAnonCycle = anonCycle;
+        final SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
+        ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+        boolean more = true;
+        while (more) {
+            var batch = history.retrievePast(100).complete();
+            if (batch == null || batch.isEmpty()) {
+                break;
+            }
+            var oldest = batch.get(batch.size() - 1);
+            var oldestInstant = oldest.getTimeCreated().toInstant();
+            batch.stream()
+                    .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
+                            && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                    .forEach(msg -> {
+                        Users author = null;
+                        if (msg.getMember() != null) {
+                            author = new Users(msg.getMember());
+                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
+                            author.setAnonStats(new AnonStats(anonStatus));
+                        } else {
+                            if (msg.getAuthor() != null) {
+                                author = new Users(msg.getAuthor(), channel.getGuild());
+                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
+                                author.setAnonStats(new AnonStats(anonStatus));
+                            }
+                        }
+                        if (author != null) {
+                            if (!marked.contains(author)) {
+                                usersDao.upsertUserInfo(author);
+                                marked.add(author);
+                            }
+                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+                            Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                            calJst.setTime(msgDate);
+                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
+                            int cycleIndex = hour / finalAnonCycle;
+                            String dateStr = ymd.format(msgDate);
+                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
+                            messages.add(new MessageInfo(msg, author, scopeKey));
+                        }
+                    });
+            if (!oldestInstant.isAfter(beginDate.toInstant())) {
+                more = false;
+            }
+        }
+        return messages;
+    }
+
+    // メッセージ取得（スレッド向け：過去日も含め全期間を1ファイルに統一）
+    private List<MessageInfo> getMessagesForThread(ThreadChannel thread, Calendar endDate) {
+        List<MessageInfo> messages = new ArrayList<>();
+        List<Users> marked = new ArrayList<>();
+        var history = thread.getHistory();
+        GuildId guildId = new GuildId(thread.getGuild());
+        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
+        int anonCycle = guildInfo.getAnonCycle().getValue();
+        if (anonCycle < 1 || 24 < anonCycle) {
+            anonCycle = 24;
+        }
+        final int finalAnonCycle = anonCycle;
+        final SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
+        ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+        while (true) {
+            var batch = history.retrievePast(100).complete();
+            if (batch == null || batch.isEmpty()) {
+                break;
+            }
+            batch.stream()
+                    .filter(msg -> msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                    .forEach(msg -> {
+                        Users author = null;
+                        if (msg.getMember() != null) {
+                            author = new Users(msg.getMember());
+                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
+                            author.setAnonStats(new AnonStats(anonStatus));
+                        } else {
+                            if (msg.getAuthor() != null) {
+                                author = new Users(msg.getAuthor(), thread.getGuild());
+                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
+                                author.setAnonStats(new AnonStats(anonStatus));
+                            }
+                        }
+                        if (author != null) {
+                            if (!marked.contains(author)) {
+                                usersDao.upsertUserInfo(author);
+                                marked.add(author);
+                            }
+                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+                            Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                            calJst.setTime(msgDate);
+                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
+                            int cycleIndex = hour / finalAnonCycle;
+                            String dateStr = ymd.format(msgDate);
+                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
+                            messages.add(new MessageInfo(msg, author, scopeKey));
+                        }
+                    });
+            // do not break early; continue until all past messages exhausted
+        }
+        return messages;
     }
 
     private Calendar getPreviousScheduledTime(Calendar now, GuildId guildId) {
