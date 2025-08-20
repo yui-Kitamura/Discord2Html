@@ -160,7 +160,7 @@ public class FileGenerator {
             context.setVariable("begin", timeFormat.format(cur.getTime()));
             context.setVariable("end", timeFormat.format(segmentEnd.getTime()));
             context.setVariable("sequence", seq);
-            context.setVariable("backToChannelHref", String.format("../../archives/%s.html", channel.getChannelId().toString()));
+            context.setVariable("backToChannelHref", basePrefix() + "/archives/" + channel.getChannelId().toString() + ".html");
             context.setVariable("backToTopHref", basePrefix() + "/index.html");
             context.setVariable("guildIconUrl", resolveGuildIconUrl());
             context.setVariable("botVersion", botVersion);
