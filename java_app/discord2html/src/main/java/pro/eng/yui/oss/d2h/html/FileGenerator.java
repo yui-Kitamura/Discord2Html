@@ -583,6 +583,9 @@ public class FileGenerator {
     private List<MessageInfo> fetchMessagesForDaily(TextChannel channel, Calendar beginDate, Calendar endDate) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
+        
+        System.out.printf("debug >> %s %s %s%n", channel.getName(), beginDate, endDate );
+        
         try {
             var history = channel.getHistory();
             GuildId guildId = new GuildId(channel.getGuild());
@@ -642,6 +645,9 @@ public class FileGenerator {
         } catch (Throwable ignore) {
             // best-effort: return what we have
         }
+        
+        System.out.printf("debug >> size %s", messages.size());
+        
         return messages;
     }
 
