@@ -559,7 +559,7 @@ public class FileGenerator {
         // Determine daily end text: if target date is today, end at current HH:mm; otherwise 23:59:59
         String endText;
         if (today8.equals(date8)) {
-            SimpleDateFormat hm = new SimpleDateFormat("HH:mm");
+            SimpleDateFormat hm = new SimpleDateFormat("HH:mm:ss");
             hm.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
             endText = humanDate + " " + hm.format(now.getTime());
         } else {
