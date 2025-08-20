@@ -199,6 +199,23 @@ public class FileGenerator {
             next.set(Calendar.MILLISECOND, 0);
             cur = next;
         }
+
+        // If the run ends today and the execution time is not midnight (00:00),
+        // ensure today's daily archive is regenerated to include 00:00 -> now,
+        // even if no new messages were included in this run's segments.
+        try {
+            Calendar nowJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+            String today8 = date8Format.format(nowJst.getTime());
+            String until8 = date8Format.format(until.getTime());
+            boolean isMidnight = until.get(Calendar.HOUR_OF_DAY) == 0
+                    && until.get(Calendar.MINUTE) == 0
+                    && until.get(Calendar.SECOND) == 0;
+            if (today8.equals(until8) && !isMidnight) {
+                affectedDate8.add(until8);
+            }
+        } catch (Exception ignore) {
+            // best-effort: do not block generation
+        }
         
         // Update per-day (date8) index for all affected dates
         try {
