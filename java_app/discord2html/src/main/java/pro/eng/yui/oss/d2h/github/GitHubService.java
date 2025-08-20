@@ -40,8 +40,36 @@ public class GitHubService {
             return; // Nothing to push
         }
         
+        // Expand list to include today's daily page when a per-channel archives/<channelId>.html is present
+        List<Path> expandedPaths = new ArrayList<>(htmlFilePaths);
+        try {
+            String today8 = pro.eng.yui.oss.d2h.consts.GitHubConsts.DATE_FORMAT.format(new Date());
+            for (Path p : htmlFilePaths) {
+                String norm = p.toString().replace('\\', '/');
+                int idx = norm.indexOf("/archives/");
+                if (idx >= 0) {
+                    String rest = norm.substring(idx + "/archives/".length());
+                    // rest examples:
+                    //   "123456789012345678.html" -> per-channel list page
+                    //   "20250820/123456789012345678.html" -> daily page (already specific)
+                    if (!rest.contains("/")) {
+                        // archives/<channelId>.html pattern -> try to add today's daily page if exists
+                        Path archivesDir = p.getParent(); // .../archives
+                        if (archivesDir != null) {
+                            Path candidate = archivesDir.resolve(today8).resolve(p.getFileName().toString());
+                            if (Files.exists(candidate) && !expandedPaths.contains(candidate)) {
+                                expandedPaths.add(candidate);
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Throwable ignore) {
+            // best-effort
+        }
+        
         // Validate all files exist
-        for (Path path : htmlFilePaths) {
+        for (Path path : expandedPaths) {
             if (!Files.exists(path)) {
                 throw new IOException("HTML file does not exist: " + path);
             }
@@ -64,7 +92,7 @@ public class GitHubService {
 
         // Ensure static assets exist under gh_pages and include them in the staging list
         ensureStaticAssetsInRepo(repoDirFile, filesToAdd);
-        for (Path htmlFilePath : htmlFilePaths) {
+        for (Path htmlFilePath : expandedPaths) {
             String fileName = htmlFilePath.getFileName().toString();
             File targetFile;
             // Normalize path for checks
