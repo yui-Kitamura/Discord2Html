@@ -56,7 +56,7 @@ public class GitHubService {
         gitUtil.ensureRepoInitialized();
 
         String dateDir = GitHubConsts.DATE_FORMAT.format(new Date());
-        File dateArchiveDir = new File(repoDirFile, GitHubConsts.ARCHIVES_DIR + dateDir);
+        File dateArchiveDir = repoDirFile.toPath().resolve(GitHubConsts.ARCHIVES_DIR).resolve(dateDir).toFile();
         dateArchiveDir.mkdirs();
 
         // Copy all HTML files to the repository and collect paths for git add
@@ -99,13 +99,7 @@ public class GitHubService {
             gitUtil.fetch();
 
             gitUtil.add(filesToAdd);
-            String commitMessage;
-            if(filesToAdd.size() == 2) { // archives/channel.html + archive/yMd/channel.html 
-                commitMessage = new File(filesToAdd.get(0)).getName();
-            }else {
-                commitMessage = "multiple files";
-            }
-            gitUtil.commit(GitHubConsts.COMMIT_PREFIX + commitMessage);
+            gitUtil.commit(GitHubConsts.COMMIT_PREFIX + "multiple files");
 
             gitUtil.pullRebase();
             gitUtil.push();

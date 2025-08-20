@@ -20,5 +20,5 @@ public class GitHubConsts {
     /**
      * Commit message prefix for archive files
      */
-    public static final String COMMIT_PREFIX = "Add archive: ";
+    public static final String COMMIT_PREFIX = "[bot]Add archive: ";
 }
