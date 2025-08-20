@@ -508,18 +508,43 @@ public class FileGenerator {
         String date8 = date8Format.format(end.getTime());
 
         // Compute begin/end range for the day in Asia/Tokyo
+        Calendar now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+        String today8 = date8Format.format(now.getTime());
+
         Calendar beginCal = (Calendar) end.clone();
+        Calendar endCal = (Calendar) end.clone();
+
+        // Initialize begin to 00:00:00.000 of the target day
         beginCal.set(Calendar.HOUR_OF_DAY, 0);
         beginCal.set(Calendar.MINUTE, 0);
         beginCal.set(Calendar.SECOND, 0);
         beginCal.set(Calendar.MILLISECOND, 0);
 
-        Calendar endCal = (Calendar) end.clone();
-        Calendar now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
-        String today8 = date8Format.format(now.getTime());
         if (today8.equals(date8)) {
-            // keep current time (truncate to minutes for display only)
+            // Target is today
+            if (now.get(Calendar.HOUR_OF_DAY) == 0 && now.get(Calendar.MINUTE) == 0) {
+                // Auto run at 00:00 => generate for previous day full
+                Calendar yesterday = (Calendar) now.clone();
+                yesterday.add(Calendar.DAY_OF_MONTH, -1);
+                date8 = date8Format.format(yesterday.getTime());
+
+                beginCal = (Calendar) yesterday.clone();
+                beginCal.set(Calendar.HOUR_OF_DAY, 0);
+                beginCal.set(Calendar.MINUTE, 0);
+                beginCal.set(Calendar.SECOND, 0);
+                beginCal.set(Calendar.MILLISECOND, 0);
+
+                endCal = (Calendar) yesterday.clone();
+                endCal.set(Calendar.HOUR_OF_DAY, 23);
+                endCal.set(Calendar.MINUTE, 59);
+                endCal.set(Calendar.SECOND, 59);
+                endCal.set(Calendar.MILLISECOND, 999);
+            } else {
+                // Non‑midnight run => from today's 00:00 to now
+                endCal = (Calendar) now.clone();
+            }
         } else {
+            // Past day => full day
             endCal.set(Calendar.HOUR_OF_DAY, 23);
             endCal.set(Calendar.MINUTE, 59);
             endCal.set(Calendar.SECOND, 59);
@@ -583,6 +608,7 @@ public class FileGenerator {
     private List<MessageInfo> fetchMessagesForDaily(TextChannel channel, Calendar beginDate, Calendar endDate) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
+
         try {
             var history = channel.getHistory();
             GuildId guildId = new GuildId(channel.getGuild());

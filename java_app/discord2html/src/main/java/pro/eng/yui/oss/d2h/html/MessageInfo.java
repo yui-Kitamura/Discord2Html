@@ -116,6 +116,8 @@ public class MessageInfo {
         // 2) Plain https://... (stop before whitespace, <, ), or an HTML entity starting with & that is NOT &amp;). Allow &amp; within URLs for query params.
         escaped = escaped.replaceAll("(?<![\\\"'>])https://[^\\s<)]+?(?=(?:&(?!amp;))|\\s|<|\\)|$)",
                 "<a href=\"$0\">$0</a>");
+        // 3) Convert newline characters to <br> so original message line breaks render on HTML
+        escaped = escaped.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>");
         return escaped;
     }
     
