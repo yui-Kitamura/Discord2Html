@@ -551,6 +551,10 @@ public class FileGenerator {
             endCal.set(Calendar.MILLISECOND, 999);
         }
 
+        try {
+            System.out.printf("debug >> daily range date8=%s begin=%tF %<tT end=%tF %<tT%n", date8, beginCal, endCal);
+        } catch (Throwable ignore) {}
+
         // Resolve channel from JDA using channel ID
         List<MessageInfo> messages = new ArrayList<>();
         TextChannel target = null;
@@ -608,9 +612,10 @@ public class FileGenerator {
     private List<MessageInfo> fetchMessagesForDaily(TextChannel channel, Calendar beginDate, Calendar endDate) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
-        
-        System.out.printf("debug >> %s %s %s%n", channel.getName(), beginDate, endDate );
-        
+
+        System.out.printf("debug >> channel=%s begin=%tF %<tT end=%tF %<tT%n",
+                channel.getName(), beginDate, endDate);
+
         try {
             var history = channel.getHistory();
             GuildId guildId = new GuildId(channel.getGuild());
@@ -671,7 +676,7 @@ public class FileGenerator {
             // best-effort: return what we have
         }
         
-        System.out.printf("debug >> size %s", messages.size());
+        System.out.printf("debug >> size %s%n", messages.size());
         
         return messages;
     }
