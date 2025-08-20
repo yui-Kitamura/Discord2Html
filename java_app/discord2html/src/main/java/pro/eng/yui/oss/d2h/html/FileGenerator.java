@@ -550,11 +550,6 @@ public class FileGenerator {
         Files.createDirectories(archiveBase);
         Path dailyCombined = archiveBase.resolve(channelId.toString() + ".html");
 
-        // If nothing to output, preserve existing daily file
-        if (messages.isEmpty() && Files.exists(dailyCombined)) {
-            return;
-        }
-
         // Template variables
         String yyyy = date8.substring(0, 4);
         String mm = date8.substring(4, 6);
