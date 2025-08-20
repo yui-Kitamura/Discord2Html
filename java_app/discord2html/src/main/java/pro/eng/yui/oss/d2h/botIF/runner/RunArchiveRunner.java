@@ -328,6 +328,27 @@ public class RunArchiveRunner implements IRunner {
             if (Files.exists(channelArchivePath) && !generatedFiles.contains(channelArchivePath)) {
                 generatedFiles.add(channelArchivePath);
             }
+            // Also include daily combined files for all affected dates between begin and end
+            try {
+                Calendar dayIter = (Calendar) beginDate.clone();
+                // Normalize to 00:00:00.000 JST for safe date iteration
+                dayIter.set(Calendar.MINUTE, 0);
+                dayIter.set(Calendar.SECOND, 0);
+                dayIter.set(Calendar.MILLISECOND, 0);
+                dayIter.set(Calendar.HOUR_OF_DAY, 0);
+                Calendar endDay = (Calendar) endDate.clone();
+                // Iterate days inclusively from begin to end
+                while (!dayIter.after(endDay)) {
+                    String date8 = new java.text.SimpleDateFormat("yyyyMMdd"){ {
+                        setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+                    }}.format(dayIter.getTime());
+                    Path dailyPath = Path.of(config.getOutputPath(), "archives", date8, channel.getId() + ".html");
+                    if (Files.exists(dailyPath) && !generatedFiles.contains(dailyPath)) {
+                        generatedFiles.add(dailyPath);
+                    }
+                    dayIter.add(Calendar.DAY_OF_MONTH, 1);
+                }
+            } catch (Exception ignore) { /* best-effort */ }
         }
         // Include thread archive files under archives/<channelId>/threads/*.html
         try {
@@ -419,7 +440,7 @@ public class RunArchiveRunner implements IRunner {
             var oldest = batch.get(batch.size() - 1);
             var oldestInstant = oldest.getTimeCreated().toInstant();
             batch.stream()
-                    .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
+                    .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginDate.toInstant())
                             && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
                     .forEach(msg -> {
                         Users author = null;
