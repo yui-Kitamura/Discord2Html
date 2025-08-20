@@ -7,12 +7,19 @@ on:
     paths-ignore:
       - 'gh_pages/**'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch or tag to deploy (e.g., main, feature/foo, v1.2.3)'
+        required: true
+        default: 'main'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v3
