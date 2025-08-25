@@ -25,7 +25,7 @@
     <!-- New: category grouping -->
     <div th:if="${categories} != null">
       <section class="card" th:each="cat : ${categories}">
-        <strong th:text="${cat.name} + (cat.deleted ? '（削除済み）' : '')">カテゴリ</strong>
+        <strong th:text="${cat.getName().getValue()} + (cat.isDeleted() ? '（削除済み）' : '')">カテゴリ</strong>
         <ul>
           <li th:each="it : ${cat.channels}">
             <a th:href="${it.href}" th:text="${it.label}">channel</a>

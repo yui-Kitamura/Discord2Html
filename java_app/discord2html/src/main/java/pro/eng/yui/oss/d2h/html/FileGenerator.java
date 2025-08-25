@@ -496,7 +496,7 @@ public class FileGenerator {
                 }
                 ensureCategoryGroup(map, guild, catId, catName);
                 CategoryGroup group = map.get(catId);
-                String label = ch.getChannelName() != null ? ch.getChannelName().getValue() : chId;
+                String label = ch.getChannelName().getValue();
                 if(group.isDeleted()) {
                     label += " (削除済み)";
                 }
