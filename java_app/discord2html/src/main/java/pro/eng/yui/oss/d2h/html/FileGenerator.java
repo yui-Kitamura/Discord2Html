@@ -452,8 +452,8 @@ public class FileGenerator {
                 deleted = false; 
             } else {
                 boolean live = guild.getCategories().stream().anyMatch(c -> {
-                    return Long.toUnsignedString(c.getIdLong()).equals(id);}
-                );
+                    return Long.toUnsignedString(c.getIdLong()).equals(id);
+                });
                 deleted = !live;
             }
             String resolvedName = (name == null || name.isEmpty()) ? ("0".equals(id) ? "" : id) : name;
@@ -497,7 +497,7 @@ public class FileGenerator {
                 ensureCategoryGroup(map, guild, catId, catName);
                 CategoryGroup group = map.get(catId);
                 String label = ch.getChannelName() != null ? ch.getChannelName().getValue() : chId;
-                if(group.deleted) {
+                if(group.isDeleted()) {
                     label += " (削除済み)";
                 }
                 String href = "archives/" + chId + ".html";
