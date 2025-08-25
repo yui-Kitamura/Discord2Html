@@ -35,13 +35,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -476,99 +474,98 @@ public class FileGenerator {
         return ids;
     }
     
-    private List<CategoryGroup> buildCategoryGroups() {
-            if (lastGuildId == null) { return List.of(); }
-            try {
-                Guild guild = jdaProvider.getJda().getGuildById(lastGuildId);
-                List<Channels> dbChannels = channelsDao.selectAllInGuild(new GuildId(lastGuildId));
-                Set<String> archivedIds = discoverArchivedChannelIds();
-                // Map categories by id string (or "0" for uncategorized)
-                Map<String, CategoryGroup> map = new LinkedHashMap<>();
-                List<String> liveOrder = new ArrayList<>();
-                if (guild != null) {
-                    guild.getCategories().forEach(cat -> liveOrder.add(Long.toUnsignedString(cat.getIdLong())));
-                }
-                BiFunction<String,String,CategoryGroup> ensure = (id, name) -> {
-                    CategoryGroup g = map.get(id);
-                    if (g == null) {
-                        boolean deleted = false;
-                        if (guild != null) {
-                            if ("0".equals(id)) {
-                                deleted = false; // uncategorized exists logically
-                            } else {
-                                boolean live = guild.getCategories().stream().anyMatch(c -> Long.toUnsignedString(c.getIdLong()).equals(id));
-                                deleted = !live;
-                            }
-                        }
-                        g = new CategoryGroup(id, name == null || name.isEmpty() ? ("0".equals(id) ? "未分類" : (id)) : name, deleted);
-                        map.put(id, g);
-                    }
-                    return g;
-                };
-                // Compose links per channel, mark deleted channels; only include archived channels
-                for (Channels ch : dbChannels) {
-                    String chId = ch.getChannelId().toString();
-                    if (!archivedIds.contains(chId)) {
-                        continue; // skip channels with no archives
-                    }
-                    String catId = ch.getCategoryId() == null ? "0" : ch.getCategoryId().toString();
-                    String catName = ch.getCategoryName() == null ? "" : ch.getCategoryName().getValue();
-                    CategoryGroup group = ensure.apply(catId, catName);
-                    String label = ch.getChannelName() != null ? ch.getChannelName().getValue() : chId;
-                    boolean exists = false;
-                    if (guild != null) {
-                        try {
-                            exists = (jdaProvider.getJda().getTextChannelById(ch.getChannelId().getValue()) != null);
-                        } catch (Throwable ignore) {}
-                    }
-                    if (!exists) {
-                        label = label + " (削除済み)";
-                    }
-                    String href = "archives/" + chId + ".html";
-                    group.getChannels().add(new Link(href, label));
-                }
-                // Order groups: live categories in guild order, then non-live (deleted) categories by name
-                List<CategoryGroup> groups = new ArrayList<>();
-                // First, add in liveOrder if present in map
-                for (String id : liveOrder) {
-                    CategoryGroup g = map.get(id);
-                    if (g != null) { groups.add(g); }
-                }
-                // Ensure uncategorized ("0") comes after live categories but before deleted categories
-                if (map.containsKey("0")) {
-                    boolean included = groups.stream().anyMatch(g -> g.getId().equals("0"));
-                    if (!included) { groups.add(map.get("0")); }
-                }
-                // Add remaining deleted categories (not live and not uncategorized) at the end sorted by name
-                List<CategoryGroup> deletedGroups = map.values().stream()
-                        .filter(g -> !liveOrder.contains(g.getId()) && !"0".equals(g.getId()))
-                        .sorted(Comparator.comparing(CategoryGroup::getName))
-                        .collect(Collectors.toList());
-                groups.addAll(deletedGroups);
-                // Within each group, sort: existing channels first (no "(削除済み)" suffix), then deleted
-                for (CategoryGroup g : groups) {
-                    List<Link> live = new ArrayList<>();
-                    List<Link> gone = new ArrayList<>();
-                    for (Link l : g.getChannels()) {
-                        if (l.getLabel() != null && l.getLabel().endsWith("(削除済み)")) {
-                            gone.add(l);
-                        } else {
-                            live.add(l);
-                        }
-                    }
-                    live.sort(Comparator.comparing(Link::getLabel));
-                    gone.sort(Comparator.comparing(Link::getLabel));
-                    g.getChannels().clear();
-                    g.getChannels().addAll(live);
-                    g.getChannels().addAll(gone);
-                }
-                return groups;
-            } catch (Throwable ignore) {
-                return List.of();
-            }
+    // Helper to ensure a CategoryGroup exists in the map
+    private CategoryGroup ensureCategoryGroup(Map<String, CategoryGroup> map, Guild guild, String id, String name) {
+        CategoryGroup g = map.get(id);
+        if (g == null) {
+            // Default to NOT deleted unless confirmed missing by live guild
+            boolean live = guild.getCategories().stream().anyMatch(c -> {
+                return Long.toUnsignedString(c.getIdLong()).equals(id);
+            });
+            final boolean deleted = !live;
+            String resolvedName = (name == null || name.isEmpty()) ? ("0".equals(id) ? "未分類" : id) : name;
+            g = new CategoryGroup(id, resolvedName, deleted);
+            map.put(id, g);
         }
+        return g;
+    }
 
-        private void regenerateTopIndex() throws IOException {
+    private List<CategoryGroup> buildCategoryGroups() {
+        if (lastGuildId == null) { return List.of(); }
+        try {
+            Guild guild = jdaProvider.getJda().getGuildById(lastGuildId);
+            List<Channels> dbChannels = channelsDao.selectAllInGuild(new GuildId(lastGuildId));
+            Set<String> archivedIds = discoverArchivedChannelIds();
+            // Map categories by id string (or "0" for uncategorized)
+            Map<String, CategoryGroup> map = new LinkedHashMap<>();
+            List<String> liveOrder = new ArrayList<>();
+            if (guild != null) {
+                guild.getCategories().forEach(cat -> liveOrder.add(Long.toUnsignedString(cat.getIdLong())));
+            }
+            // Compose links per channel, mark deleted channels; only include archived channels
+            for (Channels ch : dbChannels) {
+                String chId = ch.getChannelId().toString();
+                if (!archivedIds.contains(chId)) {
+                    continue; // skip channels with no archives
+                }
+                String catId = ch.getCategoryId() == null ? "0" : ch.getCategoryId().toString();
+                String catName = ch.getCategoryName() == null ? "" : ch.getCategoryName().getValue();
+                CategoryGroup group = ensureCategoryGroup(map, guild, catId, catName);
+                String label = ch.getChannelName() != null ? ch.getChannelName().getValue() : chId;
+                boolean exists = false;
+                if (guild != null) {
+                    try {
+                        exists = (jdaProvider.getJda().getTextChannelById(ch.getChannelId().getValue()) != null);
+                    } catch (Throwable ignore) {}
+                }
+                if (!exists) {
+                    label = label + " (削除済み)";
+                }
+                String href = "archives/" + chId + ".html";
+                group.getChannels().add(new Link(href, label));
+            }
+            // Order groups: live categories in guild order, then non-live (deleted) categories by name
+            List<CategoryGroup> groups = new ArrayList<>();
+            // First, add in liveOrder if present in map
+            for (String id : liveOrder) {
+                CategoryGroup g = map.get(id);
+                if (g != null) { groups.add(g); }
+            }
+            // Ensure uncategorized ("0") comes after live categories but before deleted categories
+            if (map.containsKey("0")) {
+                boolean included = groups.stream().anyMatch(g -> g.getId().equals("0"));
+                if (!included) { groups.add(map.get("0")); }
+            }
+            // Add remaining deleted categories (not live and not uncategorized) at the end sorted by name
+            List<CategoryGroup> deletedGroups = map.values().stream()
+                    .filter(g -> !liveOrder.contains(g.getId()) && !"0".equals(g.getId()))
+                    .sorted(Comparator.comparing(CategoryGroup::getName))
+                    .collect(Collectors.toList());
+            groups.addAll(deletedGroups);
+            // Within each group, sort: existing channels first (no "(削除済み)" suffix), then deleted
+            for (CategoryGroup g : groups) {
+                List<Link> live = new ArrayList<>();
+                List<Link> gone = new ArrayList<>();
+                for (Link l : g.getChannels()) {
+                    if (l.getLabel() != null && l.getLabel().endsWith("(削除済み)")) {
+                        gone.add(l);
+                    } else {
+                        live.add(l);
+                    }
+                }
+                live.sort(Comparator.comparing(Link::getLabel));
+                gone.sort(Comparator.comparing(Link::getLabel));
+                g.getChannels().clear();
+                g.getChannels().addAll(live);
+                g.getChannels().addAll(gone);
+            }
+            return groups;
+        } catch (Throwable ignore) {
+            return List.of();
+        }
+    }
+
+    private void regenerateTopIndex() throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
             return;
