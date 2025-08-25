@@ -1047,6 +1047,13 @@ public class FileGenerator {
                         } catch (IOException ioe) {
                             // ignore
                         }
+                        // Write new path: emoji_{id}_{yyyyMMdd}.{ext}
+                        try {
+                            Path newNaming = emojiDir.resolve("emoji_" + id + "_" + today + "." + ext);
+                            Files.write(newNaming, bytes); // replace or create
+                        } catch (IOException ioe) {
+                            // ignore
+                        }
                     }
                 }
             }
@@ -1115,6 +1122,13 @@ public class FileGenerator {
                         try {
                             Path idStable = emojiDir.resolve(id + "." + ext);
                             Files.write(idStable, bytes);
+                        } catch (IOException ioe) {
+                            // ignore
+                        }
+                        // Write new path: emoji_{id}_{yyyyMMdd}.{ext}
+                        try {
+                            Path newNaming = emojiDir.resolve("emoji_" + id + "_" + today + "." + ext);
+                            Files.write(newNaming, bytes); // replace or create
                         } catch (IOException ioe) {
                             // ignore
                         }

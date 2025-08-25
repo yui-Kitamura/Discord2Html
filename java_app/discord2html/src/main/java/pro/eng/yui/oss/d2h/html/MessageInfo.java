@@ -37,8 +37,10 @@ public class MessageInfo {
     }
 
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+    private static final SimpleDateFormat DATE8 = new SimpleDateFormat("yyyyMMdd");
     static{
         DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+        DATE8.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
     }
     
     private final String contentRaw;
@@ -139,7 +141,7 @@ public class MessageInfo {
                     } catch (Throwable ignore) { }
                     String ext = isAnimated ? "gif" : "png";
                     String url = (id != null) ? ("https://cdn.discordapp.com/emojis/" + id + "." + ext) : null;
-                    String localPath = (id != null) ? ("archives/emoji/" + id + "." + ext) : null;
+                    String localPath = (id != null) ? ("archives/emoji/emoji_" + id + "_" + DATE8.format(new Date()) + "." + ext) : null;
                     views.add(new ReactionView(true, null, url, localPath, name, count));
                 } else {
                     views.add(new ReactionView(false, name, null, null, name, count));
