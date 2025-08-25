@@ -41,11 +41,11 @@ public class ArchiveConfigRunner implements IRunner {
                 newMode = new Status(op.getAsString());
                 continue;
             }
-            if("onRunMessage".equals(op.getName())) {
+            if("onrunmessage".equals(op.getName())) {
                 onRunMessageStr = op.getAsString();
                 continue;
             }
-            if("onRunUrl".equals(op.getName())) {
+            if("onrunurl".equals(op.getName())) {
                 onRunUrlStr = op.getAsString();
                 continue;
             }
