@@ -596,18 +596,24 @@ public class FileGenerator {
         Path index = base.resolve("index.html");
         Context ctx = new Context();
         
-        // Preserve existing indexes
         if (items.isEmpty() && Files.exists(index)) {
             return;
         }
-        List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(index));
-        CategoryGroup synthetic = new CategoryGroup("0", "", false);
-        for (Link l : merged) {
-            synthetic.getChannels().add(l);
+        List<CategoryGroup> groups = buildCategoryGroups();
+        if (groups != null && !groups.isEmpty()) {
+            // アクティブなcategoryで生成
+            ctx.setVariable("categories", groups);
+        } else {
+            // カテゴリが存在しない場合
+            List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(index));
+            CategoryGroup synthetic = new CategoryGroup("0", "", false);
+            for (Link l : merged) {
+                synthetic.getChannels().add(l);
+            }
+            List<CategoryGroup> synthList = new ArrayList<>();
+            synthList.add(synthetic);
+            ctx.setVariable("categories", synthList);
         }
-        List<CategoryGroup> synthList = new ArrayList<>();
-        synthList.add(synthetic);
-        ctx.setVariable("categories", synthList);
 
         // Resolve guild name from DB if possible
         String guildName = "Discord";
