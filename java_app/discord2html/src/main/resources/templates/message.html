@@ -56,10 +56,11 @@
           </div>
         </div>
       </div>
-      <div class="reactions" th:if="${msg.getReactions() != null and !#lists.isEmpty(msg.getReactions())}">
-        <span class="reaction" th:each="re : ${msg.getReactions()}">
-          <span class="emoji" th:text="${re.getEmoji().getName()}">😀</span>
-          <span class="count" th:text="${re.getCount()}">1</span>
+      <div class="reactions" th:if="${msg.getReactionViews() != null and !#lists.isEmpty(msg.getReactionViews())}">
+        <span class="reaction" th:each="rv : ${msg.getReactionViews()}">
+          <img th:if="${rv.isCustom()}" class="emoji" th:src="${basePrefix + '/' + rv.getEmojiLocalPath()}" th:alt="${rv.getAlt()}" />
+          <span th:if="${!rv.isCustom()}" class="emoji" th:text="${rv.getEmojiText()}">😀</span>
+          <span class="count" th:text="${rv.getCount()}">1</span>
         </span>
       </div>
     </div>
