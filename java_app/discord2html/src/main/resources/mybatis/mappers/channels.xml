@@ -23,26 +23,28 @@
     </select>
     
     <insert id="register" parameterType="Channels">
-        INSERT INTO channels (channel_id, guild_id, channel_name)
-        VALUES (#{channel_id}, #{guild_id}, #{channel_name})
+        INSERT INTO channels (channel_id, guild_id, channel_name, category_id, category_name)
+        VALUES (#{channel_id}, #{guild_id}, #{channel_name}, #{category_id}, #{category_name})
     </insert>
     
     <update id="update" parameterType="Channels">
         UPDATE channels
-        SET channel_name = #{channel_name}
+        SET channel_name = #{channel_name},
+            category_id = #{category_id},
+            category_name = #{category_name}
         WHERE channel_id = #{channel_id}
     </update>
     
     <select id="selectOne" parameterType="Channels">
         SELECT 
-            guild_id, channel_id, channel_name
+            guild_id, channel_id, channel_name, category_id, category_name
         FROM channels
         WHERE channel_id = #{channel_id}
     </select>
     
     <select id="selectAll" parameterType="Channels">
         SELECT
-            guild_id, channel_id, channel_name
+            guild_id, channel_id, channel_name, category_id, category_name
         FROM channels
         WHERE guild_id = #{guild_id}
     </select>

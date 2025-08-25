@@ -12,10 +12,12 @@ import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
+import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.github.GitUtil;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
 import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
+import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.db.model.Users;
@@ -39,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.TimeZone;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -61,6 +64,23 @@ public class FileGenerator {
         public String getLabel() { return label; }
     }
 
+    public static class CategoryGroup {
+        private final String name;
+        private final String id; // unsigned decimal string or "0" for uncategorized
+        private final List<Link> channels;
+        private final boolean deleted; // category deleted or missing in live guild
+        public CategoryGroup(String id, String name, boolean deleted) {
+            this.id = id;
+            this.name = name;
+            this.deleted = deleted;
+            this.channels = new ArrayList<>();
+        }
+        public String getName() { return name; }
+        public String getId() { return id; }
+        public List<Link> getChannels() { return channels; }
+        public boolean isDeleted() { return deleted; }
+    }
+
     private static final String TEMPLATE_NAME = "message";
     private static final String THREAD_TEMPLATE_NAME = "thread_message";
 
@@ -73,6 +93,7 @@ public class FileGenerator {
     private final GuildsDAO guildsDao;
     private final UsersDAO usersDao;
     private final AnonStatsDAO anonStatsDao;
+    private final ChannelsDAO channelsDao;
     private final DiscordJdaProvider jdaProvider;
     private Long lastGuildId = null;
     private final String botVersion;
@@ -80,13 +101,14 @@ public class FileGenerator {
     public FileGenerator(ApplicationConfig config, Secrets secrets, TemplateEngine templateEngine,
                          GitUtil gitUtil, GuildsDAO guildsDao,
                          UsersDAO usersDao, AnonStatsDAO anonStatsDao,
-                         DiscordJdaProvider jdaProvider) {
+                         ChannelsDAO channelsDao, DiscordJdaProvider jdaProvider) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
         this.gitUtil = gitUtil;
         this.guildsDao = guildsDao;
         this.usersDao = usersDao;
         this.anonStatsDao = anonStatsDao;
+        this.channelsDao = channelsDao;
         this.jdaProvider = jdaProvider;
         this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
@@ -321,7 +343,8 @@ public class FileGenerator {
         items.add(link);
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(index));
         Context ctx = new Context();
-        ctx.setVariable("channels", merged);
+        List<CategoryGroup> groups = buildCategoryGroups();
+        ctx.setVariable("categories", groups);
         String guildName = "Discord";
         try {
             if (lastGuildId != null) {
@@ -423,7 +446,96 @@ public class FileGenerator {
         writeIfChanged(channelArchive, page);
     }
 
-    private void regenerateTopIndex() throws IOException {
+    private List<CategoryGroup> buildCategoryGroups() {
+            if (lastGuildId == null) { return List.of(); }
+            try {
+                Guild guild = jdaProvider.getJda().getGuildById(lastGuildId);
+                List<Channels> dbChannels = channelsDao.selectAllInGuild(new GuildId(lastGuildId));
+                // Map categories by id string (or "0" for uncategorized)
+                Map<String, CategoryGroup> map = new LinkedHashMap<>();
+                List<String> liveOrder = new ArrayList<>();
+                if (guild != null) {
+                    guild.getCategories().forEach(cat -> liveOrder.add(Long.toUnsignedString(cat.getIdLong())));
+                }
+                BiFunction<String,String,CategoryGroup> ensure = (id, name) -> {
+                    CategoryGroup g = map.get(id);
+                    if (g == null) {
+                        boolean deleted = true;
+                        if (guild != null) {
+                            if ("0".equals(id)) {
+                                deleted = false; // uncategorized exists logically
+                            } else {
+                                var live = guild.getCategories().stream().anyMatch(c -> Long.toUnsignedString(c.getIdLong()).equals(id));
+                                deleted = !live;
+                            }
+                        }
+                        g = new CategoryGroup(id, name == null || name.isEmpty() ? ("0".equals(id) ? "未分類" : (id)) : name, deleted);
+                        map.put(id, g);
+                    }
+                    return g;
+                };
+                // Compose links per channel, mark deleted channels
+                for (Channels ch : dbChannels) {
+                    String chId = ch.getChannelId().toString();
+                    String catId = ch.getCategoryId() == null ? "0" : ch.getCategoryId().toString();
+                    String catName = ch.getCategoryName() == null ? "" : ch.getCategoryName().getValue();
+                    CategoryGroup group = ensure.apply(catId, catName);
+                    String label = ch.getChannelName() != null ? ch.getChannelName().getValue() : chId;
+                    boolean exists = false;
+                    if (guild != null) {
+                        try {
+                            exists = (jdaProvider.getJda().getTextChannelById(ch.getChannelId().getValue()) != null);
+                        } catch (Throwable ignore) {}
+                    }
+                    if (!exists) {
+                        label = label + " (削除済み)";
+                    }
+                    String href = "archives/" + chId + ".html";
+                    group.getChannels().add(new Link(href, label));
+                }
+                // Order groups: live categories in guild order, then non-live (deleted) categories by name
+                List<CategoryGroup> groups = new ArrayList<>();
+                // First, add in liveOrder if present in map
+                for (String id : liveOrder) {
+                    CategoryGroup g = map.get(id);
+                    if (g != null) { groups.add(g); }
+                }
+                // Ensure uncategorized ("0") comes after live categories but before deleted categories
+                if (map.containsKey("0")) {
+                    // If not already included
+                    boolean included = groups.stream().anyMatch(g -> g.getId().equals("0"));
+                    if (!included) { groups.add(map.get("0")); }
+                }
+                // Add remaining deleted categories (not live and not uncategorized) at the end sorted by name
+                List<CategoryGroup> deletedGroups = map.values().stream()
+                        .filter(g -> !liveOrder.contains(g.getId()) && !"0".equals(g.getId()))
+                        .sorted(Comparator.comparing(CategoryGroup::getName))
+                        .collect(Collectors.toList());
+                groups.addAll(deletedGroups);
+                // Within each group, sort: existing channels first (no "(削除済み)" suffix), then deleted, keep name order
+                for (CategoryGroup g : groups) {
+                    List<Link> live = new ArrayList<>();
+                    List<Link> gone = new ArrayList<>();
+                    for (Link l : g.getChannels()) {
+                        if (l.getLabel() != null && l.getLabel().endsWith("(削除済み)")) {
+                            gone.add(l);
+                        } else {
+                            live.add(l); 
+                        }
+                    }
+                    live.sort(Comparator.comparing(Link::getLabel));
+                    gone.sort(Comparator.comparing(Link::getLabel));
+                    g.getChannels().clear();
+                    g.getChannels().addAll(live);
+                    g.getChannels().addAll(gone);
+                }
+                return groups;
+            } catch (Throwable ignore) {
+                return List.of();
+            }
+        }
+
+        private void regenerateTopIndex() throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
             return;
@@ -480,6 +592,7 @@ public class FileGenerator {
         }
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(index));
         Context ctx = new Context();
+        List<CategoryGroup> groups = buildCategoryGroups();
         ctx.setVariable("channels", merged);
         // Resolve guild name from DB if possible
         String guildName = "Discord";
