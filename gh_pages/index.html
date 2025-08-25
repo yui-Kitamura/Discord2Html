@@ -6,6 +6,7 @@
   <title>Discord アーカイブ一覧</title>
   <link rel="stylesheet" href="/Discord2Html/css/style.css" />
   <link rel="icon" href="https://cdn.discordapp.com/icons/1383048154206965822/cdfc61ed42912726d3f0ca4f9cbb7775.png" />
+  <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
 <main class="container">
@@ -47,8 +48,15 @@
   <p class="footer">
     <a href="https://github.com/yui-Kitamura/Discord2Html" target="_blank">GitHub Repository:
       yui-Kitamura/Discord2Html</a>
-    <span> | bot ver1.4.0@6045ce4</span>
+    <span> | bot ver1.4.1dev@023fa93</span>
   </p>
 </footer>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.twemoji) {
+      try { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); } catch (e) { /* noop */ }
+    }
+  });
+</script>
 </body>
 </html>
