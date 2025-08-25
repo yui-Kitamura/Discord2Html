@@ -444,9 +444,8 @@ public class FileGenerator {
     }
     
     // Helper to ensure a CategoryGroup exists in the map
-    private CategoryGroup ensureCategoryGroup(Map<String, CategoryGroup> map, Guild guild, String id, String name) {
-        CategoryGroup g = map.get(id);
-        if (g == null) {
+    private void ensureCategoryGroup(Map<String, CategoryGroup> map, Guild guild, String id, String name) {
+        if (map.get(id) == null) {
             boolean deleted = false;
             if ("0".equals(id)) {
                 // 未分類カテゴリ''
@@ -458,10 +457,8 @@ public class FileGenerator {
                 deleted = !live;
             }
             String resolvedName = (name == null || name.isEmpty()) ? ("0".equals(id) ? "" : id) : name;
-            g = new CategoryGroup(id, resolvedName, deleted);
-            map.put(id, g);
+            map.put(id, new CategoryGroup(id, resolvedName, deleted));
         }
-        return g;
     }
 
     private List<CategoryGroup> buildCategoryGroups() {
@@ -497,23 +494,17 @@ public class FileGenerator {
                         }
                     } catch (Throwable ignore) { /* best-effort */ }
                 }
-                CategoryGroup group = ensureCategoryGroup(map, guild, catId, catName);
+                ensureCategoryGroup(map, guild, catId, catName);
+                CategoryGroup group = map.get(catId);
                 String label = ch.getChannelName() != null ? ch.getChannelName().getValue() : chId;
-                boolean exists = false;
-                if (guild != null) {
-                    try {
-                        exists = (jdaProvider.getJda().getTextChannelById(ch.getChannelId().getValue()) != null);
-                    } catch (Throwable ignore) {}
-                }
-                if (!exists) {
-                    label = label + " (削除済み)";
+                if(group.deleted) {
+                    label += " (削除済み)";
                 }
                 String href = "archives/" + chId + ".html";
                 group.getChannels().add(new Link(href, label));
             }
             // Order groups: live categories in guild order, then non-live (deleted) categories by name
             List<CategoryGroup> groups = new ArrayList<>();
-            // First, add in liveOrder if present in map
             for (String id : liveOrder) {
                 CategoryGroup g = map.get(id);
                 if (g != null) { groups.add(g); }
