@@ -206,7 +206,16 @@ public class MessageInfo {
         // 2) Plain https://... (stop before whitespace, <, ), or an HTML entity starting with & that is NOT &amp;). Allow &amp; within URLs for query params.
         escaped = escaped.replaceAll("(?<![\\\"'>])https://[^\\s<)]+?(?=(?:&(?!amp;))|\\s|<|\\)|$)",
                 "<a href=\"$0\">$0</a>");
-        // 3) Convert newline characters to <br> so original message line breaks render on HTML
+        // 3) Custom Discord emoji tokens (escaped) -> <img> tags
+        // Animated: &lt;a:NAME:ID&gt; -> .gif
+        escaped = escaped.replaceAll(
+                "&lt;a:([A-Za-z0-9_~\\-]+):(\\d+)&gt;",
+                "<img class='emoji' src='/Discord2Html/archives/emoji/$2.gif' alt='$1' onerror='this.onerror=null;this.src=\"https://cdn.discordapp.com/emojis/$2.gif\"' />");
+        // Static: &lt;:NAME:ID&gt; -> .png
+        escaped = escaped.replaceAll(
+                "&lt;:([A-Za-z0-9_~\\-]+):(\\d+)&gt;",
+                "<img class='emoji' src='/Discord2Html/archives/emoji/$2.png' alt='$1' onerror='this.onerror=null;this.src=\"https://cdn.discordapp.com/emojis/$2.png\"' />");
+        // 4) Convert newline characters to <br> so original message line breaks render on HTML
         escaped = escaped.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>");
         return escaped;
     }
