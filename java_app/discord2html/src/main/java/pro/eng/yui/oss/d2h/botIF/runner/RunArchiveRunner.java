@@ -552,40 +552,6 @@ public class RunArchiveRunner implements IRunner {
         return base + date8 + "/" + channel.getId() + ".html";
     }
 
-    private Calendar getPreviousScheduledTime(Calendar now, GuildId guildId) {
-        Calendar endCopy = (Calendar) now.clone();
-        List<RunsOn> runs = guildDao.getRunsOn(guildId);
-        if (runs == null || runs.isEmpty()) {
-            // fallback: if no schedule found
-            Calendar begin = (Calendar) now.clone();
-            begin.add(Calendar.HOUR_OF_DAY, -24);
-            return begin;
-        }
-        int currentHour = endCopy.get(Calendar.HOUR_OF_DAY);
-        RunsOn prev = null;
-        for (RunsOn r : runs) {
-            if (r.getValue() < currentHour) {
-                prev = r;
-            }
-        }
-        Calendar begin = (Calendar) now.clone();
-        if (prev != null) {
-            begin.set(Calendar.MINUTE, 0);
-            begin.set(Calendar.SECOND, 0);
-            begin.set(Calendar.MILLISECOND, 0);
-            begin.set(Calendar.HOUR_OF_DAY, prev.getValue());
-        } else {
-            // previous is yesterday's last run hour
-            RunsOn last = runs.get(runs.size() - 1);
-            begin.add(Calendar.DAY_OF_MONTH, -1);
-            begin.set(Calendar.MINUTE, 0);
-            begin.set(Calendar.SECOND, 0);
-            begin.set(Calendar.MILLISECOND, 0);
-            begin.set(Calendar.HOUR_OF_DAY, last.getValue());
-        }
-        return begin;
-    }
-
     @Override
     public String afterRunMessage() {
         if (config.getPushToGitHub()) {
