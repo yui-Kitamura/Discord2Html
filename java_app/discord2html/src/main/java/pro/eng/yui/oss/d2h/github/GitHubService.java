@@ -3,10 +3,13 @@ package pro.eng.yui.oss.d2h.github;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import pro.eng.yui.oss.d2h.consts.GitHubConsts;
+import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 
 import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Paths;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,11 +25,13 @@ public class GitHubService {
 
     private final GitUtil gitUtil;
     private final GitConfig gitConfig;
+    private final ApplicationConfig appConfig;
 
     @Autowired
-    public GitHubService(GitUtil gitUtil, GitConfig gitConfig) {
+    public GitHubService(GitUtil gitUtil, GitConfig gitConfig, ApplicationConfig appConfig) {
         this.gitUtil = gitUtil;
         this.gitConfig = gitConfig;
+        this.appConfig = appConfig;
     }
 
     /**
@@ -64,6 +69,8 @@ public class GitHubService {
 
         // Ensure static assets exist under gh_pages and include them in the staging list
         ensureStaticAssetsInRepo(repoDirFile, filesToAdd);
+        // Also ensure custom emoji resources are staged
+        ensureEmojisInRepo(repoDirFile, filesToAdd);
         for (Path htmlFilePath : htmlFilePaths) {
             String fileName = htmlFilePath.getFileName().toString();
             File targetFile;
@@ -166,6 +173,30 @@ public class GitHubService {
             File logoFile = new File(ghPagesRoot, "D2H_logo.png");
             java.nio.file.Files.write(logoFile.toPath(), logo);
             filesToAdd.add(getRelativePath(repoDirFile, logoFile));
+        }
+    }
+
+    /**
+     * Copy custom emoji files from outputPath/archives/emoji into gh_pages/archives/emoji in the repo
+     * and add them to filesToAdd for staging. Best-effort: silently return if none exist.
+     */
+    private void ensureEmojisInRepo(File repoDirFile, List<String> filesToAdd) throws IOException {
+        if (appConfig == null) return;
+        Path sourceEmojiDir = Paths.get(appConfig.getOutputPath(), "archives", "emoji");
+        if (!Files.exists(sourceEmojiDir) || !Files.isDirectory(sourceEmojiDir)) {
+            return;
+        }
+        File ghPagesRoot = new File(repoDirFile, "gh_pages");
+        File targetEmojiDir = new File(new File(ghPagesRoot, "archives"), "emoji");
+        targetEmojiDir.mkdirs();
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(sourceEmojiDir)) {
+            for (Path p : stream) {
+                if (!Files.isRegularFile(p)) continue;
+                File targetFile = new File(targetEmojiDir, p.getFileName().toString());
+                Files.copy(p, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                filesToAdd.add(getRelativePath(repoDirFile, targetFile));
+            }
         }
     }
 
