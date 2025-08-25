@@ -583,16 +583,23 @@ public class FileGenerator {
                     } catch (Throwable ignore) {}
                     return new Link("archives/" + id + ".html", label);
                 })
-                .collect(Collectors.toList()));
+                .toList());
         Path index = base.resolve("index.html");
-        // Preserve existing index if nothing to list (e.g., output cleared)
+        Context ctx = new Context();
+        
+        // Preserve existing indexes
         if (items.isEmpty() && Files.exists(index)) {
             return;
         }
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(index));
-        Context ctx = new Context();
-        List<CategoryGroup> groups = buildCategoryGroups();
-        ctx.setVariable("channels", merged);
+        CategoryGroup synthetic = new CategoryGroup("0", "未分類", false);
+        for (Link l : merged) {
+            synthetic.getChannels().add(l);
+        }
+        List<CategoryGroup> synthList = new ArrayList<>();
+        synthList.add(synthetic);
+        ctx.setVariable("categories", synthList);
+
         // Resolve guild name from DB if possible
         String guildName = "Discord";
         try {
