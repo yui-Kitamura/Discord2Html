@@ -15,6 +15,8 @@ CREATE TABLE channels
     channel_id   BIGINT UNSIGNED PRIMARY KEY,
     guild_id     BIGINT UNSIGNED NOT NULL,
     channel_name VARCHAR(255) NOT NULL,
+    category_id  BIGINT UNSIGNED NULL,
+    category_name VARCHAR(255) NULL,
     FOREIGN KEY (guild_id) REFERENCES guilds(guild_id)
 );
 

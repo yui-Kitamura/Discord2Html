@@ -4,6 +4,8 @@ import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
+import pro.eng.yui.oss.d2h.db.field.CategoryId;
+import pro.eng.yui.oss.d2h.db.field.CategoryName;
 
 import java.util.Objects;
 
@@ -36,6 +38,16 @@ public class Channels {
         return channel_name;
     }
 
+    /** DiscordカテゴリID（削除時の追跡用） */
+    private CategoryId category_id;
+    public void setCategoryId(CategoryId newValue){ this.category_id = newValue; }
+    public CategoryId getCategoryId(){ return category_id; }
+
+    /** Discordカテゴリ名（削除時の追跡用） */
+    private CategoryName category_name;
+    public void setCategoryName(CategoryName newValue){ this.category_name = newValue; }
+    public CategoryName getCategoryName(){ return category_name; }
+
     public Channels(){
         // nothing to do
     }
@@ -46,6 +58,8 @@ public class Channels {
         hash = hash * 31 + (channel_id == null ? 0 : channel_id.hashCode());
         hash = hash * 31 + (guild_id == null ? 0 : guild_id.hashCode());
         hash = hash * 31 + (channel_name == null ? 0 : channel_name.hashCode());
+        hash = hash * 31 + (category_id == null ? 0 : category_id.hashCode());
+        hash = hash * 31 + (category_name == null ? 0 : category_name.hashCode());
         return hash;
     }
     
@@ -62,6 +76,12 @@ public class Channels {
             return false;
         }
         if(!Objects.equals(channel_name, other.channel_name)){
+            return false;
+        }
+        if(!Objects.equals(category_id, other.category_id)){
+            return false;
+        }
+        if(!Objects.equals(category_name, other.category_name)){
             return false;
         }
         return true;

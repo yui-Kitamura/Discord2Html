@@ -9,6 +9,7 @@ import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -51,6 +52,16 @@ public class DiscordBotUtils {
         newRecord.setGuildId(new GuildId(ch.getGuild()));
         newRecord.setChannelId(new ChannelId(ch));
         newRecord.setChannelName(new ChannelName(ch));
+        // Set category id/name if available (null-safe)
+        try {
+            if (ch instanceof ICategorizableChannel cc) {
+                Category parent = cc.getParentCategory();
+                if (parent != null) {
+                    newRecord.setCategoryId(new CategoryId(parent));
+                    newRecord.setCategoryName(new CategoryName(parent));
+                }
+            }
+        } catch (Throwable ignore) { /* older channel types or no category */ }
         channelsDao.upsertChannelInfo(newRecord);
     }
 
