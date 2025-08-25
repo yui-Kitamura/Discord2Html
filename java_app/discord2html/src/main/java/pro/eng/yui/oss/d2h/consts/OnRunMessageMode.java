@@ -1,8 +1,9 @@
 package pro.eng.yui.oss.d2h.consts;
 
 public enum OnRunMessageMode {
-    ON,
-    OFF;
+    START,
+    END,
+    BOTH;
 
     public static OnRunMessageMode get(String value){
         for (OnRunMessageMode m : OnRunMessageMode.values()) {
@@ -22,6 +23,7 @@ public enum OnRunMessageMode {
         }
     }
 
-    public boolean isOn(){ return this == ON; }
-    public boolean isOff(){ return this == OFF; }
+    public boolean isStart(){ return this == START; }
+    public boolean isEnd(){ return this == END; }
+    public boolean isBoth(){ return this == BOTH; }
 }

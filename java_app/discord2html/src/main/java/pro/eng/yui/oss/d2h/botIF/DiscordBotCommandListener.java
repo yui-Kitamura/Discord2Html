@@ -28,10 +28,11 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                             .addChoice("monitor", "monitor")
                     )
                     .addOptions(new OptionData(
-                            OptionType.STRING, "onrunmessage", "toggle start/end message on run", false
+                            OptionType.STRING, "onrunmessage", "toggle start/end/both message on run", false
                             )
-                            .addChoice("on", "on")
-                            .addChoice("off", "off")
+                            .addChoice("start", "start")
+                            .addChoice("end", "end")
+                            .addChoice("both", "both")
                     )
                     .addOptions(new OptionData(
                             OptionType.STRING, "onrunurl", "toggle share url on run end", false

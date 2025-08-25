@@ -9,7 +9,7 @@
              anon_cycle, last_anon_changed, runs_on, on_run_message, on_run_url)
         VALUES
             (#{guild_id}, #{guild_name}, CURRENT_TIMESTAMP,
-             #{anon_cycle}, CURRENT_TIMESTAMP, 12, 'on', 'deny')
+             #{anon_cycle}, CURRENT_TIMESTAMP, 12, 'both', 'deny')
     </insert>
     
     <update id="update" parameterType="Guilds">
