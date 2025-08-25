@@ -449,7 +449,7 @@ public class FileGenerator {
         if (g == null) {
             boolean deleted = false;
             if ("0".equals(id)) {
-                // '未分類'
+                // 未分類カテゴリ''
                 deleted = false; 
             } else {
                 boolean live = guild.getCategories().stream().anyMatch(c -> {
@@ -457,7 +457,7 @@ public class FileGenerator {
                 );
                 deleted = !live;
             }
-            String resolvedName = (name == null || name.isEmpty()) ? ("0".equals(id) ? "未分類" : id) : name;
+            String resolvedName = (name == null || name.isEmpty()) ? ("0".equals(id) ? "" : id) : name;
             g = new CategoryGroup(id, resolvedName, deleted);
             map.put(id, g);
         }
@@ -610,7 +610,7 @@ public class FileGenerator {
             return;
         }
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(index));
-        CategoryGroup synthetic = new CategoryGroup("0", "未分類", false);
+        CategoryGroup synthetic = new CategoryGroup("0", "", false);
         for (Link l : merged) {
             synthetic.getChannels().add(l);
         }
