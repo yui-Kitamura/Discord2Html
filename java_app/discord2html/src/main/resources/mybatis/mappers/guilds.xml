@@ -6,21 +6,29 @@
     <insert id="register" parameterType="Guilds">
         INSERT INTO guilds
             (guild_id, guild_name, joined_time, 
-             anon_cycle, last_anon_changed, runs_on)
+             anon_cycle, last_anon_changed, runs_on, on_run_message, on_run_url)
         VALUES
             (#{guild_id}, #{guild_name}, CURRENT_TIMESTAMP,
-             #{anon_cycle}, CURRENT_TIMESTAMP, 12)
+             #{anon_cycle}, CURRENT_TIMESTAMP, 12, 'on', 'deny')
     </insert>
     
     <update id="update" parameterType="Guilds">
         UPDATE guilds
         <set>
-            guild_name = #{guild_name}
+            <if test="guildName != null">
+                guild_name = #{guild_name}
+            </if>
             <if test="anonCycle != null">
                 ,anon_cycle = #{anon_cycle}
             </if>
             <if test="runsOn != null">
                 ,runs_on = #{runs_on, jdbcType=INTEGER}
+            </if>
+            <if test="onRunMessage != null">
+                ,on_run_message = #{on_run_message}
+            </if>
+            <if test="onRunUrl != null">
+                ,on_run_url = #{on_run_url}
             </if>
         </set>
         WHERE guild_id = #{guild_id}
@@ -28,14 +36,14 @@
     
     <select id="selectOne" parameterType="Guilds">
         SELECT 
-            guild_id, guild_name, joined_time, anon_cycle, runs_on
+            guild_id, guild_name, joined_time, anon_cycle, runs_on, on_run_message, on_run_url
         FROM guilds
         WHERE guild_id = #{guild_id}
     </select>
     
     <select id="selectAll">
         SELECT
-            guild_id, guild_name, joined_time, anon_cycle, runs_on
+            guild_id, guild_name, joined_time, anon_cycle, runs_on, on_run_message, on_run_url
         FROM guilds
     </select>
     
