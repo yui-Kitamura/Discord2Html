@@ -26,6 +26,7 @@ import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.html.ChannelInfo;
 import pro.eng.yui.oss.d2h.html.FileGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
+import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
 
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -238,10 +239,9 @@ public class RunArchiveRunner implements IRunner {
 
         // Load guild settings for onRunMessage and onRunURL
         Guilds guildSettings = guildDao.selectGuildInfo(new GuildId(channel.getGuild()));
-        final boolean showMessages = (!isThread) && (guildSettings.getOnRunMessage().get().isOn());
-        final boolean shareUrl = guildSettings.getOnRunUrl().get().isShare();
+        OnRunMessageMode msgMode = guildSettings.getOnRunMessage().get();
         
-        if (showMessages) {
+        if ((!isThread) && (msgMode.isStart() || msgMode.isBoth())) {
             channel.sendMessage("This channel is archive target. Start >>>").queue();
         }
 
@@ -393,9 +393,9 @@ public class RunArchiveRunner implements IRunner {
             }
         }
 
-        if (showMessages) {
+        if ((!isThread) && (msgMode.isEnd() || msgMode.isBoth())) {
             String endMsg = "archive created. task end <<<";
-            if (shareUrl) {
+            if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
                     SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
                     ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
