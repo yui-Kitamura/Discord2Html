@@ -259,8 +259,7 @@ public class FileGenerator {
             for (String d8 : affectedDate8) {
                 prependChannelArchiveEntry(channel.getChannelId(), d8);
             }
-            // Ensure the top index contains the channel link at the beginning
-            prependTopIndexChannel(channel.getChannelId());
+            regenerateTopIndex();
             regenerateHelpPage();
         } catch (IOException e) {
             // Do not fail the main generation if index regeneration fails; log via RuntimeException to keep visibility
@@ -326,36 +325,6 @@ public class FileGenerator {
         } catch (IOException ignore) { /* best-effort */ }
     }
 
-    private void prependTopIndexChannel(ChannelId channelId) throws IOException {
-        Path base = Paths.get(appConfig.getOutputPath());
-        if (!Files.exists(base)) { return; }
-        Path index = base.resolve("index.html");
-        // Build channel link
-        String label = channelId.toString();
-        try {
-            var tc = jdaProvider.getJda().getTextChannelById(channelId.getValue());
-            if (tc != null && tc.getName() != null && !tc.getName().isEmpty()) { label = tc.getName(); }
-        } catch (Throwable ignore) {}
-        Link link = new Link("archives/" + channelId + ".html", label);
-        List<Link> items = new ArrayList<>();
-        items.add(link);
-        List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(index));
-        Context ctx = new Context();
-        List<CategoryGroup> groups = buildCategoryGroups();
-        ctx.setVariable("categories", groups);
-        String guildName = "Discord";
-        try {
-            if (lastGuildId != null) {
-                Guilds g = guildsDao.selectGuildInfo(new GuildId(lastGuildId));
-                if (g != null && g.getGuildName() != null) { guildName = g.getGuildName().getValue(); }
-            }
-        } catch (Exception ignore) {}
-        ctx.setVariable("guildName", guildName);
-        ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
-        ctx.setVariable("botVersion", botVersion);
-        String page = templateEngine.process("top", ctx);
-        writeIfChanged(index, page);
-    }
 
     private void regenerateChannelArchives(ChannelId channelId) throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
