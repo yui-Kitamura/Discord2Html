@@ -21,7 +21,12 @@ body {
   margin: 0;
   padding: 1em 0;
 }
-
+img.emoji { /* Twemoji */
+    height: 1em;
+    width: 1em;
+    margin: 0 .05em 0 .1em;
+    vertical-align: -0.1em;
+}
 .container {
   max-width: 900px;
   margin: auto;
@@ -133,10 +138,31 @@ section {
     margin-top: 6px;
 }
 
-.attachment-link {
+ .attachment-link {
     display: inline-block;
     margin-top: 6px;
 }
+
+/* Reactions */
+.reactions {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.reaction {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    background: #2b2f33;
+    border: 1px solid #4a4d52;
+    border-radius: 12px;
+    font-size: 0.9em;
+    color: var(--text);
+}
+.reaction .emoji { line-height: 1; }
+.reaction .count { color: var(--muted); font-weight: 600; }
 
 hr { 
     border: none; height: 1px; background: var(--divider); margin: 2em 0;
