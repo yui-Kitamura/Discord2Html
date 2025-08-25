@@ -491,12 +491,12 @@ public class FileGenerator {
                 BiFunction<String,String,CategoryGroup> ensure = (id, name) -> {
                     CategoryGroup g = map.get(id);
                     if (g == null) {
-                        boolean deleted = true;
+                        boolean deleted = false;
                         if (guild != null) {
                             if ("0".equals(id)) {
                                 deleted = false; // uncategorized exists logically
                             } else {
-                                var live = guild.getCategories().stream().anyMatch(c -> Long.toUnsignedString(c.getIdLong()).equals(id));
+                                boolean live = guild.getCategories().stream().anyMatch(c -> Long.toUnsignedString(c.getIdLong()).equals(id));
                                 deleted = !live;
                             }
                         }
