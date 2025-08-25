@@ -52,6 +52,12 @@
           </div>
         </div>
       </div>
+      <div class="reactions" th:if="${msg.getReactions() != null and !#lists.isEmpty(msg.getReactions())}">
+        <span class="reaction" th:each="re : ${msg.getReactions()}">
+          <span class="emoji" th:text="${re.getEmoji().getName()}">😀</span>
+          <span class="count" th:text="${re.getCount()}">1</span>
+        </span>
+      </div>
     </div>
   </div>
 </div>
