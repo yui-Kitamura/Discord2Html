@@ -447,11 +447,16 @@ public class FileGenerator {
     private CategoryGroup ensureCategoryGroup(Map<String, CategoryGroup> map, Guild guild, String id, String name) {
         CategoryGroup g = map.get(id);
         if (g == null) {
-            // Default to NOT deleted unless confirmed missing by live guild
-            boolean live = guild.getCategories().stream().anyMatch(c -> {
-                return Long.toUnsignedString(c.getIdLong()).equals(id);
-            });
-            final boolean deleted = !live;
+            boolean deleted = false;
+            if ("0".equals(id)) {
+                // '未分類'
+                deleted = false; 
+            } else {
+                boolean live = guild.getCategories().stream().anyMatch(c -> {
+                    return Long.toUnsignedString(c.getIdLong()).equals(id);}
+                );
+                deleted = !live;
+            }
             String resolvedName = (name == null || name.isEmpty()) ? ("0".equals(id) ? "未分類" : id) : name;
             g = new CategoryGroup(id, resolvedName, deleted);
             map.put(id, g);
@@ -479,6 +484,19 @@ public class FileGenerator {
                 }
                 String catId = ch.getCategoryId() == null ? "0" : ch.getCategoryId().toString();
                 String catName = ch.getCategoryName() == null ? "" : ch.getCategoryName().getValue();
+                // If DB lacks category info, try to supplement from live JDA
+                if ("0".equals(catId) && guild != null) {
+                    try {
+                        var tc = jdaProvider.getJda().getTextChannelById(ch.getChannelId().getValue());
+                        if (tc != null && tc.getParentCategory() != null) {
+                            catId = Long.toUnsignedString(tc.getParentCategory().getIdLong());
+                            String liveName = tc.getParentCategory().getName();
+                            if (liveName != null && !liveName.isEmpty()) {
+                                catName = liveName;
+                            }
+                        }
+                    } catch (Throwable ignore) { /* best-effort */ }
+                }
                 CategoryGroup group = ensureCategoryGroup(map, guild, catId, catName);
                 String label = ch.getChannelName() != null ? ch.getChannelName().getValue() : chId;
                 boolean exists = false;
