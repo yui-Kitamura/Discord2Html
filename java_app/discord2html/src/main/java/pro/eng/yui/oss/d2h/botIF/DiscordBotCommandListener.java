@@ -20,12 +20,25 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     public static final List<String> commands = Arrays.asList("d2h");
     public static final List<SubcommandData> D2H_SUB_COMMANDS = List.of(
             new SubcommandData("archive", "change channel archive settings")
-                    .addOption(OptionType.CHANNEL, "channel", "target channel", true)
+                    .addOption(OptionType.CHANNEL, "channel", "target channel", false)
                     .addOptions(new OptionData(
-                            OptionType.STRING, "mode", "do archive", true
+                            OptionType.STRING, "mode", "do archive", false
                             )
                             .addChoice("ignore", "ignore")
                             .addChoice("monitor", "monitor")
+                    )
+                    .addOptions(new OptionData(
+                            OptionType.STRING, "onrunmessage", "toggle start/end/both message on run", false
+                            )
+                            .addChoice("start", "start")
+                            .addChoice("end", "end")
+                            .addChoice("both", "both")
+                    )
+                    .addOptions(new OptionData(
+                            OptionType.STRING, "onrunurl", "toggle share url on run end", false
+                            )
+                            .addChoice("share", "share")
+                            .addChoice("deny", "deny")
                     )
             ,
             new SubcommandData("run", "run archive function now")
@@ -169,7 +182,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if(isAcceptedChannel(event.getGuildChannel()) == false) {
             return;
         }
-        archiveConfigRunner.run(event.getOptions());
+        archiveConfigRunner.run(event.getGuild(), event.getOptions());
         event.getHook().sendMessage(archiveConfigRunner.afterRunMessage()).queue();
     }
     

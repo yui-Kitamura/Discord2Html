@@ -60,6 +60,24 @@ public class Guilds {
         return runs_on;
     }
     
+    /** 実行時のメッセージ表示設定（"on"/"off"） */
+    private OnRunMessage on_run_message;
+    public void setOnRunMessage(OnRunMessage newValue) {
+        this.on_run_message = newValue;
+    }
+    public OnRunMessage getOnRunMessage() {
+        return on_run_message;
+    }
+    
+    /** 実行後のURL共有設定（"share"/"deny"） */
+    private OnRunUrl on_run_url;
+    public void setOnRunUrl(OnRunUrl newValue) {
+        this.on_run_url = newValue;
+    }
+    public OnRunUrl getOnRunUrl() {
+        return on_run_url;
+    }
+    
     public List<RunsOn> getRunsOnList(){
         List<RunsOn> result = new ArrayList<>();
         if (runs_on == null || runs_on.getValue() <= 0 || 24 <= runs_on.getValue()) {
@@ -86,6 +104,8 @@ public class Guilds {
         hash = hash * 31 + (anon_cycle == null ? 0 : anon_cycle.hashCode());
         hash = hash * 31 + (last_anon_changed == null ? 0 : last_anon_changed.hashCode());
         hash = hash * 31 + (runs_on == null ? 0 : runs_on.hashCode());
+        hash = hash * 31 + (on_run_message == null ? 0 : on_run_message.hashCode());
+        hash = hash * 31 + (on_run_url == null ? 0 : on_run_url.hashCode());
         return hash;
     }
     
@@ -111,6 +131,12 @@ public class Guilds {
             return false;
         }
         if(!Objects.equals(runs_on, other.runs_on)){
+            return false;
+        }
+        if(!Objects.equals(on_run_message, other.on_run_message)){
+            return false;
+        }
+        if(!Objects.equals(on_run_url, other.on_run_url)){
             return false;
         }
         return true;
