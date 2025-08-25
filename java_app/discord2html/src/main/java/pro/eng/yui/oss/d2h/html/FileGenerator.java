@@ -445,12 +445,43 @@ public class FileGenerator {
         } catch (IOException ignore) { /* best-effort */ }
         writeIfChanged(channelArchive, page);
     }
-
+    
+    // Discover channel IDs that have at least one archived daily file under output/archives/yyyyMMdd/*.html
+    private Set<String> discoverArchivedChannelIds() {
+        Set<String> ids = new HashSet<>();
+        try {
+            Path base = Paths.get(appConfig.getOutputPath());
+            if (!Files.exists(base)) { return ids; }
+            Path archivesRoot = base.resolve("archives");
+            if (!Files.exists(archivesRoot) || !Files.isDirectory(archivesRoot)) { 
+                return ids;
+            }
+            try (DirectoryStream<Path> days = Files.newDirectoryStream(archivesRoot)) {
+                for (Path dayDir : days) {
+                    String name = dayDir.getFileName().toString();
+                    if (!Files.isDirectory(dayDir) || !name.matches("\\d{8}")) { continue; }
+                    try (DirectoryStream<Path> htmls = Files.newDirectoryStream(dayDir, "*.html")) {
+                        for (Path p : htmls) {
+                            String fileName = p.getFileName().toString();
+                            ids.add(fileName.substring(0, fileName.length() - 5));
+                        }
+                    } catch (IOException ignore) {
+                        // best-effort per day dir
+                    }
+                }
+            }
+        } catch (IOException ignore) {
+            // best-effort: return what we have
+        }
+        return ids;
+    }
+    
     private List<CategoryGroup> buildCategoryGroups() {
             if (lastGuildId == null) { return List.of(); }
             try {
                 Guild guild = jdaProvider.getJda().getGuildById(lastGuildId);
                 List<Channels> dbChannels = channelsDao.selectAllInGuild(new GuildId(lastGuildId));
+                Set<String> archivedIds = discoverArchivedChannelIds();
                 // Map categories by id string (or "0" for uncategorized)
                 Map<String, CategoryGroup> map = new LinkedHashMap<>();
                 List<String> liveOrder = new ArrayList<>();
@@ -474,9 +505,12 @@ public class FileGenerator {
                     }
                     return g;
                 };
-                // Compose links per channel, mark deleted channels
+                // Compose links per channel, mark deleted channels; only include archived channels
                 for (Channels ch : dbChannels) {
                     String chId = ch.getChannelId().toString();
+                    if (!archivedIds.contains(chId)) {
+                        continue; // skip channels with no archives
+                    }
                     String catId = ch.getCategoryId() == null ? "0" : ch.getCategoryId().toString();
                     String catName = ch.getCategoryName() == null ? "" : ch.getCategoryName().getValue();
                     CategoryGroup group = ensure.apply(catId, catName);
@@ -502,7 +536,6 @@ public class FileGenerator {
                 }
                 // Ensure uncategorized ("0") comes after live categories but before deleted categories
                 if (map.containsKey("0")) {
-                    // If not already included
                     boolean included = groups.stream().anyMatch(g -> g.getId().equals("0"));
                     if (!included) { groups.add(map.get("0")); }
                 }
@@ -512,7 +545,7 @@ public class FileGenerator {
                         .sorted(Comparator.comparing(CategoryGroup::getName))
                         .collect(Collectors.toList());
                 groups.addAll(deletedGroups);
-                // Within each group, sort: existing channels first (no "(削除済み)" suffix), then deleted, keep name order
+                // Within each group, sort: existing channels first (no "(削除済み)" suffix), then deleted
                 for (CategoryGroup g : groups) {
                     List<Link> live = new ArrayList<>();
                     List<Link> gone = new ArrayList<>();
@@ -520,7 +553,7 @@ public class FileGenerator {
                         if (l.getLabel() != null && l.getLabel().endsWith("(削除済み)")) {
                             gone.add(l);
                         } else {
-                            live.add(l); 
+                            live.add(l);
                         }
                     }
                     live.sort(Comparator.comparing(Link::getLabel));
