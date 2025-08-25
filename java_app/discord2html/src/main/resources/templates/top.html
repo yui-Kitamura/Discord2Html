@@ -33,12 +33,6 @@
         </ul>
       </section>
     </div>
-    <!-- Fallback: flat list -->
-    <ul th:if="${categories} == null">
-      <li th:each="it : ${channels}">
-        <a th:href="${it.href}" th:text="${it.label}">channel</a>
-      </li>
-    </ul>
   </section>
 </main>
 <footer>
