@@ -17,14 +17,12 @@ import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
 import pro.eng.yui.oss.d2h.consts.UserAnon;
-import pro.eng.yui.oss.d2h.db.field.AnonStats;
-import pro.eng.yui.oss.d2h.db.field.ChannelId;
-import pro.eng.yui.oss.d2h.db.field.GuildId;
-import pro.eng.yui.oss.d2h.db.field.RunsOn;
+import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.db.model.Users;
 import pro.eng.yui.oss.d2h.github.GitHubService;
+import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.html.ChannelInfo;
 import pro.eng.yui.oss.d2h.html.FileGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
@@ -51,13 +49,15 @@ public class RunArchiveRunner implements IRunner {
     private final DiscordJdaProvider jda;
     private final FileGenerator fileGenerator;
     private final GitHubService gitHubService;
+    private final GitConfig gitConfig;
     private final List<Path> generatedFiles = new ArrayList<>();
 
     @Autowired
     public RunArchiveRunner(
             ApplicationConfig c,
             GuildsDAO g, ChannelsDAO ch, UsersDAO u, AnonStatsDAO a,
-            DiscordJdaProvider j, FileGenerator fileGenerator, GitHubService gitHubService
+            DiscordJdaProvider j, FileGenerator fileGenerator,
+            GitHubService gitHubService, GitConfig gitConfig
     ){
         this.config = c;
         this.guildDao = g;
@@ -67,6 +67,7 @@ public class RunArchiveRunner implements IRunner {
         this.jda = j;
         this.fileGenerator = fileGenerator;
         this.gitHubService = gitHubService;
+        this.gitConfig = gitConfig;
     }
     
     public void run(Member member, List<OptionMapping> options){
@@ -195,6 +196,12 @@ public class RunArchiveRunner implements IRunner {
     private void run(final GuildMessageChannel channel, final boolean scheduled){
         //validate
         Channels targetChInfo = null;
+        boolean isThread = false;
+        try {
+            isThread = channel.getType() != null && channel.getType().isThread();
+        } catch (Exception ignore) {
+            // keep default false
+        }
         if (scheduled) {
             // scheduled execution: ensure non-thread channels are MONITOR in DB
             if (channel.getType().isThread() == false) {
@@ -223,21 +230,18 @@ public class RunArchiveRunner implements IRunner {
                 }
             }
             // Allow threads to be archived even if not registered in Channels
-            boolean isThread = false;
-            try {
-                isThread = channel.getType() != null && channel.getType().isThread();
-            } catch (Exception ignore) {
-                // keep default false
-            }
             if(targetChInfo == null && !isThread) {
                 System.out.println(channel + " is not a target");
                 return;
             }
         }
 
-        final boolean isThreadCh = channel.getType().isThread();
+        // Load guild settings for onRunMessage and onRunURL
+        Guilds guildSettings = guildDao.selectGuildInfo(new GuildId(channel.getGuild()));
+        final boolean showMessages = (!isThread) && (guildSettings.getOnRunMessage().get().isOn());
+        final boolean shareUrl = guildSettings.getOnRunUrl().get().isShare();
         
-        if (!isThreadCh) {
+        if (showMessages) {
             channel.sendMessage("This channel is archive target. Start >>>").queue();
         }
 
@@ -273,7 +277,7 @@ public class RunArchiveRunner implements IRunner {
         // Retrieve messages differently for normal channels vs threads
         List<MessageInfo> messages;
         Calendar beginForOutput = (Calendar) beginDate.clone();
-        if (isThreadCh && channel instanceof ThreadChannel) {
+        if (isThread && channel instanceof ThreadChannel) {
             messages = getMessagesForThread((ThreadChannel) channel, endDate);
             // adjust begin date to earliest message for display if available
             if (!messages.isEmpty()) {
@@ -293,7 +297,7 @@ public class RunArchiveRunner implements IRunner {
         messages.sort(Comparator.comparing(MessageInfo::getCreatedTimestamp));
         
         // For threads: ensure beginForOutput reflects the earliest message timestamp (after sorting)
-        if (isThreadCh && !messages.isEmpty()) {
+        if (isThread && !messages.isEmpty()) {
             try {
                 SimpleDateFormat ts = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
                 ts.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
@@ -319,7 +323,7 @@ public class RunArchiveRunner implements IRunner {
         // Also include the per-channel archives/<channelId>.html updated by FileGenerator (deduplicated)
         // NOTE: For thread channels, the file name is t-<id>.html under archives/<parent>/threads/, not <channelName>.html.
         // Therefore, only add archives/<channelName>.html for non-thread channels and if it exists.
-        if (!isThreadCh) {
+        if (!isThread) {
             Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getId() + ".html");
             if (Files.exists(channelArchivePath) && !generatedFiles.contains(channelArchivePath)) {
                 generatedFiles.add(channelArchivePath);
@@ -389,8 +393,16 @@ public class RunArchiveRunner implements IRunner {
             }
         }
 
-        if (!isThreadCh) {
-            channel.sendMessage("archive created. task end <<<").queue();
+        if (showMessages) {
+            String endMsg = "archive created. task end <<<";
+            if (shareUrl) {
+                try {
+                    SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
+                    ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+                    endMsg += "\n" + buildChannelArchiveUrl(channel, ymd.format(endDateForOutput.getTime()));
+                } catch (Exception ignore) { /* ignore URL build failures */ }
+            }
+            channel.sendMessage(endMsg).queue();
         }
     }
 
@@ -525,6 +537,19 @@ public class RunArchiveRunner implements IRunner {
             // do not break early; continue until all past messages exhausted
         }
         return messages;
+    }
+
+    private String buildChannelArchiveUrl(GuildMessageChannel channel, String date8) {
+        if (gitConfig == null || gitConfig.getRepo() == null) {
+            return "";
+        }
+        String owner = gitConfig.getRepo().getOwner();
+        String name = gitConfig.getRepo().getName();
+        if (owner == null || name == null) {
+            return "";
+        }
+        String base = "https://" + owner + ".github.io/" + name + "/archives/";
+        return base + date8 + "/" + channel.getId() + ".html";
     }
 
     private Calendar getPreviousScheduledTime(Calendar now, GuildId guildId) {

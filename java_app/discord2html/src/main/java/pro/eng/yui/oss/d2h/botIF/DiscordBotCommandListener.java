@@ -27,6 +27,18 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                             .addChoice("ignore", "ignore")
                             .addChoice("monitor", "monitor")
                     )
+                    .addOptions(new OptionData(
+                            OptionType.STRING, "onRunMessage", "toggle start/end message on run", false
+                            )
+                            .addChoice("on", "on")
+                            .addChoice("off", "off")
+                    )
+                    .addOptions(new OptionData(
+                            OptionType.STRING, "onRunUrl", "toggle share url on run end", false
+                            )
+                            .addChoice("share", "share")
+                            .addChoice("deny", "deny")
+                    )
             ,
             new SubcommandData("run", "run archive function now")
                     .addOption(OptionType.CHANNEL, "target","target channel", false)
