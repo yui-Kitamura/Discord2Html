@@ -38,7 +38,6 @@ import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
 
 @Component
 public class RunArchiveRunner implements IRunner {
@@ -82,73 +81,100 @@ public class RunArchiveRunner implements IRunner {
         generatedFiles.clear();
 
         try {
-            boolean isTargetChannelMarked = false;
+            // Check for optional date parameter (yyyyMMdd, JST)
+            String dateStr = null;
+            GuildChannelUnion targetUnion = null;
             for (OptionMapping om : options) {
                 if ("target".equals(om.getName())) {
-                    // CHANNEL型データ対応
-                    GuildChannelUnion selected = om.getAsChannel();
-                    if (selected != null) {
-                        if (selected.getType().isThread()) {
-                            // threadの直接指定をNGにする
-                            isTargetChannelMarked = true; // prevent full-guild run on invalid target
-                            try {
-                                List<Channels> loggingChannels = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
-                                for (Channels sendTo : loggingChannels) {
-                                    jda.getJda().getGuildById(sendTo.getGuidId().getValue())
-                                            .getChannelById(GuildMessageChannel.class, sendTo.getChannelId().getValue())
-                                            .sendMessage("targetオプションはチャンネルのみ指定できます。スレッドは直接指定できません。親チャンネルを指定してください。")
-                                            .queue();
-                                }
-                            } catch (Exception ignore) { /* ignore */ }
-                            continue;
-                        }
-                        if (selected.getType().isMessage()) {
-                            GuildMessageChannel gmc = selected.asGuildMessageChannel();
-                            if (gmc != null) {
-                                isTargetChannelMarked = true;
-                                run(gmc, false);
-                                runActiveThreadsUnder(gmc, false);
-                                continue; // processed target via channel option
-                            }
-                        }
+                    try {
+                        targetUnion = om.getAsChannel();
+                    } catch (Exception ignore) { /* keep null */ }
+                    continue;
+                }
+                if ("date".equals(om.getName())) {
+                    try {
+                        dateStr = om.getAsString();
+                    } catch (Exception ignore) { /* keep null */ }
+                    continue;
+                }
+            }
+            // Default missing date to today
+            if (dateStr == null || dateStr.isBlank()) {
+                dateStr = DateTimeUtil.nowDate8();
+            }
+
+            // Validate date format using centralized util
+            if (!DateTimeUtil.isValidDate8(dateStr)) {
+                lastRunNotes.add("[ERROR] dateオプションは yyyyMMdd 形式で指定してください。例: 20250131");
+                return; // ERROR中断
+            }
+
+            Calendar day;
+            try {
+                day = DateTimeUtil.toJstCalendarFromDate8(dateStr);
+            } catch (Exception e) {
+                lastRunNotes.add("[ERROR] dateオプションの解析に失敗しました: " + e.getMessage());
+                return;
+            }
+
+            // Decide targets using targetUnion
+            List<GuildMessageChannel> targets = new ArrayList<>();
+            if (targetUnion != null) {
+                if (targetUnion.getType().isThread()) {
+                    // Reject threads as direct targets
+                    lastRunNotes.add("[ERROR] targetオプションはチャンネルのみ指定できます。スレッドは直接指定できません。親チャンネルを指定してください。");
+                    return; // スレッド直接指定エラー
+                }
+                if (targetUnion.getType().isMessage()) {
+                    targets.add(targetUnion.asGuildMessageChannel());
+                }
+            }
+            if (targets.isEmpty()) {
+                // 指定されていない場合、Guild内のMONITOR全対象チャンネルを取得
+                List<Channels> chs = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
+                for (Channels ch : chs) {
+                    GuildMessageChannel gmc = jda.getJda().getGuildById(ch.getGuidId().getValue())
+                            .getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue());
+                    if (gmc != null && !gmc.getType().isThread()) {
+                        targets.add(gmc);
                     }
                 }
             }
-            if (isTargetChannelMarked == false) {
-                for (GuildMessageChannel c : member.getGuild().getTextChannels()) {
-                    run(c, false);
-                    runActiveThreadsUnder(c, false);
-                }
-                for (GuildMessageChannel v : member.getGuild().getVoiceChannels()) {
-                    run(v, false);
+
+            // Generate for each target channel using the public day-specific interface
+            for (GuildMessageChannel gmc : targets) {
+                try {
+                    runForSpecificDay(gmc, day);
+                } catch (Exception e) {
+                    lastRunNotes.add("[ERROR] チャンネル " + gmc.getName() + " の日付指定アーカイブ生成に失敗: " + e.getMessage());
                 }
             }
-            
-            // Push all generated files at once
+
+            // Push all generated daily files
             if (config.getPushToGitHub() && !generatedFiles.isEmpty()) {
                 try {
                     gitHubService.pushHtmlFilesToGitHub(generatedFiles);
                 } catch (Exception e) {
-                    List<Channels> loggingChannels = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
-                    System.err.println("Failed to push HTML files to GitHub: " + e.getMessage());
-                    e.printStackTrace();
-                    for(Channels sendTo : loggingChannels) {
-                        jda.getJda().getGuildById(sendTo.getGuidId().getValue())
-                                .getChannelById(GuildMessageChannel.class, sendTo.getChannelId().getValue())
-                                .sendMessage("Failed to push archives to GitHub: " + e.getMessage())
-                                .queue();
-                    }
+                    lastRunNotes.add("[ERROR] GitHubへのプッシュに失敗しました: " + e.getMessage());
                 }
             }
         } catch(Exception e) {
             e.printStackTrace();
+            lastRunNotes.add("[ERROR:予期しない例外が発生] " + e.getMessage());
         }
 
         member.getJDA().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
     }
     
     public void run(){
-        final int now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo")).get(Calendar.HOUR_OF_DAY);
+        final Calendar beginDate = Calendar.getInstance(DateTimeUtil.JST);
+        final Calendar endDate = (Calendar) beginDate.clone();
+        final int now = endDate.get(Calendar.HOUR_OF_DAY);
+        // fix beginDate to 0:00:00.000
+        beginDate.set(Calendar.HOUR_OF_DAY, 0);
+        beginDate.set(Calendar.MINUTE, 0);
+        beginDate.set(Calendar.SECOND, 0);
+        beginDate.set(Calendar.MILLISECOND, 0);
         
         // Clear any previously generated files
         generatedFiles.clear();
@@ -166,9 +192,9 @@ public class RunArchiveRunner implements IRunner {
                             continue;
                         }
                         // Run archive for parent channel
-                        run(parent, true);
+                        run(parent, beginDate, endDate, true);
                         // Also run for active threads under this parent channel
-                        runActiveThreadsUnder(parent, true);
+                        runActiveThreadsUnder(parent, beginDate, endDate,true);
                     }
                     
                     // Push all generated files for this guild at once
@@ -195,21 +221,39 @@ public class RunArchiveRunner implements IRunner {
     }
 
     /**
-     * 処理本体
-     * @param scheduled true: 定期実行, false: 手動実行
+     * run for a specific day (00:00 to 23:59:59.999 if past day, or now if today) in JST.
      */
-    private void run(final GuildMessageChannel channel, final boolean scheduled){
+    private void runForSpecificDay(GuildMessageChannel channel, Calendar dayJst) {
+        Calendar begin = (Calendar) dayJst.clone();
+        begin.set(Calendar.HOUR_OF_DAY, 0);
+        begin.set(Calendar.MINUTE, 0);
+        begin.set(Calendar.SECOND, 0);
+        begin.set(Calendar.MILLISECOND, 0);
+        Calendar end = (Calendar) begin.clone();
+        String target = DateTimeUtil.date8().format(begin.getTime());
+        String today = DateTimeUtil.nowDate8();
+        if (today.equals(target)) {
+            end = Calendar.getInstance(DateTimeUtil.JST);
+        } else {
+            end.set(Calendar.HOUR_OF_DAY, 23);
+            end.set(Calendar.MINUTE, 59);
+            end.set(Calendar.SECOND, 59);
+            end.set(Calendar.MILLISECOND, 999);
+        }
+        run(channel, begin, end, false);
+    }
+
+    /**
+     * Core runner with explicit date range.
+     */
+    private void run(final GuildMessageChannel channel, final Calendar beginDate, final Calendar endDate, final boolean scheduled) {
         //validate
         Channels targetChInfo = null;
-        boolean isThread = false;
-        try {
-            isThread = channel.getType() != null && channel.getType().isThread();
-        } catch (Exception ignore) {
-            // keep default false
-        }
+        boolean isThread = channel.getType().isThread();
+        
         if (scheduled) {
             // scheduled execution: ensure non-thread channels are MONITOR in DB
-            if (channel.getType().isThread() == false) {
+            if (isThread == false) {
                 List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
                 ChannelId targetChannelId = new ChannelId(channel);
                 boolean monitored = false;
@@ -247,32 +291,6 @@ public class RunArchiveRunner implements IRunner {
         
         if ((!isThread) && (msgMode.isStart() || msgMode.isBoth())) {
             channel.sendMessage("This channel is archive target. Start >>>").queue();
-        }
-
-        // Determine begin/end using guild scheduled hours from DB (JST)
-        Calendar nowJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
-        Calendar endDate;
-        Calendar beginDate;
-        if (scheduled && nowJst.get(Calendar.HOUR_OF_DAY) == 0) {
-            // At 00:00 on day n, capture full previous day (d-1 00:00:00 to d-1 23:59:59.999)
-            endDate = (Calendar) nowJst.clone();
-            endDate.set(Calendar.MINUTE, 0);
-            endDate.set(Calendar.SECOND, 0);
-            endDate.set(Calendar.MILLISECOND, 0);
-
-            beginDate = (Calendar) endDate.clone();
-            
-            beginDate.add(Calendar.DAY_OF_MONTH, -1);
-            endDate.add(Calendar.MILLISECOND, -1);
-
-        } else {
-            // Manual run: always archive from today's 00:00 to now (JST)
-            endDate = nowJst;
-            beginDate = (Calendar) nowJst.clone();
-            beginDate.set(Calendar.HOUR_OF_DAY, 0);
-            beginDate.set(Calendar.MINUTE, 0);
-            beginDate.set(Calendar.SECOND, 0);
-            beginDate.set(Calendar.MILLISECOND, 0);
         }
 
         // Retrieve messages differently for normal channels vs threads
@@ -398,8 +416,7 @@ public class RunArchiveRunner implements IRunner {
             channel.sendMessage(endMsg).queue();
         }
     }
-
-    private void runActiveThreadsUnder(GuildMessageChannel parent, boolean scheduled) {
+    private void runActiveThreadsUnder(GuildMessageChannel parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
         try {
             if (parent == null) { return; }
             if (parent.getType().isThread()) {
@@ -410,7 +427,7 @@ public class RunArchiveRunner implements IRunner {
             List<ThreadChannel> threads = text.getThreadChannels();
             for (ThreadChannel t : threads) {
                 if (!t.isArchived()) {
-                    run(t, scheduled);
+                    run(t, beginDate, endDate, scheduled);
                 }
             }
         } catch (Throwable ignore) {
@@ -496,7 +513,7 @@ public class RunArchiveRunner implements IRunner {
                 break;
             }
             // Snapshot end instant for stable inclusive-end filtering
-            final java.time.Instant endInstant = endDate.toInstant();
+            final Instant endInstant = endDate.toInstant();
             batch.stream()
                     .filter(msg -> {
                         return !msg.getTimeCreated().toInstant().isAfter(endInstant);
