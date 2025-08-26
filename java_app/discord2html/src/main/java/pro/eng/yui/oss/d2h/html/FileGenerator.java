@@ -210,15 +210,6 @@ public class FileGenerator {
             if (!segmentMessages.isEmpty()) {
                 affectedDate8.add(date8Format.format(segmentEnd.getTime()));
             }
-
-            // Move to next day 00:00:00.000
-            Calendar next = (Calendar) cur.clone();
-            next.add(Calendar.DAY_OF_MONTH, 1);
-            next.set(Calendar.HOUR_OF_DAY, 0);
-            next.set(Calendar.MINUTE, 0);
-            next.set(Calendar.SECOND, 0);
-            next.set(Calendar.MILLISECOND, 0);
-            cur = next;
         }
 
         // If the run ends today and the execution time is not midnight (00:00),
@@ -228,9 +219,9 @@ public class FileGenerator {
             Calendar nowJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
             String today8 = date8Format.format(nowJst.getTime());
             String until8 = date8Format.format(until.getTime());
-            boolean isMidnight = until.get(Calendar.HOUR_OF_DAY) == 0
-                    && until.get(Calendar.MINUTE) == 0
-                    && until.get(Calendar.SECOND) == 0;
+            boolean isMidnight = until.get(Calendar.HOUR_OF_DAY) == 23
+                    && until.get(Calendar.MINUTE) == 59 && until.get(Calendar.SECOND) == 59
+                    && until.get(Calendar.MILLISECOND) == 999;
             if (today8.equals(until8) && !isMidnight) {
                 affectedDate8.add(until8);
             }
