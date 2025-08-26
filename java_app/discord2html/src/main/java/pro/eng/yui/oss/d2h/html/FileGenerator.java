@@ -44,12 +44,18 @@ public class FileGenerator {
         public static final Pattern A_TAG_PATTERN = Pattern.compile("<a\\s+[^>]*href=\\\"([^\\\"]+)\\\"[^>]*>([^<]+)</a>", Pattern.CASE_INSENSITIVE);
         private final String href;
         private final String label;
+        private final String id; // optional id for anchor
         public Link(String href, String label) {
+            this(href, label, null);
+        }
+        public Link(String href, String label, String id) {
             this.href = href;
             this.label = label;
+            this.id = id;
         }
         public String getHref() { return href; }
         public String getLabel() { return label; }
+        public String getId() { return id; }
     }
 
     public static class CategoryGroup {
@@ -303,7 +309,7 @@ public class FileGenerator {
         }
         String label = displayName + " (" + displayTs + ")";
         List<Link> items = new ArrayList<>();
-        items.add(new Link(href, label));
+        items.add(new Link(href, label, "d-"+date8));
         Path channelArchive = archivesRoot.resolve(channelId.toString() + ".html");
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
         // Exclude thread index link from items to avoid duplication in the list
@@ -383,7 +389,7 @@ public class FileGenerator {
                     displayTs = date8;
                 }
                 String label = displayName + " (" + displayTs + ")";
-                items.add(new Link(href, label));
+                items.add(new Link(href, label, "d-"+date8));
             }
         }
         Path channelArchive = archivesRoot.resolve(channelId.toString() + ".html");

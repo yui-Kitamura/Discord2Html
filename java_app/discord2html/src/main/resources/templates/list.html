@@ -21,7 +21,7 @@
   <p th:if="${threadIndexHref}"><a th:href="${threadIndexHref}">このチャンネルのスレッド一覧を見る</a></p>
   <ul>
     <li th:each="it : ${items}">
-      <a th:href="${it.href}" th:text="${it.label}">link</a>
+      <a th:href="${it.href}" th:text="${it.label}" th:attr="id=${it.id}">link</a>
     </li>
   </ul>
 </div>
