@@ -506,11 +506,9 @@ public class RunArchiveRunner implements IRunner {
                 Instant oldestInstant = oldest.getTimeCreated().toInstant();
                 batch.stream()
                         .filter(msg -> {
-                            // For message channels, filter messages after beginInstantOrNull
-                            // For threads (breakEarlyByBegin=true), include all messages
-                            // For all cases, only include messages before or at endInstant
-                            return (breakEarlyByBegin && msg.getTimeCreated().toInstant().isAfter(beginInstantOrNull))
-                                    && msg.getTimeCreated().toInstant().isBefore(endInstant);
+                            boolean afterBeginOk = (breakEarlyByBegin == false) || msg.getTimeCreated().toInstant().isAfter(beginInstantOrNull);
+                            boolean beforeEndOk = msg.getTimeCreated().toInstant().isBefore(endInstant);
+                            return afterBeginOk && beforeEndOk;
                         })
                         .forEach(msg -> {
                             Users author;
