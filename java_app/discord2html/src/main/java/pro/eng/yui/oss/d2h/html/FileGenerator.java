@@ -4,6 +4,10 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
@@ -281,9 +285,9 @@ public class FileGenerator {
         // Resolve display name from JDA for labels
         String displayName = channelId.toString();
         try {
-            var tc = jdaProvider.getJda().getTextChannelById(channelId.getValue());
-            if (tc != null && tc.getName() != null && !tc.getName().isEmpty()) {
-                displayName = tc.getName();
+            GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, channelId.getValue());
+            if (gc != null && !gc.getName().isEmpty()) {
+                displayName = gc.getName();
             }
         } catch (Throwable ignore) {}
         // Determine display timestamp similar to regenerateChannelArchives
@@ -351,9 +355,9 @@ public class FileGenerator {
         // Resolve display name from JDA for labels
         String displayName = channelId.toString();
         try {
-            var tc = jdaProvider.getJda().getTextChannelById(channelId.getValue());
-            if (tc != null && tc.getName() != null && !tc.getName().isEmpty()) {
-                displayName = tc.getName();
+            GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, channelId.getValue());
+            if (gc != null && !gc.getName().isEmpty()) {
+                displayName = gc.getName();
             }
         } catch (Throwable ignore) {}
         for (Path dateDir : dateDirs) {
@@ -484,12 +488,15 @@ public class FileGenerator {
                 // If DB lacks category info, try to supplement from live JDA
                 if (guild != null && catId.getValue() == 0) {
                     try {
-                        TextChannel tc = jdaProvider.getJda().getTextChannelById(ch.getChannelId().getValue());
-                        if (tc != null && tc.getParentCategory() != null) {
-                            catId = new CategoryId(tc.getParentCategory());
-                            CategoryName liveName = new CategoryName(tc.getParentCategory());
-                            if (!liveName.getValue().isEmpty()) {
-                                catName = liveName;
+                        GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, ch.getChannelId().getValue());
+                        if (gc instanceof ICategorizableChannel cc) {
+                            Category parent = cc.getParentCategory();
+                            if (parent != null) {
+                                catId = new CategoryId(parent);
+                                CategoryName liveName = new CategoryName(parent);
+                                if (!liveName.getValue().isEmpty()) {
+                                    catName = liveName;
+                                }
                             }
                         }
                     } catch (Throwable ignore) { /* best-effort */ }
@@ -584,9 +591,9 @@ public class FileGenerator {
                 .map(id -> {
                     String label = id;
                     try {
-                        var tc = jdaProvider.getJda().getTextChannelById(id);
-                        if (tc != null && tc.getName().isEmpty() == false) {
-                            label = tc.getName();
+                        GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, id);
+                        if (gc != null && gc.getName().isEmpty() == false) {
+                            label = gc.getName();
                         }
                     } catch (Throwable ignore) { }
                     return new Link("archives/" + id + ".html", label);
@@ -667,10 +674,9 @@ public class FileGenerator {
 
         // Resolve channel from JDA using channel ID
         List<MessageInfo> messages = new ArrayList<>();
-        TextChannel target = null;
         String displayChannelName = channelId.toString();
         try {
-            target = jdaProvider.getJda().getTextChannelById(channelId.getValue());
+            GuildMessageChannel target = jdaProvider.getJda().getChannelById(GuildMessageChannel.class, channelId.getValue());
             if (target != null) {
                 if (!target.getName().isEmpty()) {
                     displayChannelName = target.getName();
@@ -735,7 +741,7 @@ public class FileGenerator {
         writeIfChanged(dailyCombined, rendered);
     }
 
-    private List<MessageInfo> fetchMessagesForDaily(TextChannel channel, Calendar beginDate, Calendar endDate) {
+    private List<MessageInfo> fetchMessagesForDaily(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
 
@@ -861,9 +867,9 @@ public class FileGenerator {
         // resolve display name of parent channel for title
         String parentDisplayName = parentChannelId.toString();
         try {
-            var tc = jdaProvider.getJda().getTextChannelById(parentChannelId.getValue());
-            if (tc != null && tc.getName() != null && !tc.getName().isEmpty()) {
-                parentDisplayName = tc.getName();
+            GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, parentChannelId.getValue());
+            if (gc != null && !gc.getName().isEmpty()) {
+                parentDisplayName = gc.getName();
             }
         } catch (Throwable ignore) {}
         Context ctx = new Context();
