@@ -639,7 +639,7 @@ public class FileGenerator {
     private void regenerateDailyIndex(ChannelId channelId, Calendar end) throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
-            return;
+            base.toFile().mkdirs();
         }
         String date8 = date8Format.format(end.getTime());
 
@@ -656,37 +656,6 @@ public class FileGenerator {
         beginCal.set(Calendar.SECOND, 0);
         beginCal.set(Calendar.MILLISECOND, 0);
 
-        if (today8.equals(date8)) {
-            // Target is today
-            if (now.get(Calendar.HOUR_OF_DAY) == 0 && now.get(Calendar.MINUTE) == 0) {
-                // Auto run at 00:00 => generate for previous day full
-                Calendar yesterday = (Calendar) now.clone();
-                yesterday.add(Calendar.DAY_OF_MONTH, -1);
-                date8 = date8Format.format(yesterday.getTime());
-
-                beginCal = (Calendar) yesterday.clone();
-                beginCal.set(Calendar.HOUR_OF_DAY, 0);
-                beginCal.set(Calendar.MINUTE, 0);
-                beginCal.set(Calendar.SECOND, 0);
-                beginCal.set(Calendar.MILLISECOND, 0);
-
-                endCal = (Calendar) yesterday.clone();
-                endCal.set(Calendar.HOUR_OF_DAY, 23);
-                endCal.set(Calendar.MINUTE, 59);
-                endCal.set(Calendar.SECOND, 59);
-                endCal.set(Calendar.MILLISECOND, 999);
-            } else {
-                // Non‑midnight run => from today's 00:00 to now
-                endCal = (Calendar) now.clone();
-            }
-        } else {
-            // Past day => full day
-            endCal.set(Calendar.HOUR_OF_DAY, 23);
-            endCal.set(Calendar.MINUTE, 59);
-            endCal.set(Calendar.SECOND, 59);
-            endCal.set(Calendar.MILLISECOND, 999);
-        }
-
         // Resolve channel from JDA using channel ID
         List<MessageInfo> messages = new ArrayList<>();
         TextChannel target = null;
@@ -694,7 +663,7 @@ public class FileGenerator {
         try {
             target = jdaProvider.getJda().getTextChannelById(channelId.getValue());
             if (target != null) {
-                if (target.getName() != null && !target.getName().isEmpty()) {
+                if (!target.getName().isEmpty()) {
                     displayChannelName = target.getName();
                 }
                 messages = fetchMessagesForDaily(target, beginCal, endCal);
@@ -717,13 +686,13 @@ public class FileGenerator {
         String dd = date8.substring(6, 8);
         String humanDate = yyyy + "/" + mm + "/" + dd;
 
-        // Determine daily end text: if target date is today, end at current HH:mm; otherwise 23:59:59
         String endText;
         if (today8.equals(date8)) {
             SimpleDateFormat hm = new SimpleDateFormat("HH:mm:ss");
             hm.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
             endText = humanDate + " " + hm.format(now.getTime());
         } else {
+            //0時実行のフルアーカイブ
             endText = humanDate + " 23:59:59";
         }
 
