@@ -422,7 +422,11 @@ public class RunArchiveRunner implements IRunner {
             String endMsg = "archive created. task end <<<";
             if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
-                    endMsg += "\n" + buildChannelArchiveUrl(channel, DateTimeUtil.formatDate8(endDate));
+                    Calendar urlCal = (Calendar) endDate.clone();
+                    if (scheduled && urlCal.get(Calendar.HOUR_OF_DAY) == 0) {
+                        urlCal.add(Calendar.DAY_OF_MONTH, -1);
+                    }
+                    endMsg += "\n" + buildChannelArchiveUrl(channel, DateTimeUtil.formatDate8(urlCal));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
             channel.sendMessage(endMsg).queue();
