@@ -210,6 +210,15 @@ public class FileGenerator {
             if (!segmentMessages.isEmpty()) {
                 affectedDate8.add(date8Format.format(segmentEnd.getTime()));
             }
+
+            // Advance to the start of the next day to avoid infinite loop
+            Calendar nextDay = (Calendar) cur.clone();
+            nextDay.set(Calendar.HOUR_OF_DAY, 0);
+            nextDay.set(Calendar.MINUTE, 0);
+            nextDay.set(Calendar.SECOND, 0);
+            nextDay.set(Calendar.MILLISECOND, 0);
+            nextDay.add(Calendar.DAY_OF_MONTH, 1);
+            cur = nextDay;
         }
 
         // If the run ends today and the execution time is not midnight (00:00),

@@ -144,7 +144,7 @@ public class RunArchiveRunner implements IRunner {
     }
     
     public void run(){
-        final int now = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        final int now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo")).get(Calendar.HOUR_OF_DAY);
         
         // Clear any previously generated files
         generatedFiles.clear();
