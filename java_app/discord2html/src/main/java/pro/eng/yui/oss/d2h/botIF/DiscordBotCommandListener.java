@@ -43,6 +43,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             ,
             new SubcommandData("run", "run archive function now")
                     .addOption(OptionType.CHANNEL, "target","target channel", false)
+                    .addOption(OptionType.STRING, "date","target date (yyyyMMdd, JST)", false)
             ,
             new SubcommandData("role", "change role archive settings")
                     .addOption(OptionType.ROLE, "role", "target role", true)
