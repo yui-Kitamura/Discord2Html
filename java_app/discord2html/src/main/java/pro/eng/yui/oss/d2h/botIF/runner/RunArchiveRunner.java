@@ -185,11 +185,24 @@ public class RunArchiveRunner implements IRunner {
         final Calendar beginDate = Calendar.getInstance(DateTimeUtil.JST);
         final Calendar endDate = (Calendar) beginDate.clone();
         final int now = endDate.get(Calendar.HOUR_OF_DAY);
-        // fix beginDate to 0:00:00.000
+        // Normalize beginDate to 00:00:00.000 of target day
         beginDate.set(Calendar.HOUR_OF_DAY, 0);
         beginDate.set(Calendar.MINUTE, 0);
         beginDate.set(Calendar.SECOND, 0);
         beginDate.set(Calendar.MILLISECOND, 0);
+        // Special case: when scheduled at 0:00 JST, archive the previous full day
+        if (now == 0) {
+            // shift begin to previous day 00:00
+            beginDate.add(Calendar.DAY_OF_MONTH, -1);
+            // set endDate to previous day 23:59:59.999
+            endDate.set(Calendar.YEAR, beginDate.get(Calendar.YEAR));
+            endDate.set(Calendar.MONTH, beginDate.get(Calendar.MONTH));
+            endDate.set(Calendar.DAY_OF_MONTH, beginDate.get(Calendar.DAY_OF_MONTH));
+            endDate.set(Calendar.HOUR_OF_DAY, 23);
+            endDate.set(Calendar.MINUTE, 59);
+            endDate.set(Calendar.SECOND, 59);
+            endDate.set(Calendar.MILLISECOND, 999);
+        }
         
         // Clear any previously generated files
         generatedFiles.clear();
