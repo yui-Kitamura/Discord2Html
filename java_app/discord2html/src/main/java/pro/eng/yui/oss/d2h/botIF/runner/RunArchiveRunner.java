@@ -308,6 +308,7 @@ public class RunArchiveRunner implements IRunner {
             }
             // Allow threads to be archived even if not registered in Channels
             if(targetChInfo == null && !isThread) {
+                lastRunNotes.add("[INFO] targetで指定されたチャンネルはアーカイブ作成対象ではありません: " + "#" + channel.getName());
                 System.out.println(channel + " is not a target");
                 return;
             }
