@@ -380,16 +380,13 @@ public class RunArchiveRunner implements IRunner {
             if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
                 generatedFiles.add(threadIndex);
             }
-            // If current channel is a thread, also ensure the parent thread index is included
+            // If the current channel is a thread, also ensure the parent thread index is included
             try {
-                if (channel.getType() != null && channel.getType().isThread()) {
-                    ThreadChannel tc = (ThreadChannel) channel;
-                    if (tc.getParentMessageChannel() != null) {
-                        String parentId = tc.getParentMessageChannel().getId();
-                        Path parentIndex = Path.of(config.getOutputPath(), "archives", parentId, "threads", "index.html");
-                        if (Files.exists(parentIndex) && !generatedFiles.contains(parentIndex)) {
-                            generatedFiles.add(parentIndex);
-                        }
+                if (channel.getType().isThread() && channel instanceof ThreadChannel tc) {
+                    String parentId = tc.getParentMessageChannel().getId();
+                    Path parentIndex = Path.of(config.getOutputPath(), "archives", parentId, "threads", "index.html");
+                    if (Files.exists(parentIndex) && !generatedFiles.contains(parentIndex)) {
+                        generatedFiles.add(parentIndex);
                     }
                 }
             } catch (Throwable ignore2) { /* ignore */ }
