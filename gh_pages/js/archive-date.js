@@ -37,9 +37,9 @@
   }
 
   function computeMinMax(dateKeys) {
-    if (!dateKeys.length){ return { min: null, max: null, array:[] };}
+    if (!dateKeys.length){ return { min: null, max: null, sorted:[] };}
     const sorted = dateKeys.slice().sort();
-    return { min: sorted[0], max: sorted[sorted.length - 1], array: sorted };
+    return { min: sorted[0], max: sorted[sorted.length - 1], sorted: sorted };
   }
 
   function scrollToAnchor(el) {
