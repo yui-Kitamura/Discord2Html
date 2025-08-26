@@ -176,3 +176,30 @@ kbd { background: #2b2f33; border: 1px solid #555; border-bottom-width: 2px; bor
 .cmd { font-weight: bold; }
 .args { color: var(--muted); }
 .perm { color: #e5c075; font-size: .95em; }
+
+/* Archive date search (list.html) */
+.archive-date-search {
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+.archive-date-search input[type="date"] {
+  background: #2b2f33;
+  color: var(--text);
+  border: 1px solid var(--divider);
+  border-radius: 4px;
+  padding: .35rem .5rem;
+}
+.archive-date-search button {
+  background: #3a6ea8;
+  color: #fff;
+  border: 1px solid #2c537e;
+  border-radius: 4px;
+  padding: .4rem .7rem;
+  cursor: pointer;
+}
+.archive-date-search button:hover {
+  background: #3f7dbc;
+}

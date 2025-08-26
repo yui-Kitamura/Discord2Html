@@ -19,6 +19,14 @@
   </header>
   <p th:if="${description}" th:text="${description}">Description</p>
   <p th:if="${threadIndexHref}"><a th:href="${threadIndexHref}">このチャンネルのスレッド一覧を見る</a></p>
+
+  <!-- アーカイブ日付セレクタ -->
+  <div class="archive-date-search">
+    <label for="archive-date-input">日付で探す:</label>
+    <input id="archive-date-input" type="date" />
+    <button id="archive-date-go" type="button">アーカイブを探す</button>
+  </div>
+
   <ul>
     <li th:each="it : ${items}">
       <a th:href="${it.href}" th:text="${it.label}" th:attr="id=${it.id}">link</a>
@@ -30,6 +38,7 @@
     <span th:text="'bot ver' + ${botVersion}">bot ver1.4.0</span>
   </p>
 </footer>
+<script src="/Discord2Html/js/archive-date.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (window.twemoji) {
