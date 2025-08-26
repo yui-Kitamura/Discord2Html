@@ -35,6 +35,15 @@
     if (window.twemoji) {
       try { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); } catch (e) { /* noop */ }
     }
+    // Center scroll to anchor
+    try {
+      if (location.hash && location.hash.length > 1) {
+        const el = document.getElementById(decodeURIComponent(location.hash.substring(1)));
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+        }
+      }
+    } catch (ignore) { }
   });
 </script>
 </body>

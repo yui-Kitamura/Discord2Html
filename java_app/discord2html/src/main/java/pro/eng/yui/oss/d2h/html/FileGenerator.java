@@ -739,7 +739,7 @@ public class FileGenerator {
         ctx.setVariable("endText", endText);
         ctx.setVariable("messages", messages);
         ctx.setVariable("backToTopHref", basePrefix() + "/index.html");
-        ctx.setVariable("backToChannelHref", basePrefix() + "/archives/" + channelId + ".html");
+        ctx.setVariable("backToChannelHref", basePrefix() + "/archives/" + channelId + ".html#d-" + date8);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("basePrefix", basePrefix());
