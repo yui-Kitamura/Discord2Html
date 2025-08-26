@@ -31,7 +31,7 @@ import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.SimpleDateFormat;
+import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -280,10 +280,8 @@ public class RunArchiveRunner implements IRunner {
             // adjust begin date to earliest message for display if available
             if (!messages.isEmpty()) {
                 try {
-                    SimpleDateFormat ts = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-                    ts.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-                    Date first = ts.parse(messages.get(0).getCreatedTimestamp());
-                    Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                    Date first = DateTimeUtil.time().parse(messages.get(0).getCreatedTimestamp());
+                    Calendar cal = Calendar.getInstance(DateTimeUtil.JST);
                     cal.setTime(first);
                     beginForOutput = cal;
                 } catch (Exception ignore) { /* leave beginForOutput as is */ }
@@ -297,10 +295,8 @@ public class RunArchiveRunner implements IRunner {
         // For threads: ensure beginForOutput reflects the earliest message timestamp (after sorting)
         if (isThread && !messages.isEmpty()) {
             try {
-                SimpleDateFormat ts = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-                ts.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-                Date first = ts.parse(messages.get(0).getCreatedTimestamp());
-                Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                Date first = DateTimeUtil.time().parse(messages.get(0).getCreatedTimestamp());
+                Calendar cal = Calendar.getInstance(DateTimeUtil.JST);
                 cal.setTime(first);
                 beginForOutput = cal;
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
@@ -337,9 +333,7 @@ public class RunArchiveRunner implements IRunner {
                 Calendar endDay = (Calendar) endDate.clone();
                 // Iterate days inclusively from begin to end
                 while (!dayIter.after(endDay)) {
-                    String date8 = new java.text.SimpleDateFormat("yyyyMMdd"){ {
-                        setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-                    }}.format(dayIter.getTime());
+                    String date8 = DateTimeUtil.date8().format(dayIter.getTime());
                     Path dailyPath = Path.of(config.getOutputPath(), "archives", date8, channel.getId() + ".html");
                     if (Files.exists(dailyPath) && !generatedFiles.contains(dailyPath)) {
                         generatedFiles.add(dailyPath);
@@ -395,9 +389,7 @@ public class RunArchiveRunner implements IRunner {
             String endMsg = "archive created. task end <<<";
             if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
-                    SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
-                    ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-                    endMsg += "\n" + buildChannelArchiveUrl(channel, ymd.format(endDate.getTime()));
+                    endMsg += "\n" + buildChannelArchiveUrl(channel, DateTimeUtil.formatDate8(endDate));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
             channel.sendMessage(endMsg).queue();
@@ -435,8 +427,6 @@ public class RunArchiveRunner implements IRunner {
             anonCycle = 24;
         }
         final int finalAnonCycle = anonCycle;
-        final SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
-        ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         boolean more = true;
         while (more) {
             var batch = history.retrievePast(100).complete();
@@ -469,11 +459,11 @@ public class RunArchiveRunner implements IRunner {
                                 marked.add(author);
                             }
                             Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
                             calJst.setTime(msgDate);
                             int hour = calJst.get(Calendar.HOUR_OF_DAY);
                             int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = ymd.format(msgDate);
+                            String dateStr = DateTimeUtil.date8().format(msgDate);
                             String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
                             messages.add(new MessageInfo(msg, author, scopeKey));
                         }
@@ -497,8 +487,6 @@ public class RunArchiveRunner implements IRunner {
             anonCycle = 24;
         }
         final int finalAnonCycle = anonCycle;
-        final SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
-        ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         while (true) {
             var batch = history.retrievePast(100).complete();
             if (batch == null || batch.isEmpty()) {
@@ -527,11 +515,11 @@ public class RunArchiveRunner implements IRunner {
                                 marked.add(author);
                             }
                             Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
                             calJst.setTime(msgDate);
                             int hour = calJst.get(Calendar.HOUR_OF_DAY);
                             int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = ymd.format(msgDate);
+                            String dateStr = DateTimeUtil.date8().format(msgDate);
                             String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
                             messages.add(new MessageInfo(msg, author, scopeKey));
                         }

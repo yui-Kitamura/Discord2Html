@@ -1,14 +1,11 @@
 package pro.eng.yui.oss.d2h.db.field;
 
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
+import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 
 public abstract class AbstTimestamp {
-    
-    public static DateFormat format = new SimpleDateFormat("yy/MM/dd HH:mm:ss.SSS");
     
     private final Timestamp timestamp;
     public Timestamp getValue(){
@@ -44,7 +41,7 @@ public abstract class AbstTimestamp {
 
     @Override
     public String toString() {
-        return format.format(timestamp);
+        return DateTimeUtil.mill().format(timestamp);
     }
 
 
