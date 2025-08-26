@@ -71,7 +71,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     )
             ,
             new SubcommandData("schedule", "change auto-archive cycle hours (start at 0:00JST)")
-                    .addOption(OptionType.INTEGER, "cycle", "execute every N hours (1-23), starting at 0:00, if 0 then only midnight", true)
+                    .addOption(OptionType.INTEGER, "cycle", "execute every N hours (1-23), starting at 0:00, if 0 then only midnight", false)
             ,
             new SubcommandData("help", "send you about this bots command help")
     );
