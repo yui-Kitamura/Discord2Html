@@ -2,6 +2,8 @@ package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
@@ -432,116 +434,85 @@ public class RunArchiveRunner implements IRunner {
         }
     }
 
-    // メッセージ取得（通常のメッセージチャンネル向け）
+    /** メッセージ取得（通常のメッセージチャンネル向け） */
     private List<MessageInfo> getMessagesForMessageChannel(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
-        List<MessageInfo> messages = new ArrayList<>();
-        List<Users> marked = new ArrayList<>();
-        var history = channel.getHistory();
-        GuildId guildId = new GuildId(channel.getGuild());
-        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
-        int anonCycle = guildInfo.getAnonCycle().getValue();
-        if (anonCycle < 1 || 24 < anonCycle) {
-            anonCycle = 24;
-        }
-        final int finalAnonCycle = anonCycle;
-        boolean more = true;
-        while (more) {
-            var batch = history.retrievePast(100).complete();
-            if (batch == null || batch.isEmpty()) {
-                break;
-            }
-            var oldest = batch.get(batch.size() - 1);
-            var oldestInstant = oldest.getTimeCreated().toInstant();
-            final Instant beginInstant = beginDate.toInstant();
-            final Instant endInstant = endDate.toInstant();
-            batch.stream()
-                    .filter(msg -> {
-                        return msg.getTimeCreated().toInstant().isAfter(beginInstant)
-                            && msg.getTimeCreated().toInstant().isBefore(endInstant);
-                    })
-                    .forEach(msg -> {
-                        Users author;
-                        if (msg.getMember() == null) {
-                            // bot
-                            author = new Users(msg.getAuthor(), channel.getGuild());
-                            UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
-                            author.setAnonStats(new AnonStats(anonStatus));
-                        } else {
-                            // member
-                            author = new Users(msg.getMember());
-                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
-                            author.setAnonStats(new AnonStats(anonStatus));
-                        }
-                        if (!marked.contains(author)) {
-                            usersDao.upsertUserInfo(author);
-                            marked.add(author);
-                        }
-                        Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                        Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
-                        calJst.setTime(msgDate);
-                        int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                        int cycleIndex = hour / finalAnonCycle;
-                        String dateStr = DateTimeUtil.date8().format(msgDate);
-                        String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                        messages.add(new MessageInfo(msg, author, scopeKey));
-                    });
-            if (!oldestInstant.isAfter(beginInstant)) {
-                more = false;
-            }
-        }
-        return messages;
+        Instant begin = beginDate.toInstant();
+        Instant end = endDate.toInstant();
+        return collectMessages(channel, begin, end);
     }
 
-    // メッセージ取得（スレッド向け：過去日も含め全期間を1ファイルに統一）
+    /** メッセージ取得（スレッド向け：過去日も含め全期間を1ファイルに統一） */
     private List<MessageInfo> getMessagesForThread(ThreadChannel thread, Calendar endDate) {
+        // No begin
+        Instant end = endDate.toInstant();
+        return collectMessages(thread, null, end);
+    }
+
+    /**
+     * 汎用メッセージ取得メソッド
+     * @param channel target channel (message channel or thread)
+     * @param beginInstantOrNull null to disable lower bound; otherwise messages strictly after or at begin depending on exclusiveBegin
+     */
+    private List<MessageInfo> collectMessages(
+            GuildMessageChannel channel,
+            Instant beginInstantOrNull,
+            Instant endInstant
+    ) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
-        var history = thread.getHistory();
-        GuildId guildId = new GuildId(thread.getGuild());
-        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
-        int anonCycle = guildInfo.getAnonCycle().getValue();
-        if (anonCycle < 1 || 24 < anonCycle) {
-            anonCycle = 24;
-        }
-        final int finalAnonCycle = anonCycle;
-        while (true) {
-            var batch = history.retrievePast(100).complete();
-            if (batch == null || batch.isEmpty()) {
-                break;
+        boolean breakEarlyByBegin = (beginInstantOrNull != null);
+        try {
+            MessageHistory history = channel.getHistory();
+            GuildId guildId = new GuildId(channel.getGuild());
+            Guilds guildInfo = guildDao.selectGuildInfo(guildId);
+            int anonCycle = guildInfo.getAnonCycle().getValue();
+            if (anonCycle < 1 || 24 < anonCycle) { anonCycle = 24; }
+            final int finalAnonCycle = anonCycle;
+            while (true) {
+                List<Message> batch = history.retrievePast(100).complete();
+                if (batch == null || batch.isEmpty()) { break; }
+                Message oldest = batch.get(batch.size() - 1);
+                Instant oldestInstant = oldest.getTimeCreated().toInstant();
+                batch.stream()
+                        .filter(msg -> {
+                            // For message channels, filter messages after beginInstantOrNull
+                            // For threads (breakEarlyByBegin=true), include all messages
+                            // For all cases, only include messages before or at endInstant
+                            return (breakEarlyByBegin && msg.getTimeCreated().toInstant().isAfter(beginInstantOrNull))
+                                    && msg.getTimeCreated().toInstant().isBefore(endInstant);
+                        })
+                        .forEach(msg -> {
+                            Users author;
+                            if (msg.getMember() == null) {
+                                // bot or non-member
+                                author = new Users(msg.getAuthor(), channel.getGuild());
+                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
+                                author.setAnonStats(new AnonStats(anonStatus));
+                            } else {
+                                // member
+                                author = new Users(msg.getMember());
+                                UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
+                                author.setAnonStats(new AnonStats(anonStatus));
+                            }
+                            if (!marked.contains(author)) {
+                                usersDao.upsertUserInfo(author);
+                                marked.add(author);
+                            }
+                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
+                            calJst.setTime(msgDate);
+                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
+                            int cycleIndex = hour / finalAnonCycle;
+                            String dateStr = DateTimeUtil.date8().format(msgDate);
+                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
+                            messages.add(new MessageInfo(msg, author, scopeKey));
+                        });
+                if (breakEarlyByBegin && oldestInstant.isBefore(beginInstantOrNull)) {
+                    break;
+                }
             }
-            // Snapshot end instant for stable inclusive-end filtering
-            final Instant endInstant = endDate.toInstant();
-            batch.stream()
-                    .filter(msg -> {
-                        return !msg.getTimeCreated().toInstant().isAfter(endInstant);
-                    })
-                    .forEach(msg -> {
-                        Users author;
-                        if (msg.getMember() == null) {
-                            // bot
-                            author = new Users(msg.getAuthor(), thread.getGuild());
-                            UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
-                            author.setAnonStats(new AnonStats(anonStatus));
-                        } else {
-                            // member
-                            author = new Users(msg.getMember());
-                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
-                            author.setAnonStats(new AnonStats(anonStatus));
-                        }
-                        if (!marked.contains(author)) {
-                            usersDao.upsertUserInfo(author);
-                            marked.add(author);
-                        }
-                        Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                        Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
-                        calJst.setTime(msgDate);
-                        int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                        int cycleIndex = hour / finalAnonCycle;
-                        String dateStr = DateTimeUtil.date8().format(msgDate);
-                        String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                        messages.add(new MessageInfo(msg, author, scopeKey));
-                    });
-            // do not break early; continue until all past messages exhausted
+        } catch (Throwable ignore) {
+            // best-effort
         }
         return messages;
     }
