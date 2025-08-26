@@ -94,8 +94,7 @@ public class GitHubService {
                         targetFile.getParentFile().mkdirs();
                     }
                 } else {
-                    // Default: place under daily archive directory
-                    targetFile = new File(dateArchiveDir, fileName);
+                    continue;
                 }
             }
             Files.copy(htmlFilePath, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
