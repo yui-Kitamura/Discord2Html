@@ -7,9 +7,9 @@
     const s = id.trim();
     let m = /^d-(\d{4})(\d{2})(\d{2})$/.exec(s);
     if (m) {
-        const yNum = Number(m[0]);
-        const mNum = Number(m[1]);
-        const dNum = Number(m[2]);
+        const yNum = Number(m[1]);
+        const mNum = Number(m[2]);
+        const dNum = Number(m[3]);
         if (!Number.isFinite(yNum) || !Number.isFinite(mNum) || !Number.isFinite(dNum)){ return null; }
         const dt = new Date(Date.UTC(yNum, mNum - 1, dNum));
         if (dt.getUTCFullYear() !== yNum || dt.getUTCMonth() + 1 !== mNum || dt.getUTCDate() !== dNum){
