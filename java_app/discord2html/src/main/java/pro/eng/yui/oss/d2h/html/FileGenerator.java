@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.regex.Matcher;
@@ -217,14 +218,14 @@ public class FileGenerator {
                 affectedDate8.add(date8Format.format(segmentEnd.getTime()));
             }
 
-            // Move to next day 00:00:00.000
-            Calendar next = (Calendar) cur.clone();
-            next.add(Calendar.DAY_OF_MONTH, 1);
-            next.set(Calendar.HOUR_OF_DAY, 0);
-            next.set(Calendar.MINUTE, 0);
-            next.set(Calendar.SECOND, 0);
-            next.set(Calendar.MILLISECOND, 0);
-            cur = next;
+            // Advance to the start of the next day to avoid infinite loop
+            Calendar nextDay = (Calendar) cur.clone();
+            nextDay.set(Calendar.HOUR_OF_DAY, 0);
+            nextDay.set(Calendar.MINUTE, 0);
+            nextDay.set(Calendar.SECOND, 0);
+            nextDay.set(Calendar.MILLISECOND, 0);
+            nextDay.add(Calendar.DAY_OF_MONTH, 1);
+            cur = nextDay;
         }
 
         // If the run ends today and the execution time is not midnight (00:00),
@@ -234,9 +235,9 @@ public class FileGenerator {
             Calendar nowJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
             String today8 = date8Format.format(nowJst.getTime());
             String until8 = date8Format.format(until.getTime());
-            boolean isMidnight = until.get(Calendar.HOUR_OF_DAY) == 0
-                    && until.get(Calendar.MINUTE) == 0
-                    && until.get(Calendar.SECOND) == 0;
+            boolean isMidnight = until.get(Calendar.HOUR_OF_DAY) == 23
+                    && until.get(Calendar.MINUTE) == 59 && until.get(Calendar.SECOND) == 59
+                    && until.get(Calendar.MILLISECOND) == 999;
             if (today8.equals(until8) && !isMidnight) {
                 affectedDate8.add(until8);
             }
@@ -645,7 +646,7 @@ public class FileGenerator {
     private void regenerateDailyIndex(ChannelId channelId, Calendar end) throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
-            return;
+            base.toFile().mkdirs();
         }
         String date8 = date8Format.format(end.getTime());
 
@@ -662,31 +663,12 @@ public class FileGenerator {
         beginCal.set(Calendar.SECOND, 0);
         beginCal.set(Calendar.MILLISECOND, 0);
 
+        // Determine proper endCal according to spec
         if (today8.equals(date8)) {
-            // Target is today
-            if (now.get(Calendar.HOUR_OF_DAY) == 0 && now.get(Calendar.MINUTE) == 0) {
-                // Auto run at 00:00 => generate for previous day full
-                Calendar yesterday = (Calendar) now.clone();
-                yesterday.add(Calendar.DAY_OF_MONTH, -1);
-                date8 = date8Format.format(yesterday.getTime());
-
-                beginCal = (Calendar) yesterday.clone();
-                beginCal.set(Calendar.HOUR_OF_DAY, 0);
-                beginCal.set(Calendar.MINUTE, 0);
-                beginCal.set(Calendar.SECOND, 0);
-                beginCal.set(Calendar.MILLISECOND, 0);
-
-                endCal = (Calendar) yesterday.clone();
-                endCal.set(Calendar.HOUR_OF_DAY, 23);
-                endCal.set(Calendar.MINUTE, 59);
-                endCal.set(Calendar.SECOND, 59);
-                endCal.set(Calendar.MILLISECOND, 999);
-            } else {
-                // Non‑midnight run => from today's 00:00 to now
-                endCal = (Calendar) now.clone();
-            }
+            // Today: up to the execution timing (now JST)
+            endCal = (Calendar) now.clone();
         } else {
-            // Past day => full day
+            // Past day: full to end of day 23:59:59.999
             endCal.set(Calendar.HOUR_OF_DAY, 23);
             endCal.set(Calendar.MINUTE, 59);
             endCal.set(Calendar.SECOND, 59);
@@ -700,7 +682,7 @@ public class FileGenerator {
         try {
             target = jdaProvider.getJda().getTextChannelById(channelId.getValue());
             if (target != null) {
-                if (target.getName() != null && !target.getName().isEmpty()) {
+                if (!target.getName().isEmpty()) {
                     displayChannelName = target.getName();
                 }
                 messages = fetchMessagesForDaily(target, beginCal, endCal);
@@ -723,13 +705,13 @@ public class FileGenerator {
         String dd = date8.substring(6, 8);
         String humanDate = yyyy + "/" + mm + "/" + dd;
 
-        // Determine daily end text: if target date is today, end at current HH:mm; otherwise 23:59:59
         String endText;
         if (today8.equals(date8)) {
             SimpleDateFormat hm = new SimpleDateFormat("HH:mm:ss");
             hm.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-            endText = humanDate + " " + hm.format(now.getTime());
+            endText = humanDate + " " + hm.format(endCal.getTime());
         } else {
+            // 0時実行のフルアーカイブ（前日）
             endText = humanDate + " 23:59:59";
         }
 
@@ -761,6 +743,8 @@ public class FileGenerator {
                 anonCycle = 24; 
             }
             final int finalAnonCycle = anonCycle;
+            final Instant beginInstant = beginDate.toInstant();
+            final Instant endInstant = endDate.toInstant();
             boolean more = true;
             while (more) {
                 var batch = history.retrievePast(100).complete();
@@ -770,8 +754,8 @@ public class FileGenerator {
                 var oldest = batch.get(batch.size() - 1);
                 var oldestInstant = oldest.getTimeCreated().toInstant();
                 batch.stream()
-                        .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
-                                && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                        .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginInstant)
+                                && !msg.getTimeCreated().toInstant().isAfter(endInstant))
                         .forEach(msg -> {
                             Users author = null;
                             if (msg.getMember() != null) {
@@ -804,7 +788,7 @@ public class FileGenerator {
                                 messages.add(new MessageInfo(msg, author, scopeKey));
                             }
                         });
-                if (!oldestInstant.isAfter(beginDate.toInstant())) {
+                if (!oldestInstant.isAfter(beginInstant)) {
                     more = false;
                 }
             }

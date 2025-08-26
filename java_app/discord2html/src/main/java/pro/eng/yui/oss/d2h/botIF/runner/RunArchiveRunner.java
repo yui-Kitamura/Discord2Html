@@ -32,6 +32,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -144,7 +145,7 @@ public class RunArchiveRunner implements IRunner {
     }
     
     public void run(){
-        final int now = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        final int now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo")).get(Calendar.HOUR_OF_DAY);
         
         // Clear any previously generated files
         generatedFiles.clear();
@@ -250,14 +251,17 @@ public class RunArchiveRunner implements IRunner {
         Calendar endDate;
         Calendar beginDate;
         if (scheduled && nowJst.get(Calendar.HOUR_OF_DAY) == 0) {
-            // At 00:00 on day n, capture full previous day (d-1 00:00:00 to d 00:00:00)
+            // At 00:00 on day n, capture full previous day (d-1 00:00:00 to d-1 23:59:59.999)
             endDate = (Calendar) nowJst.clone();
             endDate.set(Calendar.MINUTE, 0);
             endDate.set(Calendar.SECOND, 0);
             endDate.set(Calendar.MILLISECOND, 0);
 
             beginDate = (Calendar) endDate.clone();
+            
             beginDate.add(Calendar.DAY_OF_MONTH, -1);
+            endDate.add(Calendar.MILLISECOND, -1);
+
         } else {
             // Manual run: always archive from today's 00:00 to now (JST)
             endDate = nowJst;
@@ -266,12 +270,6 @@ public class RunArchiveRunner implements IRunner {
             beginDate.set(Calendar.MINUTE, 0);
             beginDate.set(Calendar.SECOND, 0);
             beginDate.set(Calendar.MILLISECOND, 0);
-        }
-
-        // Prepare endDate for file output naming. At 00:00 scheduled runs, use previous day (endDate - 1ms)
-        Calendar endDateForOutput = (Calendar) endDate.clone();
-        if (scheduled && nowJst.get(Calendar.HOUR_OF_DAY) == 0) {
-            endDateForOutput.add(Calendar.MILLISECOND, -1);
         }
 
         // Retrieve messages differently for normal channels vs threads
@@ -308,7 +306,7 @@ public class RunArchiveRunner implements IRunner {
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
         }
         
-        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, endDateForOutput, 1);
+        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, (Calendar)endDate.clone(), 1);
         generatedFiles.add(generatedFile);
         // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
         Path indexPath = Path.of(config.getOutputPath(), "index.html");
@@ -399,7 +397,7 @@ public class RunArchiveRunner implements IRunner {
                 try {
                     SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
                     ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-                    endMsg += "\n" + buildChannelArchiveUrl(channel, ymd.format(endDateForOutput.getTime()));
+                    endMsg += "\n" + buildChannelArchiveUrl(channel, ymd.format(endDate.getTime()));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
             channel.sendMessage(endMsg).queue();
@@ -447,9 +445,11 @@ public class RunArchiveRunner implements IRunner {
             }
             var oldest = batch.get(batch.size() - 1);
             var oldestInstant = oldest.getTimeCreated().toInstant();
+            final Instant beginInstant = beginDate.toInstant();
+            final Instant endInstant = endDate.toInstant();
             batch.stream()
-                    .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginDate.toInstant())
-                            && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                    .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginInstant)
+                            && msg.getTimeCreated().toInstant().isBefore(endInstant))
                     .forEach(msg -> {
                         Users author = null;
                         if (msg.getMember() != null) {
@@ -478,7 +478,7 @@ public class RunArchiveRunner implements IRunner {
                             messages.add(new MessageInfo(msg, author, scopeKey));
                         }
                     });
-            if (!oldestInstant.isAfter(beginDate.toInstant())) {
+            if (!oldestInstant.isAfter(beginInstant)) {
                 more = false;
             }
         }
@@ -504,8 +504,10 @@ public class RunArchiveRunner implements IRunner {
             if (batch == null || batch.isEmpty()) {
                 break;
             }
+            // Snapshot end instant for stable inclusive-end filtering
+            final java.time.Instant endInstant = endDate.toInstant();
             batch.stream()
-                    .filter(msg -> msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                    .filter(msg -> !msg.getTimeCreated().toInstant().isAfter(endInstant))
                     .forEach(msg -> {
                         Users author = null;
                         if (msg.getMember() != null) {
