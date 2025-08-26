@@ -167,6 +167,18 @@ public class GitHubService {
             java.nio.file.Files.write(styleCss.toPath(), css);
             filesToAdd.add(getRelativePath(repoDirFile, styleCss));
         }
+
+        // Ensure js directory and copy static JS files used by templates
+        File jsDir = new File(ghPagesRoot, "js");
+        jsDir.mkdirs();
+        // Currently used: /Discord2Html/js/archive-date.js referenced by templates/list.html
+        byte[] archiveDateJs = readClasspathResource("/static/js/archive-date.js");
+        if (archiveDateJs != null) {
+            File jsFile = new File(jsDir, "archive-date.js");
+            java.nio.file.Files.write(jsFile.toPath(), archiveDateJs);
+            filesToAdd.add(getRelativePath(repoDirFile, jsFile));
+        }
+
         // Write logo to gh_pages/D2H_logo.png
         byte[] logo = readClasspathResource("/D2H_logo.png");
         if (logo != null) {
