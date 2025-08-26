@@ -545,20 +545,21 @@ public class RunArchiveRunner implements IRunner {
 
     @Override
     public String afterRunMessage() {
-        String base;
-        if (config.getPushToGitHub()) {
-            base = "bot completed making archive and pushing all files to GitHub repository";
+        if (lastRunNotes.size() == 0) {
+            // success
+            if (config.getPushToGitHub()) {
+                return "bot completed making archive and pushing all files to GitHub repository";
+            } else {
+                return "bot completed making archive";
+            }
         } else {
-            base = "bot completed making archive";
-        }
-        StringBuilder sb = new StringBuilder(base);
-        if (lastRunNotes.size() > 0) {
-            sb.append("\n");
+            // fail
+            StringBuilder sb = new StringBuilder();
             for (String n : lastRunNotes) {
                 sb.append(n).append("\n");
             }
             sb.setLength(sb.length() - 1); // remove the last "\n"
+            return sb.toString();
         }
-        return sb.toString();
     }
 }
