@@ -441,35 +441,35 @@ public class RunArchiveRunner implements IRunner {
             final Instant beginInstant = beginDate.toInstant();
             final Instant endInstant = endDate.toInstant();
             batch.stream()
-                    .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginInstant)
-                            && msg.getTimeCreated().toInstant().isBefore(endInstant))
+                    .filter(msg -> {
+                        return msg.getTimeCreated().toInstant().isAfter(beginInstant)
+                            && msg.getTimeCreated().toInstant().isBefore(endInstant);
+                    })
                     .forEach(msg -> {
-                        Users author = null;
-                        if (msg.getMember() != null) {
+                        Users author;
+                        if (msg.getMember() == null) {
+                            // bot
+                            author = new Users(msg.getAuthor(), channel.getGuild());
+                            UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
+                            author.setAnonStats(new AnonStats(anonStatus));
+                        } else {
+                            // member
                             author = new Users(msg.getMember());
                             UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
                             author.setAnonStats(new AnonStats(anonStatus));
-                        } else {
-                            if (msg.getAuthor() != null) {
-                                author = new Users(msg.getAuthor(), channel.getGuild());
-                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
-                                author.setAnonStats(new AnonStats(anonStatus));
-                            }
                         }
-                        if (author != null) {
-                            if (!marked.contains(author)) {
-                                usersDao.upsertUserInfo(author);
-                                marked.add(author);
-                            }
-                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
-                            calJst.setTime(msgDate);
-                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                            int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = DateTimeUtil.date8().format(msgDate);
-                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                            messages.add(new MessageInfo(msg, author, scopeKey));
+                        if (!marked.contains(author)) {
+                            usersDao.upsertUserInfo(author);
+                            marked.add(author);
                         }
+                        Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+                        Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
+                        calJst.setTime(msgDate);
+                        int hour = calJst.get(Calendar.HOUR_OF_DAY);
+                        int cycleIndex = hour / finalAnonCycle;
+                        String dateStr = DateTimeUtil.date8().format(msgDate);
+                        String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
+                        messages.add(new MessageInfo(msg, author, scopeKey));
                     });
             if (!oldestInstant.isAfter(beginInstant)) {
                 more = false;
@@ -498,34 +498,34 @@ public class RunArchiveRunner implements IRunner {
             // Snapshot end instant for stable inclusive-end filtering
             final java.time.Instant endInstant = endDate.toInstant();
             batch.stream()
-                    .filter(msg -> !msg.getTimeCreated().toInstant().isAfter(endInstant))
+                    .filter(msg -> {
+                        return !msg.getTimeCreated().toInstant().isAfter(endInstant);
+                    })
                     .forEach(msg -> {
-                        Users author = null;
-                        if (msg.getMember() != null) {
+                        Users author;
+                        if (msg.getMember() == null) {
+                            // bot
+                            author = new Users(msg.getAuthor(), thread.getGuild());
+                            UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
+                            author.setAnonStats(new AnonStats(anonStatus));
+                        } else {
+                            // member
                             author = new Users(msg.getMember());
                             UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
                             author.setAnonStats(new AnonStats(anonStatus));
-                        } else {
-                            if (msg.getAuthor() != null) {
-                                author = new Users(msg.getAuthor(), thread.getGuild());
-                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
-                                author.setAnonStats(new AnonStats(anonStatus));
-                            }
                         }
-                        if (author != null) {
-                            if (!marked.contains(author)) {
-                                usersDao.upsertUserInfo(author);
-                                marked.add(author);
-                            }
-                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
-                            calJst.setTime(msgDate);
-                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                            int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = DateTimeUtil.date8().format(msgDate);
-                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                            messages.add(new MessageInfo(msg, author, scopeKey));
+                        if (!marked.contains(author)) {
+                            usersDao.upsertUserInfo(author);
+                            marked.add(author);
                         }
+                        Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+                        Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
+                        calJst.setTime(msgDate);
+                        int hour = calJst.get(Calendar.HOUR_OF_DAY);
+                        int cycleIndex = hour / finalAnonCycle;
+                        String dateStr = DateTimeUtil.date8().format(msgDate);
+                        String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
+                        messages.add(new MessageInfo(msg, author, scopeKey));
                     });
             // do not break early; continue until all past messages exhausted
         }
