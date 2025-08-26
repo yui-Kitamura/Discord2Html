@@ -185,11 +185,24 @@ public class RunArchiveRunner implements IRunner {
         final Calendar beginDate = Calendar.getInstance(DateTimeUtil.JST);
         final Calendar endDate = (Calendar) beginDate.clone();
         final int now = endDate.get(Calendar.HOUR_OF_DAY);
-        // fix beginDate to 0:00:00.000
+        // Normalize beginDate to 00:00:00.000 of target day
         beginDate.set(Calendar.HOUR_OF_DAY, 0);
         beginDate.set(Calendar.MINUTE, 0);
         beginDate.set(Calendar.SECOND, 0);
         beginDate.set(Calendar.MILLISECOND, 0);
+        // Special case: when scheduled at 0:00 JST, archive the previous full day
+        if (now == 0) {
+            // shift begin to previous day 00:00
+            beginDate.add(Calendar.DAY_OF_MONTH, -1);
+            // set endDate to previous day 23:59:59.999
+            endDate.set(Calendar.YEAR, beginDate.get(Calendar.YEAR));
+            endDate.set(Calendar.MONTH, beginDate.get(Calendar.MONTH));
+            endDate.set(Calendar.DAY_OF_MONTH, beginDate.get(Calendar.DAY_OF_MONTH));
+            endDate.set(Calendar.HOUR_OF_DAY, 23);
+            endDate.set(Calendar.MINUTE, 59);
+            endDate.set(Calendar.SECOND, 59);
+            endDate.set(Calendar.MILLISECOND, 999);
+        }
         
         // Clear any previously generated files
         generatedFiles.clear();
@@ -295,6 +308,7 @@ public class RunArchiveRunner implements IRunner {
             }
             // Allow threads to be archived even if not registered in Channels
             if(targetChInfo == null && !isThread) {
+                lastRunNotes.add("[INFO] targetで指定されたチャンネルはアーカイブ作成対象ではありません: " + "#" + channel.getName());
                 System.out.println(channel + " is not a target");
                 return;
             }
@@ -422,7 +436,11 @@ public class RunArchiveRunner implements IRunner {
             String endMsg = "archive created. task end <<<";
             if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
-                    endMsg += "\n" + buildChannelArchiveUrl(channel, DateTimeUtil.formatDate8(endDate));
+                    Calendar urlCal = (Calendar) endDate.clone();
+                    if (scheduled && urlCal.get(Calendar.HOUR_OF_DAY) == 0) {
+                        urlCal.add(Calendar.DAY_OF_MONTH, -1);
+                    }
+                    endMsg += "\n" + buildChannelArchiveUrl(channel, DateTimeUtil.formatDate8(urlCal));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
             channel.sendMessage(endMsg).queue();
