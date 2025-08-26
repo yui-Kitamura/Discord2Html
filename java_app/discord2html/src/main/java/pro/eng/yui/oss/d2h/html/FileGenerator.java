@@ -657,6 +657,18 @@ public class FileGenerator {
         beginCal.set(Calendar.SECOND, 0);
         beginCal.set(Calendar.MILLISECOND, 0);
 
+        // Determine proper endCal according to spec
+        if (today8.equals(date8)) {
+            // Today: up to the execution timing (now JST)
+            endCal = (Calendar) now.clone();
+        } else {
+            // Past day: full to end of day 23:59:59.999
+            endCal.set(Calendar.HOUR_OF_DAY, 23);
+            endCal.set(Calendar.MINUTE, 59);
+            endCal.set(Calendar.SECOND, 59);
+            endCal.set(Calendar.MILLISECOND, 999);
+        }
+
         // Resolve channel from JDA using channel ID
         List<MessageInfo> messages = new ArrayList<>();
         TextChannel target = null;
@@ -691,9 +703,9 @@ public class FileGenerator {
         if (today8.equals(date8)) {
             SimpleDateFormat hm = new SimpleDateFormat("HH:mm:ss");
             hm.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-            endText = humanDate + " " + hm.format(now.getTime());
+            endText = humanDate + " " + hm.format(endCal.getTime());
         } else {
-            //0時実行のフルアーカイブ
+            // 0時実行のフルアーカイブ（前日）
             endText = humanDate + " 23:59:59";
         }
 
@@ -736,8 +748,8 @@ public class FileGenerator {
                 var oldest = batch.get(batch.size() - 1);
                 var oldestInstant = oldest.getTimeCreated().toInstant();
                 batch.stream()
-                        .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginInstant)
-                                && msg.getTimeCreated().toInstant().isBefore(endInstant))
+                        .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginInstant)
+                                && !msg.getTimeCreated().toInstant().isAfter(endInstant))
                         .forEach(msg -> {
                             Users author = null;
                             if (msg.getMember() != null) {
