@@ -726,6 +726,21 @@ public class FileGenerator {
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("basePrefix", basePrefix());
+        // Add navigation links for previous/next day (mechanically computed)
+        try {
+            Calendar prevCal = (Calendar) end.clone();
+            prevCal.add(Calendar.DAY_OF_MONTH, -1);
+            String prevDate8 = date8Format.format(prevCal.getTime());
+            String prevHref = basePrefix() + "/archives/" + prevDate8 + "/" + channelId + ".html";
+            ctx.setVariable("prevHref", prevHref);
+        } catch (Exception ignore) { /* best-effort */ }
+        try {
+            Calendar nextCal = (Calendar) end.clone();
+            nextCal.add(Calendar.DAY_OF_MONTH, 1);
+            String nextDate8 = date8Format.format(nextCal.getTime());
+            String nextHref = basePrefix() + "/archives/" + nextDate8 + "/" + channelId + ".html";
+            ctx.setVariable("nextHref", nextHref);
+        } catch (Exception ignore) { /* best-effort */ }
 
         String rendered = templateEngine.process("daily", ctx);
         writeIfChanged(dailyCombined, rendered);

@@ -25,6 +25,13 @@
     <span> 〜 </span>
     <span th:text="${endText}">end</span>
   </div>
+  <!-- 日付ナビゲーション -->
+  <nav class="day-nav" style="margin: 8px 0;">
+    <a th:if="${prevHref}" th:href="${prevHref}">前日</a>
+    <span class="sep"> | </span>
+    <a th:if="${nextHref}" th:href="${nextHref}">翌日</a>
+  </nav>
+
   <h2>メッセージアーカイブ</h2>
   <div th:if="${#lists.isEmpty(messages)}">
     期間内のメッセージはありません。
@@ -58,6 +65,11 @@
         </span>
       </div>
     </div>
+  </div>
+
+  <!-- 日付ナビゲーション -->
+  <div class="day-nav-bottom" style="margin: 8px 0;">
+    <a th:if="${nextHref}" th:href="${nextHref}">翌日</a>
   </div>
 </div>
 <footer>
