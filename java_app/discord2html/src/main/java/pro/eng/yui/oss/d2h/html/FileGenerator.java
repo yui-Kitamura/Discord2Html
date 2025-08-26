@@ -784,7 +784,7 @@ public class FileGenerator {
                                     }
                                 } catch (Exception ignore) { /* ignore DB issues */ }
                                 Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                                Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                                Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
                                 calJst.setTime(msgDate);
                                 int hour = calJst.get(Calendar.HOUR_OF_DAY);
                                 int cycleIndex = hour / finalAnonCycle;
