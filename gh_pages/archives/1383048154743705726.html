@@ -19,40 +19,58 @@
   </header>
   <p>以下のアーカイブから選択してください:</p>
   <p><a href="/Discord2Html/archives/1383048154743705726/threads/index.html">このチャンネルのスレッド一覧を見る</a></p>
+
+  <!-- アーカイブ日付セレクタ -->
+  <div class="archive-date-search">
+    <label for="archive-date-input">日付で探す:</label>
+    <input id="archive-date-input" type="date" />
+    <button id="archive-date-go" type="button">アーカイブを探す</button>
+  </div>
+
   <ul>
     <li>
-      <a href="/Discord2Html/archives/20250826/1383048154743705726.html">logging_on (2025/08/26 16:00:03)</a>
+      <a href="/Discord2Html/archives/20250826/1383048154743705726.html" id="d-20250826">2025/08/26 18:02:30</a>
     </li>
     <li>
-      <a href="/Discord2Html/archives/20250825/1383048154743705726.html">logging_on (2025/08/25 23:59:59)</a>
+      <a href="/Discord2Html/archives/20250825/1383048154743705726.html" id="d-20250825">2025/08/25</a>
     </li>
     <li>
-      <a href="/Discord2Html/archives/20250824/1383048154743705726.html">logging_on (2025/08/24 23:59:59)</a>
+      <a href="/Discord2Html/archives/20250824/1383048154743705726.html" id="d-20250824">2025/08/24</a>
     </li>
     <li>
-      <a href="/Discord2Html/archives/20250823/1383048154743705726.html">logging_on (2025/08/23 23:59:59)</a>
+      <a href="/Discord2Html/archives/20250823/1383048154743705726.html" id="d-20250823">2025/08/23</a>
     </li>
     <li>
-      <a href="/Discord2Html/archives/20250822/1383048154743705726.html">logging_on (2025/08/22 23:59:59)</a>
+      <a href="/Discord2Html/archives/20250822/1383048154743705726.html" id="d-20250822">2025/08/22</a>
     </li>
     <li>
-      <a href="/Discord2Html/archives/20250821/1383048154743705726.html">logging_on (2025/08/21 23:59:59)</a>
+      <a href="/Discord2Html/archives/20250821/1383048154743705726.html" id="d-20250821">2025/08/21</a>
     </li>
     <li>
-      <a href="/Discord2Html/archives/20250820/1383048154743705726.html">logging_on (2025/08/20 23:59:59)</a>
+      <a href="/Discord2Html/archives/20250820/1383048154743705726.html" id="d-20250820">2025/08/20</a>
     </li>
   </ul>
 </div>
 <footer>
   <p class="footer">
-    <span>bot ver1.4.2dev@3fe44f4</span>
+    <span>bot ver1.4.3dev@f3bc98c</span>
   </p>
 </footer>
+<script src="/Discord2Html/js/archive-date.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (window.twemoji) {
       try { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); } catch (e) { /* noop */ }
     }
+    // Center scroll to anchor
+    try {
+      if (location.hash && location.hash.length > 1) {
+        const el = document.getElementById(decodeURIComponent(location.hash.substring(1)));
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+        }
+      }
+    } catch (ignore) { }
   });
 </script>
 </body>
