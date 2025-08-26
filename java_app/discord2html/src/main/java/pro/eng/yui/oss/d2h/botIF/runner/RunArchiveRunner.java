@@ -42,6 +42,8 @@ import java.util.TimeZone;
 
 @Component
 public class RunArchiveRunner implements IRunner {
+    // notes for the latest manual command run (validation/errors)
+    private final List<String> lastRunNotes = new ArrayList<>();
     
     private final ApplicationConfig config;
     private final GuildsDAO guildDao;
@@ -75,7 +77,8 @@ public class RunArchiveRunner implements IRunner {
     public void run(Member member, List<OptionMapping> options){
         member.getJDA().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
         
-        // Clear any previously generated files
+        // initialize
+        lastRunNotes.clear();
         generatedFiles.clear();
 
         try {
@@ -544,10 +547,20 @@ public class RunArchiveRunner implements IRunner {
 
     @Override
     public String afterRunMessage() {
+        String base;
         if (config.getPushToGitHub()) {
-            return "bot completed making archive and pushing all files to GitHub repository";
+            base = "bot completed making archive and pushing all files to GitHub repository";
         } else {
-            return "bot completed making archive";
+            base = "bot completed making archive";
         }
+        StringBuilder sb = new StringBuilder(base);
+        if (lastRunNotes.size() > 0) {
+            sb.append("\n");
+            for (String n : lastRunNotes) {
+                sb.append(n).append("\n");
+            }
+            sb.setLength(sb.length() - 1); // remove the last "\n"
+        }
+        return sb.toString();
     }
 }
