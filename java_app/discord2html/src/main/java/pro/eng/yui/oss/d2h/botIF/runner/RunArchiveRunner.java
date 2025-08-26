@@ -119,6 +119,19 @@ public class RunArchiveRunner implements IRunner {
                 return;
             }
 
+            // Enforce lookback days limit (inclusive)
+            Calendar today = Calendar.getInstance(DateTimeUtil.JST);
+            today.set(Calendar.HOUR_OF_DAY, 0);
+            today.set(Calendar.MINUTE, 0);
+            today.set(Calendar.SECOND, 0);
+            today.set(Calendar.MILLISECOND, 0);
+            long diffMs = today.getTimeInMillis() - day.getTimeInMillis();
+            long diffDays = diffMs / (24L * 60L * 60L * 1000L);
+            if (diffDays > config.getMaxLookbackDays()) {
+                lastRunNotes.add("[ERROR] 遡れる最大日数は " + config.getMaxLookbackDays() + " 日です。指定日: " + dateStr);
+                return;
+            }
+
             // Decide targets using targetUnion
             List<GuildMessageChannel> targets = new ArrayList<>();
             if (targetUnion != null) {

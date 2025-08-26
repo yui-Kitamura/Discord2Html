@@ -32,6 +32,11 @@ public class ApplicationConfig {
         return pushToGitHub;
     }
 
+    // Maximum number of days users can look back for manual archive runs (inclusive). Default 7 days.
+    @Value("${d2h.run.maxLookbackDays}")
+    private int maxLookbackDays;
+    public int getMaxLookbackDays() { return maxLookbackDays; }
+
     @Value("${github.repo.name}")
     private String githubRepoName;
     public String getGithubRepoName() {
