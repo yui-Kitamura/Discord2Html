@@ -82,6 +82,7 @@ public class FileGenerator {
     private static final Pattern CUSTOM_EMOJI_PATTERN = Pattern.compile("<(a?):([A-Za-z0-9_~\\-]+):(\\d+)>" );
 
     private final SimpleDateFormat timeFormat;
+    private final SimpleDateFormat dateOnlyFormat;
     private final SimpleDateFormat folderFormat;
     private final SimpleDateFormat date8Format;
     private final ApplicationConfig appConfig;
@@ -109,6 +110,8 @@ public class FileGenerator {
         this.jdaProvider = jdaProvider;
         this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+        this.dateOnlyFormat = new SimpleDateFormat("yyyy/MM/dd");
+        this.dateOnlyFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         this.folderFormat = new SimpleDateFormat("yyyyMMddHHmmss");
         this.folderFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         this.date8Format = new SimpleDateFormat("yyyyMMdd");
@@ -303,14 +306,13 @@ public class FileGenerator {
                 displayTs = timeFormat.format(new Date(Files.getLastModifiedTime(file).toMillis()));
             } else {
                 Date endOfDay = folderFormat.parse(date8 + "235959");
-                displayTs = timeFormat.format(endOfDay);
+                displayTs = dateOnlyFormat.format(endOfDay);
             }
         } catch (Exception e) {
             displayTs = date8;
         }
-        String label = displayName + " (" + displayTs + ")";
         List<Link> items = new ArrayList<>();
-        items.add(new Link(href, label, "d-"+date8));
+        items.add(new Link(href, displayTs, "d-"+date8));
         Path channelArchive = archivesRoot.resolve(channelId.toString() + ".html");
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
         // Exclude thread index link from items to avoid duplication in the list
@@ -383,14 +385,13 @@ public class FileGenerator {
                     } else {
                         // Use 23:59:59 of the archive date
                         Date endOfDay = folderFormat.parse(date8 + "235959");
-                        displayTs = timeFormat.format(endOfDay);
+                        displayTs = dateOnlyFormat.format(endOfDay);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
                     displayTs = date8;
                 }
-                String label = displayName + " (" + displayTs + ")";
-                items.add(new Link(href, label, "d-"+date8));
+                items.add(new Link(href, displayTs, "d-"+date8));
             }
         }
         Path channelArchive = archivesRoot.resolve(channelId.toString() + ".html");
