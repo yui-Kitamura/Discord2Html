@@ -30,6 +30,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.regex.Matcher;
@@ -724,6 +725,8 @@ public class FileGenerator {
                 anonCycle = 24; 
             }
             final int finalAnonCycle = anonCycle;
+            final Instant beginInstant = beginDate.toInstant();
+            final Instant endInstant = endDate.toInstant();
             boolean more = true;
             while (more) {
                 var batch = history.retrievePast(100).complete();
@@ -733,8 +736,8 @@ public class FileGenerator {
                 var oldest = batch.get(batch.size() - 1);
                 var oldestInstant = oldest.getTimeCreated().toInstant();
                 batch.stream()
-                        .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginDate.toInstant())
-                                && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                        .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginInstant)
+                                && msg.getTimeCreated().toInstant().isBefore(endInstant))
                         .forEach(msg -> {
                             Users author = null;
                             if (msg.getMember() != null) {
@@ -767,7 +770,7 @@ public class FileGenerator {
                                 messages.add(new MessageInfo(msg, author, scopeKey));
                             }
                         });
-                if (!oldestInstant.isAfter(beginDate.toInstant())) {
+                if (!oldestInstant.isAfter(beginInstant)) {
                     more = false;
                 }
             }

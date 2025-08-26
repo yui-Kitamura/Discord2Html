@@ -32,6 +32,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
@@ -444,9 +445,11 @@ public class RunArchiveRunner implements IRunner {
             }
             var oldest = batch.get(batch.size() - 1);
             var oldestInstant = oldest.getTimeCreated().toInstant();
+            final Instant beginInstant = beginDate.toInstant();
+            final Instant endInstant = endDate.toInstant();
             batch.stream()
-                    .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginDate.toInstant())
-                            && msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                    .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginInstant)
+                            && msg.getTimeCreated().toInstant().isBefore(endInstant))
                     .forEach(msg -> {
                         Users author = null;
                         if (msg.getMember() != null) {
@@ -475,7 +478,7 @@ public class RunArchiveRunner implements IRunner {
                             messages.add(new MessageInfo(msg, author, scopeKey));
                         }
                     });
-            if (!oldestInstant.isAfter(beginDate.toInstant())) {
+            if (!oldestInstant.isAfter(beginInstant)) {
                 more = false;
             }
         }
@@ -501,8 +504,10 @@ public class RunArchiveRunner implements IRunner {
             if (batch == null || batch.isEmpty()) {
                 break;
             }
+            // Snapshot end instant for stable inclusive-end filtering
+            final java.time.Instant endInstant = endDate.toInstant();
             batch.stream()
-                    .filter(msg -> msg.getTimeCreated().toInstant().isBefore(endDate.toInstant()))
+                    .filter(msg -> !msg.getTimeCreated().toInstant().isAfter(endInstant))
                     .forEach(msg -> {
                         Users author = null;
                         if (msg.getMember() != null) {
