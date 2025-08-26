@@ -11,6 +11,7 @@ import org.thymeleaf.context.Context;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.config.Secrets;
+import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.github.GitUtil;
@@ -81,10 +82,6 @@ public class FileGenerator {
 
     private static final Pattern CUSTOM_EMOJI_PATTERN = Pattern.compile("<(a?):([A-Za-z0-9_~\\-]+):(\\d+)>" );
 
-    private final SimpleDateFormat timeFormat;
-    private final SimpleDateFormat dateOnlyFormat;
-    private final SimpleDateFormat folderFormat;
-    private final SimpleDateFormat date8Format;
     private final ApplicationConfig appConfig;
     private final TemplateEngine templateEngine;
     private final GitUtil gitUtil;
@@ -108,14 +105,6 @@ public class FileGenerator {
         this.anonStatsDao = anonStatsDao;
         this.channelsDao = channelsDao;
         this.jdaProvider = jdaProvider;
-        this.timeFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        this.timeFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-        this.dateOnlyFormat = new SimpleDateFormat("yyyy/MM/dd");
-        this.dateOnlyFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-        this.folderFormat = new SimpleDateFormat("yyyyMMddHHmmss");
-        this.folderFormat.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-        this.date8Format = new SimpleDateFormat("yyyyMMdd");
-        this.date8Format.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
         this.botVersion = secrets.getBotVersion();
     }
 
@@ -167,7 +156,7 @@ public class FileGenerator {
 
         Path lastOutput = null;
         // Capture a per-execution timestamp directory name so each run creates a new archive folder
-        String runTimestamp = folderFormat.format(Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo")).getTime());
+        String runTimestamp = DateTimeUtil.folder().format(Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo")).getTime());
 
         while (!cur.after(until)) {
             // Segment end is end of current day (23:59:59) or the global end, whichever is earlier
@@ -187,8 +176,8 @@ public class FileGenerator {
             Context context = new Context();
             context.setVariable("channel", channel);
             context.setVariable("messages", segmentMessages);
-            context.setVariable("begin", timeFormat.format(cur.getTime()));
-            context.setVariable("end", timeFormat.format(segmentEnd.getTime()));
+            context.setVariable("begin", DateTimeUtil.time().format(cur.getTime()));
+            context.setVariable("end", DateTimeUtil.time().format(segmentEnd.getTime()));
             context.setVariable("sequence", seq);
             context.setVariable("backToChannelHref", basePrefix() + "/archives/" + channel.getChannelId().toString() + ".html");
             context.setVariable("backToTopHref", basePrefix() + "/index.html");
@@ -218,7 +207,7 @@ public class FileGenerator {
 
             // Mark affected date8 for indices only when there were messages
             if (!segmentMessages.isEmpty()) {
-                affectedDate8.add(date8Format.format(segmentEnd.getTime()));
+                affectedDate8.add(DateTimeUtil.date8().format(segmentEnd.getTime()));
             }
 
             // Advance to the start of the next day to avoid infinite loop
@@ -236,8 +225,8 @@ public class FileGenerator {
         // even if no new messages were included in this run's segments.
         try {
             Calendar nowJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
-            String today8 = date8Format.format(nowJst.getTime());
-            String until8 = date8Format.format(until.getTime());
+            String today8 = DateTimeUtil.date8().format(nowJst.getTime());
+            String until8 = DateTimeUtil.date8().format(until.getTime());
             boolean isMidnight = until.get(Calendar.HOUR_OF_DAY) == 23
                     && until.get(Calendar.MINUTE) == 59 && until.get(Calendar.SECOND) == 59
                     && until.get(Calendar.MILLISECOND) == 999;
@@ -252,7 +241,7 @@ public class FileGenerator {
         try {
             for (String d8 : affectedDate8) {
                 // Use a calendar set to the date for regenerateDailyIndex
-                Calendar any = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                Calendar any = Calendar.getInstance(DateTimeUtil.JST);
                 any.set(Integer.parseInt(d8.substring(0,4)),
                         Integer.parseInt(d8.substring(4,6)) - 1,
                         Integer.parseInt(d8.substring(6,8)),
@@ -300,13 +289,13 @@ public class FileGenerator {
         // Determine display timestamp similar to regenerateChannelArchives
         String displayTs;
         try {
-            String today8 = date8Format.format(Calendar.getInstance().getTime());
+            String today8 = DateTimeUtil.date8().format(Calendar.getInstance().getTime());
             Path file = archivesRoot.resolve(date8).resolve(channelId.toString() + ".html");
             if (today8.equals(date8) && Files.exists(file)) {
-                displayTs = timeFormat.format(new Date(Files.getLastModifiedTime(file).toMillis()));
+                displayTs = DateTimeUtil.time().format(new Date(Files.getLastModifiedTime(file).toMillis()));
             } else {
-                Date endOfDay = folderFormat.parse(date8 + "235959");
-                displayTs = dateOnlyFormat.format(endOfDay);
+                Date endOfDay = DateTimeUtil.folder().parse(date8 + "235959");
+                displayTs = DateTimeUtil.dateOnly().format(endOfDay);
             }
         } catch (Exception e) {
             displayTs = date8;
@@ -378,14 +367,14 @@ public class FileGenerator {
                 // - Otherwise, show the end of that day as 23:59:59
                 String displayTs;
                 try {
-                    String today8 = date8Format.format(Calendar.getInstance().getTime());
+                    String today8 = DateTimeUtil.date8().format(Calendar.getInstance().getTime());
                     if (today8.equals(date8)) {
                         // Use the last modified time of the generated daily file
-                        displayTs = timeFormat.format(new Date(Files.getLastModifiedTime(file).toMillis()));
+                        displayTs = DateTimeUtil.time().format(new Date(Files.getLastModifiedTime(file).toMillis()));
                     } else {
                         // Use 23:59:59 of the archive date
-                        Date endOfDay = folderFormat.parse(date8 + "235959");
-                        displayTs = dateOnlyFormat.format(endOfDay);
+                        Date endOfDay = DateTimeUtil.folder().parse(date8 + "235959");
+                        displayTs = DateTimeUtil.dateOnly().format(endOfDay);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -649,11 +638,11 @@ public class FileGenerator {
         if (!Files.exists(base)) {
             base.toFile().mkdirs();
         }
-        String date8 = date8Format.format(end.getTime());
+        String date8 = DateTimeUtil.date8().format(end.getTime());
 
         // Compute begin/end range for the day in Asia/Tokyo
-        Calendar now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
-        String today8 = date8Format.format(now.getTime());
+        Calendar now = Calendar.getInstance(DateTimeUtil.JST);
+        String today8 = DateTimeUtil.date8().format(now.getTime());
 
         Calendar beginCal = (Calendar) end.clone();
         Calendar endCal = (Calendar) end.clone();
@@ -709,7 +698,7 @@ public class FileGenerator {
         String endText;
         if (today8.equals(date8)) {
             SimpleDateFormat hm = new SimpleDateFormat("HH:mm:ss");
-            hm.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
+            hm.setTimeZone(DateTimeUtil.JST);
             endText = humanDate + " " + hm.format(endCal.getTime());
         } else {
             // 0時実行のフルアーカイブ（前日）
@@ -730,14 +719,14 @@ public class FileGenerator {
         try {
             Calendar prevCal = (Calendar) end.clone();
             prevCal.add(Calendar.DAY_OF_MONTH, -1);
-            String prevDate8 = date8Format.format(prevCal.getTime());
+            String prevDate8 = DateTimeUtil.date8().format(prevCal.getTime());
             String prevHref = basePrefix() + "/archives/" + prevDate8 + "/" + channelId + ".html";
             ctx.setVariable("prevHref", prevHref);
         } catch (Exception ignore) { /* best-effort */ }
         try {
             Calendar nextCal = (Calendar) end.clone();
             nextCal.add(Calendar.DAY_OF_MONTH, 1);
-            String nextDate8 = date8Format.format(nextCal.getTime());
+            String nextDate8 = DateTimeUtil.date8().format(nextCal.getTime());
             String nextHref = basePrefix() + "/archives/" + nextDate8 + "/" + channelId + ".html";
             ctx.setVariable("nextHref", nextHref);
         } catch (Exception ignore) { /* best-effort */ }
@@ -795,11 +784,11 @@ public class FileGenerator {
                                     }
                                 } catch (Exception ignore) { /* ignore DB issues */ }
                                 Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                                Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                                Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
                                 calJst.setTime(msgDate);
                                 int hour = calJst.get(Calendar.HOUR_OF_DAY);
                                 int cycleIndex = hour / finalAnonCycle;
-                                String dateStr = date8Format.format(msgDate);
+                                String dateStr = DateTimeUtil.date8().format(msgDate);
                                 String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
                                 messages.add(new MessageInfo(msg, author, scopeKey));
                             }
@@ -857,7 +846,7 @@ public class FileGenerator {
                 String updatedLabel = threadName;
                 try {
                     updatedLabel = threadName
-                            + " (" + timeFormat.format(new Date(Files.getLastModifiedTime(p).toMillis()))
+                            + " (" + DateTimeUtil.time().format(new Date(Files.getLastModifiedTime(p).toMillis()))
                             + ")";
                 } catch (IOException ignore) {
                     // ignore and use threadName only
@@ -913,7 +902,7 @@ public class FileGenerator {
         List<MessageInfo> result = new ArrayList<>();
         for (MessageInfo m : messages) {
             try {
-                Date d = timeFormat.parse(m.getCreatedTimestamp());
+                Date d = DateTimeUtil.time().parse(m.getCreatedTimestamp());
                 if (!d.before(start.getTime()) && !d.after(end.getTime())) {
                     result.add(m);
                 }
@@ -989,7 +978,7 @@ public class FileGenerator {
         if (messages == null || messages.isEmpty()){ return; }
         Path emojiDir = Paths.get(appConfig.getOutputPath(), "archives", "emoji");
         Files.createDirectories(emojiDir);
-        String today = date8Format.format(new Date());
+        String today = DateTimeUtil.date8().format(new Date());
 
         // Avoid duplicate downloads in the same run by emoji id+ext
         Set<String> processed = new HashSet<>();
@@ -1177,8 +1166,8 @@ public class FileGenerator {
         Context ctx = new Context();
         ctx.setVariable("channel", channel);
         ctx.setVariable("messages", messages);
-        ctx.setVariable("begin", timeFormat.format(begin.getTime()));
-        ctx.setVariable("end", timeFormat.format(end.getTime()));
+        ctx.setVariable("begin", DateTimeUtil.time().format(begin.getTime()));
+        ctx.setVariable("end", DateTimeUtil.time().format(end.getTime()));
         ctx.setVariable("sequence", seq);
         if (channel.getParentChannelName() != null) {
             // Links for thread page navigation

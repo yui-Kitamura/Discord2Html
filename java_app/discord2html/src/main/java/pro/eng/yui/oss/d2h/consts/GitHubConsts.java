@@ -15,7 +15,7 @@ public class GitHubConsts {
     /**
      * Date format for archive directory structure
      */
-    public static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyyMMdd");
+    public static final SimpleDateFormat DATE_FORMAT = DateTimeUtil.date8();
 
     /**
      * Commit message prefix for archive files

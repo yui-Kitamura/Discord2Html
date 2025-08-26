@@ -5,11 +5,10 @@ import net.dv8tion.jda.api.entities.MessageReaction;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
-import java.text.SimpleDateFormat;
+import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
 
 public class MessageInfo {
 
@@ -36,12 +35,6 @@ public class MessageInfo {
         public int getCount() { return count; }
     }
 
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-    private static final SimpleDateFormat DATE8 = new SimpleDateFormat("yyyyMMdd");
-    static{
-        DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-        DATE8.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-    }
     
     private final String contentRaw;
     public String getContentRaw() {
@@ -141,7 +134,7 @@ public class MessageInfo {
                     } catch (Throwable ignore) { }
                     String ext = isAnimated ? "gif" : "png";
                     String url = (id != null) ? ("https://cdn.discordapp.com/emojis/" + id + "." + ext) : null;
-                    String localPath = (id != null) ? ("archives/emoji/emoji_" + id + "_" + DATE8.format(new Date()) + "." + ext) : null;
+                    String localPath = (id != null) ? ("archives/emoji/emoji_" + id + "_" + DateTimeUtil.date8().format(new Date()) + "." + ext) : null;
                     views.add(new ReactionView(true, null, url, localPath, name, count));
                 } else {
                     views.add(new ReactionView(false, name, null, null, name, count));
@@ -165,7 +158,7 @@ public class MessageInfo {
     }
     
     public MessageInfo(Message msg, Users authorInfo){
-        this.createdTimestamp = DATE_FORMAT.format(Date.from(msg.getTimeCreated().toInstant()));
+        this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
         this.anonymizeScopeKey = null;
         this.messageUserInfo = AnonymizationUtil.anonymizeUser(authorInfo);
@@ -181,7 +174,7 @@ public class MessageInfo {
     }
 
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
-        this.createdTimestamp = DATE_FORMAT.format(Date.from(msg.getTimeCreated().toInstant()));
+        this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
         this.anonymizeScopeKey = anonymizeScopeKey;
         this.messageUserInfo = (anonymizeScopeKey == null)

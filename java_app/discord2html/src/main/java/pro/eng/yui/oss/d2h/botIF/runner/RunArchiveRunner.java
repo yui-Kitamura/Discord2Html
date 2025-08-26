@@ -2,6 +2,8 @@ package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
@@ -31,17 +33,18 @@ import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.SimpleDateFormat;
+import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.TimeZone;
 
 @Component
 public class RunArchiveRunner implements IRunner {
+    // notes for the latest manual command run (validation/errors)
+    private final List<String> lastRunNotes = new ArrayList<>();
     
     private final ApplicationConfig config;
     private final GuildsDAO guildDao;
@@ -75,77 +78,105 @@ public class RunArchiveRunner implements IRunner {
     public void run(Member member, List<OptionMapping> options){
         member.getJDA().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
         
-        // Clear any previously generated files
+        // initialize
+        lastRunNotes.clear();
         generatedFiles.clear();
 
         try {
-            boolean isTargetChannelMarked = false;
+            // Check for optional date parameter (yyyyMMdd, JST)
+            String dateStr = null;
+            GuildChannelUnion targetUnion = null;
             for (OptionMapping om : options) {
                 if ("target".equals(om.getName())) {
-                    // CHANNEL型データ対応
-                    GuildChannelUnion selected = om.getAsChannel();
-                    if (selected != null) {
-                        if (selected.getType().isThread()) {
-                            // threadの直接指定をNGにする
-                            isTargetChannelMarked = true; // prevent full-guild run on invalid target
-                            try {
-                                List<Channels> loggingChannels = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
-                                for (Channels sendTo : loggingChannels) {
-                                    jda.getJda().getGuildById(sendTo.getGuidId().getValue())
-                                            .getChannelById(GuildMessageChannel.class, sendTo.getChannelId().getValue())
-                                            .sendMessage("targetオプションはチャンネルのみ指定できます。スレッドは直接指定できません。親チャンネルを指定してください。")
-                                            .queue();
-                                }
-                            } catch (Exception ignore) { /* ignore */ }
-                            continue;
-                        }
-                        if (selected.getType().isMessage()) {
-                            GuildMessageChannel gmc = selected.asGuildMessageChannel();
-                            if (gmc != null) {
-                                isTargetChannelMarked = true;
-                                run(gmc, false);
-                                runActiveThreadsUnder(gmc, false);
-                                continue; // processed target via channel option
-                            }
-                        }
+                    try {
+                        targetUnion = om.getAsChannel();
+                    } catch (Exception ignore) { /* keep null */ }
+                    continue;
+                }
+                if ("date".equals(om.getName())) {
+                    try {
+                        dateStr = om.getAsString();
+                    } catch (Exception ignore) { /* keep null */ }
+                    continue;
+                }
+            }
+            // Default missing date to today
+            if (dateStr == null || dateStr.isBlank()) {
+                dateStr = DateTimeUtil.nowDate8();
+            }
+
+            // Validate date format using centralized util
+            if (!DateTimeUtil.isValidDate8(dateStr)) {
+                lastRunNotes.add("[ERROR] dateオプションは yyyyMMdd 形式で指定してください。例: 20250131");
+                return; // ERROR中断
+            }
+
+            Calendar day;
+            try {
+                day = DateTimeUtil.toJstCalendarFromDate8(dateStr);
+            } catch (Exception e) {
+                lastRunNotes.add("[ERROR] dateオプションの解析に失敗しました: " + e.getMessage());
+                return;
+            }
+
+            // Decide targets using targetUnion
+            List<GuildMessageChannel> targets = new ArrayList<>();
+            if (targetUnion != null) {
+                if (targetUnion.getType().isThread()) {
+                    // Reject threads as direct targets
+                    lastRunNotes.add("[ERROR] targetオプションはチャンネルのみ指定できます。スレッドは直接指定できません。親チャンネルを指定してください。");
+                    return; // スレッド直接指定エラー
+                }
+                if (targetUnion.getType().isMessage()) {
+                    targets.add(targetUnion.asGuildMessageChannel());
+                }
+            }
+            if (targets.isEmpty()) {
+                // 指定されていない場合、Guild内のMONITOR全対象チャンネルを取得
+                List<Channels> chs = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
+                for (Channels ch : chs) {
+                    GuildMessageChannel gmc = jda.getJda().getGuildById(ch.getGuidId().getValue())
+                            .getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue());
+                    if (gmc != null && !gmc.getType().isThread()) {
+                        targets.add(gmc);
                     }
                 }
             }
-            if (isTargetChannelMarked == false) {
-                for (GuildMessageChannel c : member.getGuild().getTextChannels()) {
-                    run(c, false);
-                    runActiveThreadsUnder(c, false);
-                }
-                for (GuildMessageChannel v : member.getGuild().getVoiceChannels()) {
-                    run(v, false);
+
+            // Generate for each target channel using the public day-specific interface
+            for (GuildMessageChannel gmc : targets) {
+                try {
+                    runForSpecificDay(gmc, day);
+                } catch (Exception e) {
+                    lastRunNotes.add("[ERROR] チャンネル " + gmc.getName() + " の日付指定アーカイブ生成に失敗: " + e.getMessage());
                 }
             }
-            
-            // Push all generated files at once
+
+            // Push all generated daily files
             if (config.getPushToGitHub() && !generatedFiles.isEmpty()) {
                 try {
                     gitHubService.pushHtmlFilesToGitHub(generatedFiles);
                 } catch (Exception e) {
-                    List<Channels> loggingChannels = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
-                    System.err.println("Failed to push HTML files to GitHub: " + e.getMessage());
-                    e.printStackTrace();
-                    for(Channels sendTo : loggingChannels) {
-                        jda.getJda().getGuildById(sendTo.getGuidId().getValue())
-                                .getChannelById(GuildMessageChannel.class, sendTo.getChannelId().getValue())
-                                .sendMessage("Failed to push archives to GitHub: " + e.getMessage())
-                                .queue();
-                    }
+                    lastRunNotes.add("[ERROR] GitHubへのプッシュに失敗しました: " + e.getMessage());
                 }
             }
         } catch(Exception e) {
             e.printStackTrace();
+            lastRunNotes.add("[ERROR:予期しない例外が発生] " + e.getMessage());
         }
 
         member.getJDA().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
     }
     
     public void run(){
-        final int now = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo")).get(Calendar.HOUR_OF_DAY);
+        final Calendar beginDate = Calendar.getInstance(DateTimeUtil.JST);
+        final Calendar endDate = (Calendar) beginDate.clone();
+        final int now = endDate.get(Calendar.HOUR_OF_DAY);
+        // fix beginDate to 0:00:00.000
+        beginDate.set(Calendar.HOUR_OF_DAY, 0);
+        beginDate.set(Calendar.MINUTE, 0);
+        beginDate.set(Calendar.SECOND, 0);
+        beginDate.set(Calendar.MILLISECOND, 0);
         
         // Clear any previously generated files
         generatedFiles.clear();
@@ -163,9 +194,9 @@ public class RunArchiveRunner implements IRunner {
                             continue;
                         }
                         // Run archive for parent channel
-                        run(parent, true);
+                        run(parent, beginDate, endDate, true);
                         // Also run for active threads under this parent channel
-                        runActiveThreadsUnder(parent, true);
+                        runActiveThreadsUnder(parent, beginDate, endDate,true);
                     }
                     
                     // Push all generated files for this guild at once
@@ -192,21 +223,39 @@ public class RunArchiveRunner implements IRunner {
     }
 
     /**
-     * 処理本体
-     * @param scheduled true: 定期実行, false: 手動実行
+     * run for a specific day (00:00 to 23:59:59.999 if past day, or now if today) in JST.
      */
-    private void run(final GuildMessageChannel channel, final boolean scheduled){
+    private void runForSpecificDay(GuildMessageChannel channel, Calendar dayJst) {
+        Calendar begin = (Calendar) dayJst.clone();
+        begin.set(Calendar.HOUR_OF_DAY, 0);
+        begin.set(Calendar.MINUTE, 0);
+        begin.set(Calendar.SECOND, 0);
+        begin.set(Calendar.MILLISECOND, 0);
+        Calendar end = (Calendar) begin.clone();
+        String target = DateTimeUtil.date8().format(begin.getTime());
+        String today = DateTimeUtil.nowDate8();
+        if (today.equals(target)) {
+            end = Calendar.getInstance(DateTimeUtil.JST);
+        } else {
+            end.set(Calendar.HOUR_OF_DAY, 23);
+            end.set(Calendar.MINUTE, 59);
+            end.set(Calendar.SECOND, 59);
+            end.set(Calendar.MILLISECOND, 999);
+        }
+        run(channel, begin, end, false);
+    }
+
+    /**
+     * Core runner with explicit date range.
+     */
+    private void run(final GuildMessageChannel channel, final Calendar beginDate, final Calendar endDate, final boolean scheduled) {
         //validate
         Channels targetChInfo = null;
-        boolean isThread = false;
-        try {
-            isThread = channel.getType() != null && channel.getType().isThread();
-        } catch (Exception ignore) {
-            // keep default false
-        }
+        boolean isThread = channel.getType().isThread();
+        
         if (scheduled) {
             // scheduled execution: ensure non-thread channels are MONITOR in DB
-            if (channel.getType().isThread() == false) {
+            if (isThread == false) {
                 List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
                 ChannelId targetChannelId = new ChannelId(channel);
                 boolean monitored = false;
@@ -246,32 +295,6 @@ public class RunArchiveRunner implements IRunner {
             channel.sendMessage("This channel is archive target. Start >>>").queue();
         }
 
-        // Determine begin/end using guild scheduled hours from DB (JST)
-        Calendar nowJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
-        Calendar endDate;
-        Calendar beginDate;
-        if (scheduled && nowJst.get(Calendar.HOUR_OF_DAY) == 0) {
-            // At 00:00 on day n, capture full previous day (d-1 00:00:00 to d-1 23:59:59.999)
-            endDate = (Calendar) nowJst.clone();
-            endDate.set(Calendar.MINUTE, 0);
-            endDate.set(Calendar.SECOND, 0);
-            endDate.set(Calendar.MILLISECOND, 0);
-
-            beginDate = (Calendar) endDate.clone();
-            
-            beginDate.add(Calendar.DAY_OF_MONTH, -1);
-            endDate.add(Calendar.MILLISECOND, -1);
-
-        } else {
-            // Manual run: always archive from today's 00:00 to now (JST)
-            endDate = nowJst;
-            beginDate = (Calendar) nowJst.clone();
-            beginDate.set(Calendar.HOUR_OF_DAY, 0);
-            beginDate.set(Calendar.MINUTE, 0);
-            beginDate.set(Calendar.SECOND, 0);
-            beginDate.set(Calendar.MILLISECOND, 0);
-        }
-
         // Retrieve messages differently for normal channels vs threads
         List<MessageInfo> messages;
         Calendar beginForOutput = (Calendar) beginDate.clone();
@@ -280,10 +303,8 @@ public class RunArchiveRunner implements IRunner {
             // adjust begin date to earliest message for display if available
             if (!messages.isEmpty()) {
                 try {
-                    SimpleDateFormat ts = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-                    ts.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-                    Date first = ts.parse(messages.get(0).getCreatedTimestamp());
-                    Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                    Date first = DateTimeUtil.time().parse(messages.get(0).getCreatedTimestamp());
+                    Calendar cal = Calendar.getInstance(DateTimeUtil.JST);
                     cal.setTime(first);
                     beginForOutput = cal;
                 } catch (Exception ignore) { /* leave beginForOutput as is */ }
@@ -297,10 +318,8 @@ public class RunArchiveRunner implements IRunner {
         // For threads: ensure beginForOutput reflects the earliest message timestamp (after sorting)
         if (isThread && !messages.isEmpty()) {
             try {
-                SimpleDateFormat ts = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-                ts.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-                Date first = ts.parse(messages.get(0).getCreatedTimestamp());
-                Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                Date first = DateTimeUtil.time().parse(messages.get(0).getCreatedTimestamp());
+                Calendar cal = Calendar.getInstance(DateTimeUtil.JST);
                 cal.setTime(first);
                 beginForOutput = cal;
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
@@ -337,9 +356,7 @@ public class RunArchiveRunner implements IRunner {
                 Calendar endDay = (Calendar) endDate.clone();
                 // Iterate days inclusively from begin to end
                 while (!dayIter.after(endDay)) {
-                    String date8 = new java.text.SimpleDateFormat("yyyyMMdd"){ {
-                        setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-                    }}.format(dayIter.getTime());
+                    String date8 = DateTimeUtil.date8().format(dayIter.getTime());
                     Path dailyPath = Path.of(config.getOutputPath(), "archives", date8, channel.getId() + ".html");
                     if (Files.exists(dailyPath) && !generatedFiles.contains(dailyPath)) {
                         generatedFiles.add(dailyPath);
@@ -365,16 +382,13 @@ public class RunArchiveRunner implements IRunner {
             if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
                 generatedFiles.add(threadIndex);
             }
-            // If current channel is a thread, also ensure the parent thread index is included
+            // If the current channel is a thread, also ensure the parent thread index is included
             try {
-                if (channel.getType() != null && channel.getType().isThread()) {
-                    ThreadChannel tc = (ThreadChannel) channel;
-                    if (tc.getParentMessageChannel() != null) {
-                        String parentId = tc.getParentMessageChannel().getId();
-                        Path parentIndex = Path.of(config.getOutputPath(), "archives", parentId, "threads", "index.html");
-                        if (Files.exists(parentIndex) && !generatedFiles.contains(parentIndex)) {
-                            generatedFiles.add(parentIndex);
-                        }
+                if (channel.getType().isThread() && channel instanceof ThreadChannel tc) {
+                    String parentId = tc.getParentMessageChannel().getId();
+                    Path parentIndex = Path.of(config.getOutputPath(), "archives", parentId, "threads", "index.html");
+                    if (Files.exists(parentIndex) && !generatedFiles.contains(parentIndex)) {
+                        generatedFiles.add(parentIndex);
                     }
                 }
             } catch (Throwable ignore2) { /* ignore */ }
@@ -395,16 +409,13 @@ public class RunArchiveRunner implements IRunner {
             String endMsg = "archive created. task end <<<";
             if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
-                    SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
-                    ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-                    endMsg += "\n" + buildChannelArchiveUrl(channel, ymd.format(endDate.getTime()));
+                    endMsg += "\n" + buildChannelArchiveUrl(channel, DateTimeUtil.formatDate8(endDate));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
             channel.sendMessage(endMsg).queue();
         }
     }
-
-    private void runActiveThreadsUnder(GuildMessageChannel parent, boolean scheduled) {
+    private void runActiveThreadsUnder(GuildMessageChannel parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
         try {
             if (parent == null) { return; }
             if (parent.getType().isThread()) {
@@ -415,7 +426,7 @@ public class RunArchiveRunner implements IRunner {
             List<ThreadChannel> threads = text.getThreadChannels();
             for (ThreadChannel t : threads) {
                 if (!t.isArchived()) {
-                    run(t, scheduled);
+                    run(t, beginDate, endDate, scheduled);
                 }
             }
         } catch (Throwable ignore) {
@@ -423,120 +434,85 @@ public class RunArchiveRunner implements IRunner {
         }
     }
 
-    // メッセージ取得（通常のメッセージチャンネル向け）
+    /** メッセージ取得（通常のメッセージチャンネル向け） */
     private List<MessageInfo> getMessagesForMessageChannel(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
+        Instant begin = beginDate.toInstant();
+        Instant end = endDate.toInstant();
+        return collectMessages(channel, begin, end);
+    }
+
+    /** メッセージ取得（スレッド向け：過去日も含め全期間を1ファイルに統一） */
+    private List<MessageInfo> getMessagesForThread(ThreadChannel thread, Calendar endDate) {
+        // No begin
+        Instant end = endDate.toInstant();
+        return collectMessages(thread, null, end);
+    }
+
+    /**
+     * 汎用メッセージ取得メソッド
+     * @param channel target channel (message channel or thread)
+     * @param beginInstantOrNull null to disable lower bound; otherwise messages strictly after or at begin depending on exclusiveBegin
+     */
+    private List<MessageInfo> collectMessages(
+            GuildMessageChannel channel,
+            Instant beginInstantOrNull,
+            Instant endInstant
+    ) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
-        var history = channel.getHistory();
-        GuildId guildId = new GuildId(channel.getGuild());
-        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
-        int anonCycle = guildInfo.getAnonCycle().getValue();
-        if (anonCycle < 1 || 24 < anonCycle) {
-            anonCycle = 24;
-        }
-        final int finalAnonCycle = anonCycle;
-        final SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
-        ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-        boolean more = true;
-        while (more) {
-            var batch = history.retrievePast(100).complete();
-            if (batch == null || batch.isEmpty()) {
-                break;
-            }
-            var oldest = batch.get(batch.size() - 1);
-            var oldestInstant = oldest.getTimeCreated().toInstant();
-            final Instant beginInstant = beginDate.toInstant();
-            final Instant endInstant = endDate.toInstant();
-            batch.stream()
-                    .filter(msg -> msg.getTimeCreated().toInstant().isAfter(beginInstant)
-                            && msg.getTimeCreated().toInstant().isBefore(endInstant))
-                    .forEach(msg -> {
-                        Users author = null;
-                        if (msg.getMember() != null) {
-                            author = new Users(msg.getMember());
-                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
-                            author.setAnonStats(new AnonStats(anonStatus));
-                        } else {
-                            if (msg.getAuthor() != null) {
+        boolean breakEarlyByBegin = (beginInstantOrNull != null);
+        try {
+            MessageHistory history = channel.getHistory();
+            GuildId guildId = new GuildId(channel.getGuild());
+            Guilds guildInfo = guildDao.selectGuildInfo(guildId);
+            int anonCycle = guildInfo.getAnonCycle().getValue();
+            if (anonCycle < 1 || 24 < anonCycle) { anonCycle = 24; }
+            final int finalAnonCycle = anonCycle;
+            while (true) {
+                List<Message> batch = history.retrievePast(100).complete();
+                if (batch == null || batch.isEmpty()) { break; }
+                Message oldest = batch.get(batch.size() - 1);
+                Instant oldestInstant = oldest.getTimeCreated().toInstant();
+                batch.stream()
+                        .filter(msg -> {
+                            // For message channels, filter messages after beginInstantOrNull
+                            // For threads (breakEarlyByBegin=true), include all messages
+                            // For all cases, only include messages before or at endInstant
+                            return (breakEarlyByBegin && msg.getTimeCreated().toInstant().isAfter(beginInstantOrNull))
+                                    && msg.getTimeCreated().toInstant().isBefore(endInstant);
+                        })
+                        .forEach(msg -> {
+                            Users author;
+                            if (msg.getMember() == null) {
+                                // bot or non-member
                                 author = new Users(msg.getAuthor(), channel.getGuild());
                                 UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
                                 author.setAnonStats(new AnonStats(anonStatus));
-                            }
-                        }
-                        if (author != null) {
-                            if (!marked.contains(author)) {
-                                usersDao.upsertUserInfo(author);
-                                marked.add(author);
-                            }
-                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
-                            calJst.setTime(msgDate);
-                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                            int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = ymd.format(msgDate);
-                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                            messages.add(new MessageInfo(msg, author, scopeKey));
-                        }
-                    });
-            if (!oldestInstant.isAfter(beginInstant)) {
-                more = false;
-            }
-        }
-        return messages;
-    }
-
-    // メッセージ取得（スレッド向け：過去日も含め全期間を1ファイルに統一）
-    private List<MessageInfo> getMessagesForThread(ThreadChannel thread, Calendar endDate) {
-        List<MessageInfo> messages = new ArrayList<>();
-        List<Users> marked = new ArrayList<>();
-        var history = thread.getHistory();
-        GuildId guildId = new GuildId(thread.getGuild());
-        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
-        int anonCycle = guildInfo.getAnonCycle().getValue();
-        if (anonCycle < 1 || 24 < anonCycle) {
-            anonCycle = 24;
-        }
-        final int finalAnonCycle = anonCycle;
-        final SimpleDateFormat ymd = new SimpleDateFormat("yyyyMMdd");
-        ymd.setTimeZone(TimeZone.getTimeZone("Asia/Tokyo"));
-        while (true) {
-            var batch = history.retrievePast(100).complete();
-            if (batch == null || batch.isEmpty()) {
-                break;
-            }
-            // Snapshot end instant for stable inclusive-end filtering
-            final java.time.Instant endInstant = endDate.toInstant();
-            batch.stream()
-                    .filter(msg -> !msg.getTimeCreated().toInstant().isAfter(endInstant))
-                    .forEach(msg -> {
-                        Users author = null;
-                        if (msg.getMember() != null) {
-                            author = new Users(msg.getMember());
-                            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
-                            author.setAnonStats(new AnonStats(anonStatus));
-                        } else {
-                            if (msg.getAuthor() != null) {
-                                author = new Users(msg.getAuthor(), thread.getGuild());
-                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
+                            } else {
+                                // member
+                                author = new Users(msg.getMember());
+                                UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
                                 author.setAnonStats(new AnonStats(anonStatus));
                             }
-                        }
-                        if (author != null) {
                             if (!marked.contains(author)) {
                                 usersDao.upsertUserInfo(author);
                                 marked.add(author);
                             }
                             Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
                             calJst.setTime(msgDate);
                             int hour = calJst.get(Calendar.HOUR_OF_DAY);
                             int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = ymd.format(msgDate);
+                            String dateStr = DateTimeUtil.date8().format(msgDate);
                             String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
                             messages.add(new MessageInfo(msg, author, scopeKey));
-                        }
-                    });
-            // do not break early; continue until all past messages exhausted
+                        });
+                if (breakEarlyByBegin && oldestInstant.isBefore(beginInstantOrNull)) {
+                    break;
+                }
+            }
+        } catch (Throwable ignore) {
+            // best-effort
         }
         return messages;
     }
@@ -556,10 +532,20 @@ public class RunArchiveRunner implements IRunner {
 
     @Override
     public String afterRunMessage() {
+        String base;
         if (config.getPushToGitHub()) {
-            return "bot completed making archive and pushing all files to GitHub repository";
+            base = "bot completed making archive and pushing all files to GitHub repository";
         } else {
-            return "bot completed making archive";
+            base = "bot completed making archive";
         }
+        StringBuilder sb = new StringBuilder(base);
+        if (lastRunNotes.size() > 0) {
+            sb.append("\n");
+            for (String n : lastRunNotes) {
+                sb.append(n).append("\n");
+            }
+            sb.setLength(sb.length() - 1); // remove the last "\n"
+        }
+        return sb.toString();
     }
 }
