@@ -19,20 +19,38 @@
   </header>
   <p>このチャンネルに属するスレッドのアーカイブ一覧</p>
   
+
+  <!-- アーカイブ日付セレクタ -->
+  <div class="archive-date-search">
+    <label for="archive-date-input">日付で探す:</label>
+    <input id="archive-date-input" type="date" />
+    <button id="archive-date-go" type="button">アーカイブを探す</button>
+  </div>
+
   <ul>
     
   </ul>
 </div>
 <footer>
   <p class="footer">
-    <span>bot ver1.4.2dev@3fe44f4</span>
+    <span>bot ver1.4.4dev@7eb7973</span>
   </p>
 </footer>
+<script src="/Discord2Html/js/archive-date.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     if (window.twemoji) {
       try { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); } catch (e) { /* noop */ }
     }
+    // Center scroll to anchor
+    try {
+      if (location.hash && location.hash.length > 1) {
+        const el = document.getElementById(decodeURIComponent(location.hash.substring(1)));
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+        }
+      }
+    } catch (ignore) { }
   });
 </script>
 </body>
