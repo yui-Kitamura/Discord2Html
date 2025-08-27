@@ -551,7 +551,7 @@ public class RunArchiveRunner implements IRunner {
 
     private boolean isVoiceText(GuildMessageChannel ch) {
         if (ch == null) { return false; }
-        return (!(ch instanceof VoiceChannel || ch instanceof StageChannel));
+        return (ch instanceof VoiceChannel || ch instanceof StageChannel);
     }
 
     private long getExistingThreadPageEndMillis(ThreadChannel tc) {
