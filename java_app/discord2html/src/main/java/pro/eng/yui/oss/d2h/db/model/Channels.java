@@ -1,5 +1,7 @@
 package pro.eng.yui.oss.d2h.db.model;
 
+import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
@@ -50,6 +52,18 @@ public class Channels {
 
     public Channels(){
         // nothing to do
+    }
+    public Channels(GuildChannel ch){
+        this.guild_id = new GuildId(ch.getGuild());
+        this.channel_id = new ChannelId(ch);
+        this.channel_name = new ChannelName(ch);
+        if (ch instanceof ICategorizableChannel cc && cc.getParentCategory() != null) {
+            this.category_id = new CategoryId(cc.getParentCategory());
+            this.category_name = new CategoryName(cc.getParentCategory());
+        } else {
+            this.category_id = new CategoryId(0L);
+            this.category_name = new CategoryName("");
+        }
     }
 
     @Override

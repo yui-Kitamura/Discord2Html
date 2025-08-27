@@ -48,20 +48,7 @@ public class DiscordBotUtils {
     
     /* pkg-prv */ void upsertGuildChannelToDB(GuildMessageChannel ch){
         upsertGuildInfoToDB(ch.getGuild());
-        Channels newRecord = new Channels();
-        newRecord.setGuildId(new GuildId(ch.getGuild()));
-        newRecord.setChannelId(new ChannelId(ch));
-        newRecord.setChannelName(new ChannelName(ch));
-        // Set category id/name if available (null-safe)
-        try {
-            if (ch instanceof ICategorizableChannel cc) {
-                Category parent = cc.getParentCategory();
-                if (parent != null) {
-                    newRecord.setCategoryId(new CategoryId(parent));
-                    newRecord.setCategoryName(new CategoryName(parent));
-                }
-            }
-        } catch (Throwable ignore) { /* older channel types or no category */ }
+        Channels newRecord = new Channels(ch);
         channelsDao.upsertChannelInfo(newRecord);
     }
 
