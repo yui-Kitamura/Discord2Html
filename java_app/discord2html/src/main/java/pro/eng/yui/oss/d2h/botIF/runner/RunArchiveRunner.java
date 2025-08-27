@@ -404,8 +404,8 @@ public class RunArchiveRunner implements IRunner {
                     }
                 }
             }
-            // Include thread index at archives/threads/<channel>/index.html
-            Path threadIndex = Path.of(config.getOutputPath(), "archives", "threads", channel.getName(), "index.html");
+            // Include thread index at archives/<parentChannelId>/threads/index.html (for parent channels)
+            Path threadIndex = Path.of(config.getOutputPath(), "archives", channel.getId(), "threads", "index.html");
             if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
                 generatedFiles.add(threadIndex);
             }
