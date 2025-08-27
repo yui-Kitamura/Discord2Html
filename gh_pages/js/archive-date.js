@@ -51,10 +51,10 @@
     }
   }
 
-  function init(selectorRoot) {
-    const root = selectorRoot || document;
-    const input = root.querySelector('#archive-date-input');
-    const btn = root.querySelector('#archive-date-go');
+  function init() {
+    const input = document.getElementById('archive-date-input');
+    const btn = document.getElementById('archive-date-go');
+    if (!input && !btn){ return; } // Thread
 
     const dateMap = collectDateAnchors(document);
     const keys = Array.from(dateMap.keys());
@@ -103,6 +103,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    try { init(document); } catch (e) { /* noop */ }
+    try { init(); } catch (e) { console.warn(e); }
   });
 })();
