@@ -267,6 +267,7 @@ public class RunArchiveRunner implements IRunner {
             end.set(Calendar.MILLISECOND, 999);
         }
         run(channel, begin, end, false);
+        runActiveThreadsUnder(channel, begin, end, false);
     }
 
     /**
