@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title th:text="${channel.parentChannelName + ' # ' + channel.name} + ' のアーカイブ'">アーカイブ</title>
+  <!-- Machine-readable archive metadata -->
+  <meta name="d2h-thread-begin-epoch" th:content="${beginEpochMillis}" />
+  <meta name="d2h-thread-end-epoch" th:content="${endEpochMillis}" />
   <link rel="stylesheet" href="/Discord2Html/css/style.css" />
   <link rel="icon" th:if="${guildIconUrl}" th:href="${guildIconUrl}" />
   <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -21,7 +24,7 @@
     <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="${guildName} + ' アイコン'" />
     <h1 th:text="${channel.parentChannelName + ' # ' + channel.name} + ' のアーカイブ'">Thread Archive</h1>
   </div>
-  <div class="meta">
+  <div class="meta" th:attr="data-begin-epoch=${beginEpochMillis}, data-end-epoch=${endEpochMillis}">
     <span>期間: </span>
     <span th:text="${begin}">begin</span>
     <span> 〜 </span>

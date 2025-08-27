@@ -29,7 +29,9 @@
 
   <ul>
     <li th:each="it : ${items}">
-      <a th:href="${it.href}" th:text="${it.label}" th:attr="id=${it.id}">link</a>
+      <a th:href="${it.href}"
+         th:text="${it.label}"
+         th:attr="id=${it.id}, data-epoch-millis=${it.dataEpochMillis}, data-thread-name=${it.dataThreadName}, data-thread-id=${it.dataThreadId}">link</a>
     </li>
   </ul>
 </div>

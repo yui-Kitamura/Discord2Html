@@ -552,16 +552,13 @@ public class RunArchiveRunner implements IRunner {
             Path out = Path.of(config.getOutputPath(), "archives", parentId, "threads", "t-" + tc.getId() + ".html");
             if (!Files.exists(out)) { return 0L; }
             String html = Files.readString(out, StandardCharsets.UTF_8);
-            Pattern metaPattern = Pattern.compile("期間:\\s*</span>\\s*<span>([^<]+)</span>\\s*<span>\\s*〜\\s*</span>\\s*<span>([^<]+)</span>", Pattern.DOTALL);
-            Matcher mm = metaPattern.matcher(html);
-            if (mm.find()) {
-                String endStr = mm.group(2).trim();
-                try { return DateTimeUtil.time().parse(endStr).getTime(); }
-                catch (Exception e1) {
-                    try { return DateTimeUtil.mill().parse(endStr).getTime(); }
-                    catch (Exception e2) { return 0L; }
-                }
+            // <meta name="d2h-thread-end-epoch" content="...">
+            Pattern p = Pattern.compile("<meta\\s+[^>]*name=\\\"d2h-thread-end-epoch\\\"[^>]*content=\\\"(\\d+)\\\"", Pattern.CASE_INSENSITIVE);
+            Matcher m = p.matcher(html);
+            if (m.find()) {
+                try { return Long.parseLong(m.group(1)); } catch (Exception ignore) { /* fallback */ }
             }
+        
         } catch (Exception ignore) { }
         return 0L;
     }

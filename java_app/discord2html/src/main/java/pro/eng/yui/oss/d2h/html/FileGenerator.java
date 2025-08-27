@@ -51,17 +51,30 @@ public class FileGenerator {
         private final String href;
         private final String label;
         private final String id; // optional id for anchor
+        // Optional data-* attributes for anchor tags
+        private final Long dataEpochMillis;
+        private final String dataThreadName;
+        private final String dataThreadId;
         public Link(String href, String label) {
-            this(href, label, null);
+            this(href, label, null, null, null, null);
         }
         public Link(String href, String label, String id) {
+            this(href, label, id, null, null, null);
+        }
+        public Link(String href, String label, String id, Long dataEpochMillis, String dataThreadName, String dataThreadId) {
             this.href = href;
             this.label = label;
             this.id = id;
+            this.dataEpochMillis = dataEpochMillis;
+            this.dataThreadName = dataThreadName;
+            this.dataThreadId = dataThreadId;
         }
         public String getHref() { return href; }
         public String getLabel() { return label; }
         public String getId() { return id; }
+        public Long getDataEpochMillis() { return dataEpochMillis; }
+        public String getDataThreadName() { return dataThreadName; }
+        public String getDataThreadId() { return dataThreadId; }
     }
 
     public static class CategoryGroup {
@@ -866,14 +879,27 @@ public class FileGenerator {
                     created = thread.getTimeCreated().toInstant().toEpochMilli();
                     active = !(thread.isArchived() || thread.isLocked());
                 }
-                long lastModified = Files.getLastModifiedTime(p).toMillis();
-                String updatedLabel = threadName
-                            + " (" + DateTimeUtil.time().format(new Date(lastModified)) + ")";
+                // Use machine-readable end epoch from thread HTML meta tag as the sole source of truth
+                long endEpoch;
+                try {
+                    String html = Files.readString(p, StandardCharsets.UTF_8);
+                    Pattern mp = Pattern.compile("<meta\\s+[^>]*name=\\\"d2h-thread-end-epoch\\\"[^>]*content=\\\"(\\d+)\\\"", Pattern.CASE_INSENSITIVE);
+                    Matcher mm = mp.matcher(html);
+                    if (mm.find()) {
+                        endEpoch = Long.parseLong(mm.group(1));
+                    } else {
+                        endEpoch = 0L;
+                    }
+                } catch (Exception unexpected) { endEpoch = 0L; }
+                String updatedLabel = threadName;
+                if (endEpoch > 0L) {
+                    updatedLabel = threadName + " (" + DateTimeUtil.time().format(new Date(endEpoch)) + ")";
+                }
                 ThreadEntry te = new ThreadEntry();
                 te.href = href;
                 te.label = updatedLabel;
                 te.active = active;
-                te.lastModified = lastModified;
+                te.lastModified = endEpoch;
                 te.created = created;
                 entries.add(te);
             }
@@ -885,7 +911,23 @@ public class FileGenerator {
         // Convert to Link for template
         List<Link> items = new ArrayList<>();
         for (ThreadEntry e : entries) {
-            items.add(new Link(e.href, e.label));
+            try {
+                // Extract thread id from href (expected format .../threads/t-<id>.html)
+                String threadId = null;
+                int ti = e.href.lastIndexOf("/t-");
+                if (ti >= 0) {
+                    int dot = e.href.lastIndexOf('.');
+                    if (dot > ti) {
+                        threadId = e.href.substring(ti + 3, dot);
+                    }
+                }
+                items.add(new Link(e.href, e.label, null, (e.lastModified > 0 ? e.lastModified : null),
+                        // derive thread name from label prefix (before the space before '(') if possible
+                        (e.label != null ? e.label.replaceFirst("\\s*\\(.*$", "").trim() : null),
+                        threadId));
+            } catch (Throwable ex) {
+                items.add(new Link(e.href, e.label));
+            }
         }
         // write list page under archives/<parent>/threads/index.html
         Path indexDir = parentThreadsDir;
@@ -921,7 +963,7 @@ public class FileGenerator {
                 if (!t.isArchived()) {
                     String href = basePrefix() + "/archives/" + String.valueOf(channel.getChannelId()) + "/threads/t-" + t.getId() + ".html";
                     String label = t.getName();
-                    links.add(new Link(href, label));
+                    links.add(new Link(href, label, null, null, label, t.getId()));
                 }
             }
             // sort by id(t-href)
@@ -1202,6 +1244,11 @@ public class FileGenerator {
         ctx.setVariable("messages", messages);
         ctx.setVariable("begin", DateTimeUtil.time().format(begin.getTime()));
         ctx.setVariable("end", DateTimeUtil.time().format(end.getTime()));
+        // Provide machine-readable epoch millis to template
+        try {
+            ctx.setVariable("beginEpochMillis", begin.getTimeInMillis());
+            ctx.setVariable("endEpochMillis", end.getTimeInMillis());
+        } catch (Exception ignore) { /* best-effort */ }
         ctx.setVariable("sequence", seq);
         if (channel.getParentChannelName() != null) {
             // Links for thread page navigation
