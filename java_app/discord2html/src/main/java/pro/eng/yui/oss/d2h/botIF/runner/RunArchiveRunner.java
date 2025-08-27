@@ -4,14 +4,14 @@ import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.StageChannel;
-import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
+import net.dv8tion.jda.api.entities.channel.attribute.IThreadContainer;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
-import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -148,13 +148,10 @@ public class RunArchiveRunner implements IRunner {
                 }
                 if (targetUnion.getType().isMessage()) {
                     targets.add(targetUnion.asGuildMessageChannel());
-                } else {
-                    // Try ForumChannel
-                    try {
-                        ForumChannel forum = targetUnion.asForumChannel();
-                        runForSpecificDayForum(forum, day);
-                        handledForumTarget = true;
-                    } catch (Throwable ignore) { /* keep not handled */ }
+                }
+                if (targetUnion.getType() == ChannelType.FORUM) {
+                    runForSpecificDayForum(targetUnion.asForumChannel(), day); //run
+                    handledForumTarget = true;
                 }
             }
             if (handledForumTarget == false && targets.isEmpty()) {
@@ -230,17 +227,17 @@ public class RunArchiveRunner implements IRunner {
                                 jda.getJda().getGuildById(ch.getGuidId().getValue())
                                 .getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue());
                         if (parent != null) {
-                            // Run archive for parent channel (non-thread channels only)
                             run(parent, beginDate, endDate, true);
-                            // Also run for active threads under this parent channel
-                            runActiveThreadsUnder(parent, beginDate, endDate,true);
+                            if (parent instanceof IThreadContainer container) {
+                                runActiveThreadsUnder(container, beginDate, endDate, true);
+                            }
                         } else {
                             // Try ForumChannel: skip channel body, but process threads under forum
                             ForumChannel forum = jda.getJda().getGuildById(ch.getGuidId().getValue())
                                     .getChannelById(ForumChannel.class, ch.getChannelId().getValue());
                             if (forum != null) {
-                                runActiveThreadsUnderForum(forum, beginDate, endDate, true);
-                                // If thread index exists, include for push target
+                                runActiveThreadsUnder(forum, beginDate, endDate, true);
+                                // If any thread index exists, include for push target
                                 try {
                                     Path threadIndex = Path.of(config.getOutputPath(), "archives", forum.getId(), "threads", "index.html");
                                     if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
@@ -302,7 +299,9 @@ public class RunArchiveRunner implements IRunner {
             end.set(Calendar.MILLISECOND, 999);
         }
         run(channel, begin, end, false);
-        runActiveThreadsUnder(channel, begin, end, false);
+        if(channel instanceof IThreadContainer container) {
+            runActiveThreadsUnder(container, begin, end, false);
+        }
     }
 
     private void runForSpecificDayForum(ForumChannel forum, Calendar dayJst) {
@@ -314,7 +313,7 @@ public class RunArchiveRunner implements IRunner {
         begin.set(Calendar.MILLISECOND, 0);
         Calendar end = Calendar.getInstance(DateTimeUtil.JST);
         // For forum, skip channel body and only process threads
-        runActiveThreadsUnderForum(forum, begin, end, false);
+        runActiveThreadsUnder(forum, begin, end, false);
         // Include thread index and per-channel list page if they exist
         try {
             Path threadIndex = Path.of(config.getOutputPath(), "archives", forum.getId(), "threads", "index.html");
@@ -504,23 +503,7 @@ public class RunArchiveRunner implements IRunner {
             channel.sendMessage(endMsg).queue();
         }
     }
-    private void runActiveThreadsUnder(GuildMessageChannel parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
-        try {
-            if (parent == null) { return; }
-            if (parent.getType().isThread()) {
-                return; // threads don't have sub-threads; and avoid reentrancy
-            }
-            TextChannel text = jda.getJda().getChannelById(TextChannel.class, parent.getIdLong());
-            if (text == null) { return; }
-            List<ThreadChannel> threads = text.getThreadChannels();
-            for (ThreadChannel t : threads) {
-                run(t, beginDate, endDate, scheduled);
-            }
-        } catch (Throwable ignore) {
-            // best-effort; skip on any error
-        }
-    }
-    private void runActiveThreadsUnderForum(ForumChannel parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
+    private void runActiveThreadsUnder(IThreadContainer parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
         try {
             if (parent == null) { return; }
             List<ThreadChannel> threads = parent.getThreadChannels();
