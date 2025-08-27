@@ -100,8 +100,8 @@ public class RunArchiveRunner implements IRunner {
                     continue;
                 }
             }
-            // Default missing date to today
             if (dateStr == null || dateStr.isBlank()) {
+                // Default missing date to today
                 dateStr = DateTimeUtil.nowDate8();
             }
 
@@ -110,7 +110,6 @@ public class RunArchiveRunner implements IRunner {
                 lastRunNotes.add("[ERROR] dateオプションは yyyyMMdd 形式で指定してください。例: 20250131");
                 return; // ERROR中断
             }
-
             Calendar day;
             try {
                 day = DateTimeUtil.toJstCalendarFromDate8(dateStr);
@@ -118,7 +117,6 @@ public class RunArchiveRunner implements IRunner {
                 lastRunNotes.add("[ERROR] dateオプションの解析に失敗しました: " + e.getMessage());
                 return;
             }
-
             // Enforce lookback days limit (inclusive)
             Calendar today = Calendar.getInstance(DateTimeUtil.JST);
             today.set(Calendar.HOUR_OF_DAY, 0);
