@@ -2,8 +2,10 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.attribute.IThreadContainer;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
@@ -403,10 +405,8 @@ public class FileGenerator {
         }
         Path channelArchive = archivesRoot.resolve(channelId.toString() + ".html");
         Files.createDirectories(archivesRoot);
-        // If no items found, avoid overwriting an existing archive list to preserve past links
-        if (items.isEmpty() && Files.exists(channelArchive)) {
-            return;
-        }
+        // Always (re)generate the per-channel archive list, even if there are no daily items yet.
+        // This allows back-links from thread indexes (e.g., Forum channels) without special-case branching.
         List<Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
         // Exclude thread index link from items to avoid duplication in the list
         final String threadIndexNorm = "archives/" + channelId + "/threads/index.html";
@@ -956,7 +956,7 @@ public class FileGenerator {
     private List<Link> getActiveThreadLinks(@NotNull ChannelInfo channel) {
         try {
             JDA jda = jdaProvider.getJda();
-            TextChannel raw = jda.getChannelById(TextChannel.class, channel.getChannelId().getValue());
+            IThreadContainer raw = jda.getChannelById(IThreadContainer.class, channel.getChannelId().getValue());
             if (raw == null) { return List.of(); }
             List<ThreadChannel> threads = raw.getThreadChannels();
             List<Link> links = new ArrayList<>();
