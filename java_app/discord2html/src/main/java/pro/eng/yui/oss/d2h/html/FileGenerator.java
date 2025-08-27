@@ -440,6 +440,7 @@ public class FileGenerator {
             if (!Files.exists(archivesRoot) || !Files.isDirectory(archivesRoot)) { 
                 return ids;
             }
+            // 1) Collect from daily folders: archives/yyyyMMdd/*.html
             try (DirectoryStream<Path> days = Files.newDirectoryStream(archivesRoot)) {
                 for (Path dayDir : days) {
                     String name = dayDir.getFileName().toString();
@@ -453,6 +454,17 @@ public class FileGenerator {
                         // best-effort per day dir
                     }
                 }
+            }
+            // 2) Also collect channel IDs that have per-channel list pages: archives/<channelId>.html
+            try (DirectoryStream<Path> rootHtmls = Files.newDirectoryStream(archivesRoot, "*.html")) {
+                for (Path p : rootHtmls) {
+                    String fileName = p.getFileName().toString();
+                    if (fileName.matches("\\d+\\.html")) {
+                        ids.add(fileName.substring(0, fileName.length() - 5));
+                    }
+                }
+            } catch (IOException ignore) {
+                // best-effort on root html scan
             }
         } catch (IOException ignore) {
             // best-effort: return what we have
@@ -574,24 +586,8 @@ public class FileGenerator {
         if (!Files.exists(archivesRoot) || !Files.isDirectory(archivesRoot)) {
             return;
         }
-        // Collect channelIds by scanning daily archive folders (yyyyMMdd)
-        Set<String> channelIds = new HashSet<>();
-        try (DirectoryStream<Path> days = Files.newDirectoryStream(archivesRoot)) {
-            for (Path dayDir : days) {
-                String name = dayDir.getFileName().toString();
-                if (!Files.isDirectory(dayDir) || !name.matches("\\d{8}")) {
-                    continue;
-                }
-                try (DirectoryStream<Path> htmls = Files.newDirectoryStream(dayDir, "*.html")) {
-                    for (Path p : htmls) {
-                        String fileName = p.getFileName().toString();
-                        if (fileName.toLowerCase().endsWith(".html")) {
-                            channelIds.add(fileName.substring(0, fileName.length() - 5));
-                        }
-                    }
-                }
-            }
-        }
+        // Collect channelIds from both daily archives and per-channel list pages
+        Set<String> channelIds = discoverArchivedChannelIds();
         // Ensure per-channel list pages exist for each discovered channel
         for (String id : channelIds) {
             try {
