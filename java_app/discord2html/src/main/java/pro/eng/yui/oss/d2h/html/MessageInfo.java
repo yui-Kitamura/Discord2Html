@@ -157,22 +157,6 @@ public class MessageInfo {
         return this.refOriginMessageContent;
     }
     
-    public MessageInfo(Message msg, Users authorInfo){
-        this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
-        this.userInfo = authorInfo;
-        this.anonymizeScopeKey = null;
-        this.messageUserInfo = AnonymizationUtil.anonymizeUser(authorInfo);
-        this.contentRaw = extractContentIncludingEmbeds(msg);
-        this.attachments = msg.getAttachments();
-        this.reactions = msg.getReactions();
-        if(msg.getReferencedMessage() == null) {
-            this.refOriginMessageContent = null;
-        }else{
-            String content = extractContentIncludingEmbeds(msg.getReferencedMessage());
-            this.refOriginMessageContent = content.length() > 30 ? content.substring(0, 30) : content;
-        }
-    }
-
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
         this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
