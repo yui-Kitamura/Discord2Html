@@ -1,6 +1,7 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -11,6 +12,7 @@ import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.OnRunMessage;
 import pro.eng.yui.oss.d2h.db.field.OnRunUrl;
 import pro.eng.yui.oss.d2h.db.field.Status;
+import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 
 import java.util.List;
@@ -28,13 +30,13 @@ public class ArchiveConfigRunner implements IRunner {
     }
     
     public void run(Guild guild, List<OptionMapping> options){
-        ChannelId targetCh = null;
+        GuildChannel targetCh = null;
         Status newMode = null;
         String onRunMessageStr = null;
         String onRunUrlStr = null;
         for(OptionMapping op : options) {
             if("channel".equals(op.getName())) {
-                 targetCh = new ChannelId(op.getAsChannel());
+                 targetCh = op.getAsChannel();
                  continue;
             }
             if("mode".equals(op.getName())) {
@@ -70,7 +72,12 @@ public class ArchiveConfigRunner implements IRunner {
 
         // 1) update channel mode when both provided
         if (hasChannel && hasMode) {
-            channelDao.updateChannelStatus(targetCh, newMode);
+            ChannelId targetChId = new ChannelId(targetCh);
+            if (!channelDao.exists(targetChId)) {
+                Channels chRec = new Channels(targetCh);
+                channelDao.upsertChannelInfo(chRec);
+            }
+            channelDao.updateChannelStatus(targetChId, newMode);
         }
         
         // 2) persist guild-level settings if provided
