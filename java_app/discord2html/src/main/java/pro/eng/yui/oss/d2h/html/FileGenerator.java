@@ -948,6 +948,7 @@ public class FileGenerator {
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", true);
+        ctx.setVariable("backToChannelArchivesHref", basePrefix() + "/archives/" + parentChannelId + ".html");
         String page = templateEngine.process("list", ctx);
         writeIfChanged(index, page);
     }

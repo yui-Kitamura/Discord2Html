@@ -12,6 +12,7 @@
 <div class="container">
   <nav class="nav">
     <a href="/Discord2Html/index.html">トップ</a>
+    <a th:if="${backToChannelArchivesHref}" th:href="${backToChannelArchivesHref}">このチャンネルのアーカイブ一覧に戻る</a>
   </nav>
   <header class="guild-header">
     <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="${guildName} + ' アイコン'" />
