@@ -832,35 +832,60 @@ public class FileGenerator {
         Path parentThreadsDir = base.resolve("archives").resolve(parentChannelId.toString()).resolve("threads");
         // Ensure the directory exists so we can still generate an empty index page
         Files.createDirectories(parentThreadsDir);
-        List<Link> items = new ArrayList<>();
+        class ThreadEntry {
+            String href;
+            String label;
+            boolean active; // true if active (not archived and not locked)
+            long lastModified;
+            long created;
+        }
+        List<ThreadEntry> entries = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(parentThreadsDir, "*.html")) {
             for (Path p : stream) {
                 String file = p.getFileName().toString();
-                String href = basePrefix() + "/archives/" + parentChannelId + "/threads/" + file;
                 String label = file.replaceFirst("\\.html$", "");
-                // Derive thread name from JDA if possible (filename is t-<id>.html)
-                String threadName = label;
+                if (label.equals("index")) {
+                    continue;
+                }
+                String href = basePrefix() + "/archives/" + parentChannelId + "/threads/" + file;
                 String idPart = label;
                 if (label.startsWith("t-")) {
                     idPart = label.substring(2);
                 }
-                if (label.equals("index")) {
-                    continue;
-                }
-                ThreadChannel thread = jdaProvider.getJda().getThreadChannelById(idPart);
-                if (thread != null && !thread.getName().isEmpty()) {
-                    threadName = thread.getName();
-                }
-                String updatedLabel = threadName;
+
+                // 実環境を参照してデータ更新
+                ThreadChannel thread = null;
+                boolean active = false;
+                long created = 0L;
                 try {
-                    updatedLabel = threadName
-                            + " (" + DateTimeUtil.time().format(new Date(Files.getLastModifiedTime(p).toMillis()))
-                            + ")";
-                } catch (IOException ignore) {
-                    // ignore and use threadName only
+                    thread = jdaProvider.getJda().getThreadChannelById(idPart);
+                } catch (Throwable ignore) { }
+                String threadName = label;
+                if (thread != null) {
+                    threadName = thread.getName();
+                    created = thread.getTimeCreated().toInstant().toEpochMilli();
+                    active = !(thread.isArchived() || thread.isLocked());
                 }
-                items.add(new Link(href, updatedLabel));
+                long lastModified = Files.getLastModifiedTime(p).toMillis();
+                String updatedLabel = threadName
+                            + " (" + DateTimeUtil.time().format(new Date(lastModified)) + ")";
+                ThreadEntry te = new ThreadEntry();
+                te.href = href;
+                te.label = updatedLabel;
+                te.active = active;
+                te.lastModified = lastModified;
+                te.created = created;
+                entries.add(te);
             }
+        }
+        entries.sort(Comparator
+                .comparing((ThreadEntry e) -> e.active).reversed()
+                .thenComparingLong(e -> e.lastModified).reversed()
+                .thenComparingLong(e -> e.created).reversed());
+        // Convert to Link for template
+        List<Link> items = new ArrayList<>();
+        for (ThreadEntry e : entries) {
+            items.add(new Link(e.href, e.label));
         }
         // write list page under archives/<parent>/threads/index.html
         Path indexDir = parentThreadsDir;
