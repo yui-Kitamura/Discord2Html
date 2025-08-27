@@ -325,17 +325,8 @@ public class RunArchiveRunner implements IRunner {
         // Retrieve messages differently for normal channels vs threads
         List<MessageInfo> messages;
         Calendar beginForOutput = (Calendar) beginDate.clone();
-        if (isThread && channel instanceof ThreadChannel) {
-            messages = getMessagesForThread((ThreadChannel) channel, endDate);
-            // adjust begin date to earliest message for display if available
-            if (!messages.isEmpty()) {
-                try {
-                    Date first = DateTimeUtil.time().parse(messages.get(0).getCreatedTimestamp());
-                    Calendar cal = Calendar.getInstance(DateTimeUtil.JST);
-                    cal.setTime(first);
-                    beginForOutput = cal;
-                } catch (Exception ignore) { /* leave beginForOutput as is */ }
-            }
+        if (isThread && channel instanceof ThreadChannel tc) {
+            messages = getMessagesForThread(tc, endDate);
         } else {
             messages = getMessagesForMessageChannel(channel, beginDate, endDate);
         }
@@ -492,13 +483,14 @@ public class RunArchiveRunner implements IRunner {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
         boolean breakEarlyByBegin = (beginInstantOrNull != null);
+        
+        GuildId guildId = new GuildId(channel.getGuild());
+        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
+        int anonCycle = guildInfo.getAnonCycle().getValue();
+        if (anonCycle < 1 || 24 < anonCycle) { anonCycle = 24; }
+        final int finalAnonCycle = anonCycle;
         try {
             MessageHistory history = channel.getHistory();
-            GuildId guildId = new GuildId(channel.getGuild());
-            Guilds guildInfo = guildDao.selectGuildInfo(guildId);
-            int anonCycle = guildInfo.getAnonCycle().getValue();
-            if (anonCycle < 1 || 24 < anonCycle) { anonCycle = 24; }
-            final int finalAnonCycle = anonCycle;
             while (true) {
                 List<Message> batch = history.retrievePast(100).complete();
                 if (batch == null || batch.isEmpty()) { break; }

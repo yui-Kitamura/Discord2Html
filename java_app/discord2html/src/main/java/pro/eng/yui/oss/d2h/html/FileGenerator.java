@@ -118,7 +118,7 @@ public class FileGenerator {
     ) {
         AnonymizationUtil.clearCache();
         
-        // Sync local repo to latest before reading/writing outputs
+        // Sync local repo to the latest before reading/writing outputs
         try {
             gitUtil.ensureRepoInitialized();
             gitUtil.fetch();
@@ -128,7 +128,7 @@ public class FileGenerator {
             System.out.println("[GitSync] Skip or failed: " + e.getMessage());
         }
         
-        // Ensure static assets like CSS exist in output directory
+        // Ensure static assets like CSS exist in an output directory
         try {
             ensureStaticAssets();
         } catch (IOException e) {
@@ -160,7 +160,7 @@ public class FileGenerator {
 
         Path lastOutput = null;
         // Capture a per-execution timestamp directory name so each run creates a new archive folder
-        String runTimestamp = DateTimeUtil.folder().format(Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo")).getTime());
+        String runTimestamp = DateTimeUtil.folder().format(Calendar.getInstance(DateTimeUtil.JST).getTime());
 
         while (!cur.after(until)) {
             // Segment end is end of current day (23:59:59) or the global end, whichever is earlier
@@ -191,7 +191,7 @@ public class FileGenerator {
             // Add active thread links for this channel at the top
             try {
                 List<Link> activeThreadLinks = getActiveThreadLinks(channel);
-                if (activeThreadLinks != null && !activeThreadLinks.isEmpty()) {
+                if (activeThreadLinks.size() > 0) {
                     context.setVariable("activeThreads", activeThreadLinks);
                 }
             } catch (Exception ignore) {
@@ -228,7 +228,7 @@ public class FileGenerator {
         // ensure today's daily archive is regenerated to include 00:00 -> now,
         // even if no new messages were included in this run's segments.
         try {
-            Calendar nowJst = Calendar.getInstance(TimeZone.getTimeZone("Asia/Tokyo"));
+            Calendar nowJst = Calendar.getInstance(DateTimeUtil.JST);
             String today8 = DateTimeUtil.date8().format(nowJst.getTime());
             String until8 = DateTimeUtil.date8().format(until.getTime());
             boolean isMidnight = until.get(Calendar.HOUR_OF_DAY) == 23
