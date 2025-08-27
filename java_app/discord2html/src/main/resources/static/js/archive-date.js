@@ -54,6 +54,7 @@
   function init() {
     const input = document.getElementById('archive-date-input');
     const btn = document.getElementById('archive-date-go');
+    if (!input && !btn){ return; } // Thread
 
     const dateMap = collectDateAnchors(document);
     const keys = Array.from(dateMap.keys());

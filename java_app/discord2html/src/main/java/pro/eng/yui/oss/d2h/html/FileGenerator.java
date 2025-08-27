@@ -320,6 +320,7 @@ public class FileGenerator {
         ctx.setVariable("threadIndexHref", basePrefix() + "/" + threadIndexNorm);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
+        ctx.setVariable("hideDateSearch", false);
         String page = templateEngine.process("list", ctx);
         writeIfChanged(channelArchive, page);
         // Ensure the thread index page exists for this channel (even if no thread pages yet)
@@ -407,6 +408,7 @@ public class FileGenerator {
         ctx.setVariable("threadIndexHref", basePrefix() + "/archives/" + channelId + "/threads/index.html");
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
+        ctx.setVariable("hideDateSearch", false);
         String page = templateEngine.process("list", ctx);
         // Ensure the thread index page exists for this channel
         try {
@@ -878,6 +880,7 @@ public class FileGenerator {
         ctx.setVariable("items", items);
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
+        ctx.setVariable("hideDateSearch", true);
         String page = templateEngine.process("list", ctx);
         writeIfChanged(index, page);
     }
