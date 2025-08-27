@@ -139,6 +139,7 @@ public class RunArchiveRunner implements IRunner {
 
             // Decide targets using targetUnion
             List<GuildMessageChannel> targets = new ArrayList<>();
+            boolean handledForumTarget = false;
             if (targetUnion != null) {
                 if (targetUnion.getType().isThread()) {
                     // Reject threads as direct targets
@@ -147,9 +148,16 @@ public class RunArchiveRunner implements IRunner {
                 }
                 if (targetUnion.getType().isMessage()) {
                     targets.add(targetUnion.asGuildMessageChannel());
+                } else {
+                    // Try ForumChannel
+                    try {
+                        ForumChannel forum = targetUnion.asForumChannel();
+                        runForSpecificDayForum(forum, day);
+                        handledForumTarget = true;
+                    } catch (Throwable ignore) { /* keep not handled */ }
                 }
             }
-            if (targets.isEmpty()) {
+            if (handledForumTarget == false && targets.isEmpty()) {
                 // 指定されていない場合、Guild内のMONITOR全対象チャンネルを取得
                 List<Channels> chs = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
                 for (Channels ch : chs) {
@@ -295,6 +303,31 @@ public class RunArchiveRunner implements IRunner {
         }
         run(channel, begin, end, false);
         runActiveThreadsUnder(channel, begin, end, false);
+    }
+
+    private void runForSpecificDayForum(ForumChannel forum, Calendar dayJst) {
+        if (forum == null || dayJst == null) { return; }
+        Calendar begin = (Calendar) dayJst.clone();
+        begin.set(Calendar.HOUR_OF_DAY, 0);
+        begin.set(Calendar.MINUTE, 0);
+        begin.set(Calendar.SECOND, 0);
+        begin.set(Calendar.MILLISECOND, 0);
+        Calendar end = Calendar.getInstance(DateTimeUtil.JST);
+        // For forum, skip channel body and only process threads
+        runActiveThreadsUnderForum(forum, begin, end, false);
+        // Include thread index and per-channel list page if they exist
+        try {
+            Path threadIndex = Path.of(config.getOutputPath(), "archives", forum.getId(), "threads", "index.html");
+            if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
+                generatedFiles.add(threadIndex);
+            }
+        } catch (Exception ignore) { /* best-effort */ }
+        try {
+            Path forumList = Path.of(config.getOutputPath(), "archives", forum.getId() + ".html");
+            if (Files.exists(forumList) && !generatedFiles.contains(forumList)) {
+                generatedFiles.add(forumList);
+            }
+        } catch (Exception ignore) { /* best-effort */ }
     }
 
     /**
