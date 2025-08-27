@@ -30,6 +30,7 @@ import pro.eng.yui.oss.d2h.html.FileGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
 
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,6 +41,8 @@ import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Component
 public class RunArchiveRunner implements IRunner {
@@ -325,6 +328,14 @@ public class RunArchiveRunner implements IRunner {
         List<MessageInfo> messages;
         Calendar beginForOutput = (Calendar) beginDate.clone();
         if (isThread && channel instanceof ThreadChannel tc) {
+            if (tc.isArchived() || tc.isLocked()) {
+                long existingEnd = getExistingThreadPageEndMillis(tc);
+                long targetEnd = endDate.getTimeInMillis();
+                if (existingEnd >= targetEnd - 1) {
+                    // Already up-to-date, skip regeneration
+                    return;
+                }
+            }
             messages = getMessagesForThread(tc, endDate);
         } else {
             messages = getMessagesForMessageChannel(channel, beginDate, endDate);
@@ -446,9 +457,7 @@ public class RunArchiveRunner implements IRunner {
             if (text == null) { return; }
             List<ThreadChannel> threads = text.getThreadChannels();
             for (ThreadChannel t : threads) {
-                if (!t.isArchived()) {
-                    run(t, beginDate, endDate, scheduled);
-                }
+                run(t, beginDate, endDate, scheduled);
             }
         } catch (Throwable ignore) {
             // best-effort; skip on any error
@@ -535,6 +544,26 @@ public class RunArchiveRunner implements IRunner {
             // best-effort
         }
         return messages;
+    }
+
+    private long getExistingThreadPageEndMillis(ThreadChannel tc) {
+        try {
+            String parentId = tc.getParentMessageChannel().getId();
+            Path out = Path.of(config.getOutputPath(), "archives", parentId, "threads", "t-" + tc.getId() + ".html");
+            if (!Files.exists(out)) { return 0L; }
+            String html = Files.readString(out, StandardCharsets.UTF_8);
+            Pattern metaPattern = Pattern.compile("期間:\\s*</span>\\s*<span>([^<]+)</span>\\s*<span>\\s*〜\\s*</span>\\s*<span>([^<]+)</span>", Pattern.DOTALL);
+            Matcher mm = metaPattern.matcher(html);
+            if (mm.find()) {
+                String endStr = mm.group(2).trim();
+                try { return DateTimeUtil.time().parse(endStr).getTime(); }
+                catch (Exception e1) {
+                    try { return DateTimeUtil.mill().parse(endStr).getTime(); }
+                    catch (Exception e2) { return 0L; }
+                }
+            }
+        } catch (Exception ignore) { }
+        return 0L;
     }
 
     private String buildChannelArchiveUrl(GuildMessageChannel channel, String date8) {
