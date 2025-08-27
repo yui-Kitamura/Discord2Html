@@ -4,10 +4,13 @@ import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.channel.concrete.StageChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
+import net.dv8tion.jda.api.entities.channel.unions.GuildMessageChannelUnion;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -320,7 +323,7 @@ public class RunArchiveRunner implements IRunner {
         Guilds guildSettings = guildDao.selectGuildInfo(new GuildId(channel.getGuild()));
         OnRunMessageMode msgMode = guildSettings.getOnRunMessage().get();
         
-        if ((!isThread) && (msgMode.isStart() || msgMode.isBoth())) {
+        if ((!isThread) && !isVoiceText(channel) && (msgMode.isStart() || msgMode.isBoth())) {
             channel.sendMessage("This channel is archive target. Start >>>").queue();
         }
 
@@ -433,7 +436,7 @@ public class RunArchiveRunner implements IRunner {
             }
         }
 
-        if ((!isThread) && (msgMode.isEnd() || msgMode.isBoth())) {
+        if ((!isThread) && !isVoiceText(channel) && (msgMode.isEnd() || msgMode.isBoth())) {
             String endMsg = "archive created. task end <<<";
             if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
@@ -544,6 +547,11 @@ public class RunArchiveRunner implements IRunner {
             // best-effort
         }
         return messages;
+    }
+
+    private boolean isVoiceText(GuildMessageChannel ch) {
+        if (ch == null) { return false; }
+        return (!(ch instanceof VoiceChannel || ch instanceof StageChannel));
     }
 
     private long getExistingThreadPageEndMillis(ThreadChannel tc) {
