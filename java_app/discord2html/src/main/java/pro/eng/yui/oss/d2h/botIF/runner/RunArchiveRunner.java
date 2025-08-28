@@ -166,7 +166,8 @@ public class RunArchiveRunner implements IRunner {
                 try {
                     runForSpecificDay(tc, day);
                 } catch (Exception e) {
-                    lastRunNotes.add("[ERROR] チャンネル " + tc.getName() + " の日付指定アーカイブ生成に失敗: " + e.getMessage());
+                    String msg = (e.getMessage() != null && !e.getMessage().isBlank()) ? e.getMessage() : e.getClass().getName();
+                    lastRunNotes.add("[ERROR] チャンネル " + tc.getName() + " の日付指定アーカイブ生成に失敗: " + msg);
                 }
             }
 
