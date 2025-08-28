@@ -148,10 +148,19 @@ public class RunArchiveRunner implements IRunner {
                 }
                 if (targetUnion.getType().isMessage()) {
                     targets.add(targetUnion.asGuildMessageChannel());
-                }
-                if (targetUnion.getType() == ChannelType.FORUM) {
-                    runForSpecificDayForum(targetUnion.asForumChannel(), day); //run
-                    handledForumTarget = true;
+                } else {
+                    // forum
+                    if (targetUnion.getType() == ChannelType.FORUM) {
+                        runForSpecificDayForum(targetUnion.asForumChannel(), day); //run
+                        handledForumTarget = true;
+                    } else {
+                        // Fallback: try to resolve as ForumChannel even if type isn't FORUM (environment-specific unions)
+                        ForumChannel forum = jda.getJda().getChannelById(ForumChannel.class, targetUnion.getIdLong());
+                        if (forum != null) {
+                            runForSpecificDayForum(forum, day);
+                            handledForumTarget = true;
+                        }
+                    }
                 }
             }
             if (handledForumTarget == false && targets.isEmpty()) {
@@ -325,8 +334,12 @@ public class RunArchiveRunner implements IRunner {
         begin.set(Calendar.SECOND, 0);
         begin.set(Calendar.MILLISECOND, 0);
         Calendar end = Calendar.getInstance(DateTimeUtil.JST);
+        List<ThreadChannel> threads = forum.getThreadChannels();
         // For forum, skip channel body and only process threads
         runActiveThreadsUnder(forum, begin, end, false);
+        if (threads.isEmpty()) {
+            lastRunNotes.add("[INFO] 指定フォーラムには対象スレッドがありませんでした: #" + forum.getName());
+        }
         // Include thread index and per-channel list page if they exist
         try {
             Path threadIndex = Path.of(config.getOutputPath(), "archives", forum.getId(), "threads", "index.html");
