@@ -4,11 +4,9 @@ import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
-import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.concrete.StageChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
-import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
 import net.dv8tion.jda.api.entities.channel.attribute.IThreadContainer;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
@@ -283,7 +281,6 @@ public class RunArchiveRunner implements IRunner {
      */
     private void run(final GuildChannel channel, final Calendar beginDate, final Calendar endDate, final boolean scheduled) {
         //validate
-        Channels targetChInfo = null;
         boolean isThread = channel.getType().isThread();
         
         if (scheduled) {
@@ -295,7 +292,6 @@ public class RunArchiveRunner implements IRunner {
                 for (Channels c : activate) {
                     if (c.getChannelId().equals(targetChannelId)) {
                         monitored = true;
-                        targetChInfo = c;
                         break;
                     }
                 }
@@ -305,6 +301,7 @@ public class RunArchiveRunner implements IRunner {
                 }
             }
         } else {
+            Channels targetChInfo = null;
             List<Channels> activate = channelDao.selectChannelArchiveDo(new GuildId(channel.getGuild()));
             ChannelId targetChannelId = new ChannelId(channel);
             for(Channels c : activate) {
