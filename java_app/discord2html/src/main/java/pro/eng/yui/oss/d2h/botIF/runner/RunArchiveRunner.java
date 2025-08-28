@@ -251,6 +251,19 @@ public class RunArchiveRunner implements IRunner {
                                         generatedFiles.add(forumList);
                                     }
                                 } catch (Exception ignore) { /* best-effort */ }
+                                // Ensure top index/help are regenerated and included (repo is rebuilt each push)
+                                try {
+                                    fileGenerator.setGuildContext(forum.getGuild().getIdLong());
+                                    fileGenerator.regenerateTopIndex();
+                                    Path indexPath = Path.of(config.getOutputPath(), "index.html");
+                                    if (Files.exists(indexPath) && !generatedFiles.contains(indexPath)) {
+                                        generatedFiles.add(indexPath);
+                                    }
+                                    Path helpPath = Path.of(config.getOutputPath(), "help.html");
+                                    if (Files.exists(helpPath) && !generatedFiles.contains(helpPath)) {
+                                        generatedFiles.add(helpPath);
+                                    }
+                                } catch (Exception ignore) { /* best-effort */ }
                             }
                         }
                     }
