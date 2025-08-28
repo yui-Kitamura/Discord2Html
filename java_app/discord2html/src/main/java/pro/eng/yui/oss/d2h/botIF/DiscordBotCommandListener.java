@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.botIF.runner.*;
+import pro.eng.yui.oss.d2h.db.field.GuildId;
 
 import java.util.Arrays;
 import java.util.List;
@@ -196,7 +197,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if(isAcceptedChannel(event.getGuildChannel()) == false) {
             return;
         }
-        runArchiveRunner.run(event.getMember(), event.getOptions());
+        runArchiveRunner.run(new GuildId(event.getGuild()), event.getOptions());
         event.getHook().sendMessage(runArchiveRunner.afterRunMessage()).queue();
     }
     

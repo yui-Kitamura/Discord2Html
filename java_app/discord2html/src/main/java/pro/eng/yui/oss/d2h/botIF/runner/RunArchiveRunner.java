@@ -82,8 +82,8 @@ public class RunArchiveRunner implements IRunner {
         this.gitConfig = gitConfig;
     }
     
-    public void run(Member member, List<OptionMapping> options){
-        member.getJDA().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
+    public void run(GuildId target, List<OptionMapping> options){
+        jda.getJda().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
         
         // initialize
         lastRunNotes.clear();
@@ -150,7 +150,7 @@ public class RunArchiveRunner implements IRunner {
             }
             if (handledForumTarget == false && targets.isEmpty()) {
                 // 指定されていない場合、Guild内のMONITOR全対象チャンネルを取得
-                List<Channels> chs = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
+                List<Channels> chs = channelDao.selectChannelArchiveDo(target);
                 for (Channels ch : chs) {
                     IThreadContainer tc = jda.getJda().getGuildById(ch.getGuidId().getValue())
                             .getChannelById(IThreadContainer.class, ch.getChannelId().getValue());
@@ -185,10 +185,15 @@ public class RunArchiveRunner implements IRunner {
             lastRunNotes.add("[ERROR:予期しない例外が発生] " + e.getMessage());
         }
 
-        member.getJDA().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
+        jda.getJda().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
     }
     
     public void run(){
+        try {
+            jda.getJda().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
+        } catch (Exception ignore) {
+            // 本体処理に影響を与えないように
+        }
         final Calendar beginDate = Calendar.getInstance(DateTimeUtil.JST);
         final Calendar endDate = (Calendar) beginDate.clone();
         final int now = endDate.get(Calendar.HOUR_OF_DAY);
@@ -251,6 +256,11 @@ public class RunArchiveRunner implements IRunner {
                     }
                 }
             }
+        }
+        try {
+            jda.getJda().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
+        } catch (Exception ignore) {
+            // 処理本体に影響させないため
         }
     }
 
