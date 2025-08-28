@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
 import net.dv8tion.jda.api.entities.channel.attribute.IThreadContainer;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.unions.GuildChannelUnion;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
@@ -138,7 +139,7 @@ public class RunArchiveRunner implements IRunner {
             }
 
             // Decide targets using targetUnion
-            List<GuildMessageChannel> targets = new ArrayList<>();
+            List<IThreadContainer> targets = new ArrayList<>();
             boolean handledForumTarget = false;
             if (targetUnion != null) {
                 if (targetUnion.getType().isThread()) {
@@ -146,41 +147,26 @@ public class RunArchiveRunner implements IRunner {
                     lastRunNotes.add("[ERROR] targetオプションはチャンネルのみ指定できます。スレッドは直接指定できません。親チャンネルを指定してください。");
                     return; // スレッド直接指定エラー
                 }
-                if (targetUnion.getType().isMessage()) {
-                    targets.add(targetUnion.asGuildMessageChannel());
-                } else {
-                    // forum
-                    if (targetUnion.getType() == ChannelType.FORUM) {
-                        runForSpecificDayForum(targetUnion.asForumChannel(), day); //run
-                        handledForumTarget = true;
-                    } else {
-                        // Fallback: try to resolve as ForumChannel even if type isn't FORUM (environment-specific unions)
-                        ForumChannel forum = jda.getJda().getChannelById(ForumChannel.class, targetUnion.getIdLong());
-                        if (forum != null) {
-                            runForSpecificDayForum(forum, day);
-                            handledForumTarget = true;
-                        }
-                    }
-                }
+                targets.add(targetUnion.asThreadContainer());
             }
             if (handledForumTarget == false && targets.isEmpty()) {
                 // 指定されていない場合、Guild内のMONITOR全対象チャンネルを取得
                 List<Channels> chs = channelDao.selectChannelArchiveDo(new GuildId(member.getGuild()));
                 for (Channels ch : chs) {
-                    GuildMessageChannel gmc = jda.getJda().getGuildById(ch.getGuidId().getValue())
-                            .getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue());
-                    if (gmc != null && !gmc.getType().isThread()) {
-                        targets.add(gmc);
+                    IThreadContainer tc = jda.getJda().getGuildById(ch.getGuidId().getValue())
+                            .getChannelById(IThreadContainer.class, ch.getChannelId().getValue());
+                    if (tc != null && !tc.getType().isThread()) {
+                        targets.add(tc);
                     }
                 }
             }
 
             // Generate for each target channel using the public day-specific interface
-            for (GuildMessageChannel gmc : targets) {
+            for (IThreadContainer tc : targets) {
                 try {
-                    runForSpecificDay(gmc, day);
+                    runForSpecificDay(tc, day);
                 } catch (Exception e) {
-                    lastRunNotes.add("[ERROR] チャンネル " + gmc.getName() + " の日付指定アーカイブ生成に失敗: " + e.getMessage());
+                    lastRunNotes.add("[ERROR] チャンネル " + tc.getName() + " の日付指定アーカイブ生成に失敗: " + e.getMessage());
                 }
             }
 
@@ -232,48 +218,12 @@ public class RunArchiveRunner implements IRunner {
                 if(on.getValue() == now) {
                     List<Channels> chs = channelDao.selectChannelArchiveDo(guilds.getGuildId());
                     for(Channels ch : chs) {
-                        GuildMessageChannel parent = 
+                        IThreadContainer parent =
                                 jda.getJda().getGuildById(ch.getGuidId().getValue())
-                                .getChannelById(GuildMessageChannel.class, ch.getChannelId().getValue());
+                                        .getChannelById(IThreadContainer.class, ch.getChannelId().getValue());
                         if (parent != null) {
                             run(parent, beginDate, endDate, true);
-                            if (parent instanceof IThreadContainer container) {
-                                runActiveThreadsUnder(container, beginDate, endDate, true);
-                            }
-                        } else {
-                            // Try ForumChannel: skip channel body, but process threads under forum
-                            ForumChannel forum = jda.getJda().getGuildById(ch.getGuidId().getValue())
-                                    .getChannelById(ForumChannel.class, ch.getChannelId().getValue());
-                            if (forum != null) {
-                                runActiveThreadsUnder(forum, beginDate, endDate, true);
-                                // If any thread index exists, include for push target
-                                try {
-                                    Path threadIndex = Path.of(config.getOutputPath(), "archives", forum.getId(), "threads", "index.html");
-                                    if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
-                                        generatedFiles.add(threadIndex);
-                                    }
-                                } catch (Exception ignore) { /* best-effort */ }
-                                // Also include the per-channel archive list page for the forum (created even without daily bodies)
-                                try {
-                                    Path forumList = Path.of(config.getOutputPath(), "archives", forum.getId() + ".html");
-                                    if (Files.exists(forumList) && !generatedFiles.contains(forumList)) {
-                                        generatedFiles.add(forumList);
-                                    }
-                                } catch (Exception ignore) { /* best-effort */ }
-                                // Ensure top index/help are regenerated and included (repo is rebuilt each push)
-                                try {
-                                    fileGenerator.setGuildContext(forum.getGuild().getIdLong());
-                                    fileGenerator.regenerateTopIndex();
-                                    Path indexPath = Path.of(config.getOutputPath(), "index.html");
-                                    if (Files.exists(indexPath) && !generatedFiles.contains(indexPath)) {
-                                        generatedFiles.add(indexPath);
-                                    }
-                                    Path helpPath = Path.of(config.getOutputPath(), "help.html");
-                                    if (Files.exists(helpPath) && !generatedFiles.contains(helpPath)) {
-                                        generatedFiles.add(helpPath);
-                                    }
-                                } catch (Exception ignore) { /* best-effort */ }
-                            }
+                            runActiveThreadsUnder(parent, beginDate, endDate, true);
                         }
                     }
                     
@@ -303,7 +253,7 @@ public class RunArchiveRunner implements IRunner {
     /**
      * run for a specific day (00:00 to 23:59:59.999 if past day, or now if today) in JST.
      */
-    private void runForSpecificDay(GuildMessageChannel channel, Calendar dayJst) {
+    private void runForSpecificDay(IThreadContainer channel, Calendar dayJst) {
         Calendar begin = (Calendar) dayJst.clone();
         begin.set(Calendar.HOUR_OF_DAY, 0);
         begin.set(Calendar.MINUTE, 0);
@@ -321,9 +271,7 @@ public class RunArchiveRunner implements IRunner {
             end.set(Calendar.MILLISECOND, 999);
         }
         run(channel, begin, end, false);
-        if(channel instanceof IThreadContainer container) {
-            runActiveThreadsUnder(container, begin, end, false);
-        }
+        runActiveThreadsUnder(channel, begin, end, false);
     }
 
     private void runForSpecificDayForum(ForumChannel forum, Calendar dayJst) {
@@ -371,7 +319,7 @@ public class RunArchiveRunner implements IRunner {
     /**
      * Core runner with explicit date range.
      */
-    private void run(final GuildMessageChannel channel, final Calendar beginDate, final Calendar endDate, final boolean scheduled) {
+    private void run(final GuildChannel channel, final Calendar beginDate, final Calendar endDate, final boolean scheduled) {
         //validate
         Channels targetChInfo = null;
         boolean isThread = channel.getType().isThread();
@@ -415,8 +363,8 @@ public class RunArchiveRunner implements IRunner {
         Guilds guildSettings = guildDao.selectGuildInfo(new GuildId(channel.getGuild()));
         OnRunMessageMode msgMode = guildSettings.getOnRunMessage().get();
         
-        if ((!isThread) && !isVoiceText(channel) && !(channel instanceof ForumChannel) && (msgMode.isStart() || msgMode.isBoth())) {
-            channel.sendMessage("This channel is archive target. Start >>>").queue();
+        if ((!isThread) && !isVoiceText(channel) && channel instanceof GuildMessageChannel msgCh && (msgMode.isStart() || msgMode.isBoth())) {
+            msgCh.sendMessage("This channel is archive target. Start >>>").queue();
         }
 
         // Retrieve messages differently for normal channels vs threads
@@ -432,8 +380,10 @@ public class RunArchiveRunner implements IRunner {
                 }
             }
             messages = getMessagesForThread(tc, endDate);
+        } else if (channel instanceof GuildMessageChannel msgCh){
+            messages = getMessagesForMessageChannel(msgCh, beginDate, endDate);
         } else {
-            messages = getMessagesForMessageChannel(channel, beginDate, endDate);
+            messages = List.of();
         }
         // sort chronologically
         messages.sort(Comparator.comparing(MessageInfo::getCreatedTimestamp));
@@ -528,7 +478,7 @@ public class RunArchiveRunner implements IRunner {
             }
         }
 
-        if ((!isThread) && !isVoiceText(channel) && !(channel instanceof ForumChannel) && (msgMode.isEnd() || msgMode.isBoth())) {
+        if ((!isThread) && !isVoiceText(channel) && channel instanceof GuildMessageChannel msgCh && (msgMode.isEnd() || msgMode.isBoth())) {
             String endMsg = "archive created. task end <<<";
             if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
@@ -536,10 +486,10 @@ public class RunArchiveRunner implements IRunner {
                     if (scheduled && urlCal.get(Calendar.HOUR_OF_DAY) == 0) {
                         urlCal.add(Calendar.DAY_OF_MONTH, -1);
                     }
-                    endMsg += "\n" + buildChannelArchiveUrl(channel, DateTimeUtil.formatDate8(urlCal));
+                    endMsg += "\n" + buildChannelArchiveUrl(msgCh, DateTimeUtil.formatDate8(urlCal));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
-            channel.sendMessage(endMsg).queue();
+            msgCh.sendMessage(endMsg).queue();
         }
     }
     private void runActiveThreadsUnder(IThreadContainer parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
@@ -636,7 +586,7 @@ public class RunArchiveRunner implements IRunner {
         return messages;
     }
 
-    private boolean isVoiceText(GuildMessageChannel ch) {
+    private boolean isVoiceText(GuildChannel ch) {
         if (ch == null) { return false; }
         return (ch instanceof VoiceChannel || ch instanceof StageChannel);
     }

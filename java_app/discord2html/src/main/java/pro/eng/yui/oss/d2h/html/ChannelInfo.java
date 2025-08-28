@@ -1,7 +1,7 @@
 package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
-import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 
 /**
@@ -34,7 +34,7 @@ public class ChannelInfo {
     private ChannelId parentChannelId;
     public ChannelId getParentChannelId() { return parentChannelId; }
     
-    public ChannelInfo(GuildMessageChannel ch){
+    public ChannelInfo(GuildChannel ch){
         this.name = ch.getName();
         this.guildId = ch.getGuild().getIdLong();
         this.channelId = new ChannelId(ch);
