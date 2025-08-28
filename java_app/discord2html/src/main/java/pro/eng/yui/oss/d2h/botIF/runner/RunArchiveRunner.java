@@ -361,16 +361,16 @@ public class RunArchiveRunner implements IRunner {
         if(channel.getType() != ChannelType.FORUM) {
             Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, (Calendar) endDate.clone(), 1);
             generatedFiles.add(generatedFile);
-        }
-        // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
-        Path indexPath = Path.of(config.getOutputPath(), "index.html");
-        if (!generatedFiles.contains(indexPath)) {
-            generatedFiles.add(indexPath);
-        }
-        // Include help.html so it will be placed at gh_pages root
-        Path helpPath = Path.of(config.getOutputPath(), "help.html");
-        if (!generatedFiles.contains(helpPath)) {
-            generatedFiles.add(helpPath);
+            // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
+            Path indexPath = Path.of(config.getOutputPath(), "index.html");
+            if (!generatedFiles.contains(indexPath)) {
+                generatedFiles.add(indexPath);
+            }
+            // Include help.html so it will be placed at gh_pages root
+            Path helpPath = Path.of(config.getOutputPath(), "help.html");
+            if (!generatedFiles.contains(helpPath)) {
+                generatedFiles.add(helpPath);
+            }
         }
         // Also include the per-channel archives/<channelId>.html updated by FileGenerator (deduplicated)
         // NOTE: For thread channels, the file name is t-<id>.html under archives/<parent>/threads/, not <channelName>.html.
