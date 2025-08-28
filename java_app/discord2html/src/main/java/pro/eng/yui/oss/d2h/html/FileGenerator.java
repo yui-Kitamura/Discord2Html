@@ -110,6 +110,9 @@ public class FileGenerator {
     private final ChannelsDAO channelsDao;
     private final DiscordJdaProvider jdaProvider;
     private Long lastGuildId = null;
+    public void setGuildContext(long guildId) {
+        this.lastGuildId = guildId;
+    }
     private final String botVersion;
     
     public FileGenerator(ApplicationConfig config, Secrets secrets, TemplateEngine templateEngine,

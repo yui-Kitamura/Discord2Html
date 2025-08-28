@@ -329,6 +329,7 @@ public class RunArchiveRunner implements IRunner {
         } catch (Exception ignore) { /* best-effort */ }
         // Regenerate top index so that this forum appears on the top page
         try {
+            fileGenerator.setGuildContext(forum.getGuild().getIdLong());
             fileGenerator.regenerateTopIndex();
             Path indexPath = Path.of(config.getOutputPath(), "index.html");
             if (Files.exists(indexPath) && !generatedFiles.contains(indexPath)) {
