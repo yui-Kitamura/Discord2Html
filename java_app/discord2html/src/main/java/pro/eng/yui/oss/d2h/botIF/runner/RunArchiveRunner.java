@@ -275,47 +275,6 @@ public class RunArchiveRunner implements IRunner {
         runActiveThreadsUnder(channel, begin, end, false);
     }
 
-    private void runForSpecificDayForum(ForumChannel forum, Calendar dayJst) {
-        if (forum == null || dayJst == null) { return; }
-        Calendar begin = (Calendar) dayJst.clone();
-        begin.set(Calendar.HOUR_OF_DAY, 0);
-        begin.set(Calendar.MINUTE, 0);
-        begin.set(Calendar.SECOND, 0);
-        begin.set(Calendar.MILLISECOND, 0);
-        Calendar end = Calendar.getInstance(DateTimeUtil.JST);
-        List<ThreadChannel> threads = forum.getThreadChannels();
-        // For forum, skip channel body and only process threads
-        runActiveThreadsUnder(forum, begin, end, false);
-        if (threads.isEmpty()) {
-            lastRunNotes.add("[INFO] 指定フォーラムには対象スレッドがありませんでした: #" + forum.getName());
-        }
-        // Include thread index and per-channel list page if they exist
-        try {
-            Path threadIndex = Path.of(config.getOutputPath(), "archives", forum.getId(), "threads", "index.html");
-            if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
-                generatedFiles.add(threadIndex);
-            }
-        } catch (Exception ignore) { /* best-effort */ }
-        try {
-            Path forumList = Path.of(config.getOutputPath(), "archives", forum.getId() + ".html");
-            if (Files.exists(forumList) && !generatedFiles.contains(forumList)) {
-                generatedFiles.add(forumList);
-            }
-        } catch (Exception ignore) { /* best-effort */ }
-        // Regenerate top index so that this forum appears on the top page
-        try {
-            fileGenerator.setGuildContext(forum.getGuild().getIdLong());
-            fileGenerator.regenerateTopIndex();
-            Path indexPath = Path.of(config.getOutputPath(), "index.html");
-            if (Files.exists(indexPath) && !generatedFiles.contains(indexPath)) {
-                generatedFiles.add(indexPath);
-            }
-            Path helpPath = Path.of(config.getOutputPath(), "help.html");
-            if (Files.exists(helpPath) && !generatedFiles.contains(helpPath)) {
-                generatedFiles.add(helpPath);
-            }
-        } catch (Exception ignore) { /* best-effort */ }
-    }
 
     /**
      * Core runner with explicit date range.
@@ -396,9 +355,11 @@ public class RunArchiveRunner implements IRunner {
                 beginForOutput = cal;
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
         }
-        
-        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, (Calendar)endDate.clone(), 1);
-        generatedFiles.add(generatedFile);
+        // Generate only when not forum
+        if(channel.getType() != ChannelType.FORUM) {
+            Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, (Calendar) endDate.clone(), 1);
+            generatedFiles.add(generatedFile);
+        }
         // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
         Path indexPath = Path.of(config.getOutputPath(), "index.html");
         if (!generatedFiles.contains(indexPath)) {
@@ -412,7 +373,7 @@ public class RunArchiveRunner implements IRunner {
         // Also include the per-channel archives/<channelId>.html updated by FileGenerator (deduplicated)
         // NOTE: For thread channels, the file name is t-<id>.html under archives/<parent>/threads/, not <channelName>.html.
         // Therefore, only add archives/<channelName>.html for non-thread channels and if it exists.
-        if (!isThread) {
+        if (!isThread && (channel.getType() != ChannelType.FORUM)) {
             Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getId() + ".html");
             if (Files.exists(channelArchivePath) && !generatedFiles.contains(channelArchivePath)) {
                 generatedFiles.add(channelArchivePath);
