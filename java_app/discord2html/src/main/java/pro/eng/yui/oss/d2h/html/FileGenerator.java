@@ -577,7 +577,7 @@ public class FileGenerator {
         }
     }
 
-    private void regenerateTopIndex() throws IOException {
+    public void regenerateTopIndex() throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
             return;

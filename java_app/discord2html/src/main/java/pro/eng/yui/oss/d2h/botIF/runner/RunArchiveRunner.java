@@ -327,6 +327,18 @@ public class RunArchiveRunner implements IRunner {
                 generatedFiles.add(forumList);
             }
         } catch (Exception ignore) { /* best-effort */ }
+        // Regenerate top index so that this forum appears on the top page
+        try {
+            fileGenerator.regenerateTopIndex();
+            Path indexPath = Path.of(config.getOutputPath(), "index.html");
+            if (Files.exists(indexPath) && !generatedFiles.contains(indexPath)) {
+                generatedFiles.add(indexPath);
+            }
+            Path helpPath = Path.of(config.getOutputPath(), "help.html");
+            if (Files.exists(helpPath) && !generatedFiles.contains(helpPath)) {
+                generatedFiles.add(helpPath);
+            }
+        } catch (Exception ignore) { /* best-effort */ }
     }
 
     /**
