@@ -178,6 +178,8 @@ public class RunArchiveRunner implements IRunner {
                 } catch (Exception e) {
                     lastRunNotes.add("[ERROR] GitHubへのプッシュに失敗しました: " + e.getMessage());
                 }
+            } else if (config.getPushToGitHub() && generatedFiles.isEmpty()) {
+                lastRunNotes.add("[INFO] 変更されたアーカイブがありませんでした。GitHubへのプッシュはスキップしました。");
             }
         } catch(Exception e) {
             e.printStackTrace();
