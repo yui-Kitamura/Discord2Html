@@ -430,7 +430,7 @@ public class RunArchiveRunner implements IRunner {
             // If the current channel is a thread, also ensure the parent thread index is included
             try {
                 if (channel.getType().isThread() && channel instanceof ThreadChannel tc) {
-                    String parentId = tc.getParentMessageChannel().getId();
+                    String parentId = tc.getParentChannel().getId();
                     Path parentIndex = Path.of(config.getOutputPath(), "archives", parentId, "threads", "index.html");
                     if (Files.exists(parentIndex) && !generatedFiles.contains(parentIndex)) {
                         generatedFiles.add(parentIndex);
@@ -565,7 +565,7 @@ public class RunArchiveRunner implements IRunner {
 
     private long getExistingThreadPageEndMillis(ThreadChannel tc) {
         try {
-            String parentId = tc.getParentMessageChannel().getId();
+            String parentId = tc.getParentChannel().getId();
             Path out = Path.of(config.getOutputPath(), "archives", parentId, "threads", "t-" + tc.getId() + ".html");
             if (!Files.exists(out)) { return 0L; }
             String html = Files.readString(out, StandardCharsets.UTF_8);
