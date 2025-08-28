@@ -951,6 +951,7 @@ public class FileGenerator {
         String page = templateEngine.process("list", ctx);
         writeIfChanged(index, page);
     }
+    
 
     private List<Link> getActiveThreadLinks(@NotNull ChannelInfo channel) {
         try {

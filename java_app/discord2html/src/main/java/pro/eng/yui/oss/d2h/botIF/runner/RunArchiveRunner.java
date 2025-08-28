@@ -358,24 +358,22 @@ public class RunArchiveRunner implements IRunner {
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
         }
         // Generate only when not forum
-        if(channel.getType() != ChannelType.FORUM) {
-            Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, (Calendar) endDate.clone(), 1);
-            generatedFiles.add(generatedFile);
-            // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
-            Path indexPath = Path.of(config.getOutputPath(), "index.html");
-            if (!generatedFiles.contains(indexPath)) {
-                generatedFiles.add(indexPath);
-            }
-            // Include help.html so it will be placed at gh_pages root
-            Path helpPath = Path.of(config.getOutputPath(), "help.html");
-            if (!generatedFiles.contains(helpPath)) {
-                generatedFiles.add(helpPath);
-            }
+        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, (Calendar) endDate.clone(), 1);
+        generatedFiles.add(generatedFile);
+        // Also include the top index.html updated by FileGenerator as a push target (deduplicated)
+        Path indexPath = Path.of(config.getOutputPath(), "index.html");
+        if (!generatedFiles.contains(indexPath)) {
+            generatedFiles.add(indexPath);
+        }
+        // Include help.html so it will be placed at gh_pages root
+        Path helpPath = Path.of(config.getOutputPath(), "help.html");
+        if (!generatedFiles.contains(helpPath)) {
+            generatedFiles.add(helpPath);
         }
         // Also include the per-channel archives/<channelId>.html updated by FileGenerator (deduplicated)
         // NOTE: For thread channels, the file name is t-<id>.html under archives/<parent>/threads/, not <channelName>.html.
         // Therefore, only add archives/<channelName>.html for non-thread channels and if it exists.
-        if (!isThread && (channel.getType() != ChannelType.FORUM)) {
+        if (!isThread) {
             Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getId() + ".html");
             if (Files.exists(channelArchivePath) && !generatedFiles.contains(channelArchivePath)) {
                 generatedFiles.add(channelArchivePath);
