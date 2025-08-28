@@ -376,7 +376,7 @@ public class RunArchiveRunner implements IRunner {
         Guilds guildSettings = guildDao.selectGuildInfo(new GuildId(channel.getGuild()));
         OnRunMessageMode msgMode = guildSettings.getOnRunMessage().get();
         
-        if ((!isThread) && !isVoiceText(channel) && (msgMode.isStart() || msgMode.isBoth())) {
+        if ((!isThread) && !isVoiceText(channel) && !(channel instanceof ForumChannel) && (msgMode.isStart() || msgMode.isBoth())) {
             channel.sendMessage("This channel is archive target. Start >>>").queue();
         }
 
@@ -489,7 +489,7 @@ public class RunArchiveRunner implements IRunner {
             }
         }
 
-        if ((!isThread) && !isVoiceText(channel) && (msgMode.isEnd() || msgMode.isBoth())) {
+        if ((!isThread) && !isVoiceText(channel) && !(channel instanceof ForumChannel) && (msgMode.isEnd() || msgMode.isBoth())) {
             String endMsg = "archive created. task end <<<";
             if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
