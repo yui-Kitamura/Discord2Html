@@ -368,7 +368,7 @@ public class RunArchiveRunner implements IRunner {
         }
 
         // Retrieve messages differently for normal channels vs threads
-        List<MessageInfo> messages;
+        List<MessageInfo> messages = List.of();
         Calendar beginForOutput = (Calendar) beginDate.clone();
         if (isThread && channel instanceof ThreadChannel tc) {
             if (tc.isArchived() || tc.isLocked()) {
@@ -382,8 +382,6 @@ public class RunArchiveRunner implements IRunner {
             messages = getMessagesForThread(tc, endDate);
         } else if (channel instanceof GuildMessageChannel msgCh){
             messages = getMessagesForMessageChannel(msgCh, beginDate, endDate);
-        } else {
-            messages = List.of();
         }
         // sort chronologically
         messages.sort(Comparator.comparing(MessageInfo::getCreatedTimestamp));
