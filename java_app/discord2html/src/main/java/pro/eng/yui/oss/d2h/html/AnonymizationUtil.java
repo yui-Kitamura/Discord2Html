@@ -45,8 +45,13 @@ public class AnonymizationUtil {
 
             return new MessageUserInfo(anonId, avatarUrl);
         } else {
+            // Non-anonymous: prefer nickname, but fallback to username when nickname is blank
+            String nick = (user.getNickname() == null) ? null : user.getNickname().getValue();
+            if (nick == null || nick.isBlank()) {
+                nick = (user.getUserName() == null) ? "" : user.getUserName().getValue();
+            }
             return new MessageUserInfo(
-                    user.getNickname().getValue(),
+                    nick,
                     user.getAvatar().getImgPath(user.getUserId())
             );
         }
@@ -83,9 +88,13 @@ public class AnonymizationUtil {
             
             return new MessageUserInfo(anonId, avatarUrl);
         } else {
-            // User is not anonymous, return original information
+            // User is not anonymous: prefer nickname; fallback to username when nickname is blank
+            String nick = (user.getNickname() == null) ? null : user.getNickname().getValue();
+            if (nick == null || nick.isBlank()) {
+                nick = (user.getUserName() == null) ? "" : user.getUserName().getValue();
+            }
             return new MessageUserInfo(
-                user.getNickname().getValue(),
+                nick,
                 user.getAvatar().getImgPath(user.getUserId())
             );
         }
