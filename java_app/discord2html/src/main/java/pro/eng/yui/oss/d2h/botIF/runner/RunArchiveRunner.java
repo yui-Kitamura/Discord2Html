@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.StageChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.VoiceChannel;
@@ -223,7 +224,9 @@ public class RunArchiveRunner implements IRunner {
                                 jda.getJda().getGuildById(ch.getGuidId().getValue())
                                         .getChannelById(IThreadContainer.class, ch.getChannelId().getValue());
                         if (parent != null) {
-                            run(parent, beginDate, endDate, true);
+                            if(!(parent instanceof ForumChannel)) {
+                                run(parent, beginDate, endDate, true);
+                            }
                             runActiveThreadsUnder(parent, beginDate, endDate, true);
                         }
                     }
@@ -271,7 +274,9 @@ public class RunArchiveRunner implements IRunner {
             end.set(Calendar.SECOND, 59);
             end.set(Calendar.MILLISECOND, 999);
         }
-        run(channel, begin, end, false);
+        if(!(channel instanceof ForumChannel)) {
+            run(channel, begin, end, false);
+        }
         runActiveThreadsUnder(channel, begin, end, false);
     }
 
