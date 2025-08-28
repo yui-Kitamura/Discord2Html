@@ -328,7 +328,7 @@ public class RunArchiveRunner implements IRunner {
         }
 
         // Retrieve messages differently for normal channels vs threads
-        List<MessageInfo> messages = List.of();
+        List<MessageInfo> messages = new ArrayList<>();
         Calendar beginForOutput = (Calendar) beginDate.clone();
         if (isThread && channel instanceof ThreadChannel tc) {
             if (tc.isArchived() || tc.isLocked()) {
