@@ -138,35 +138,34 @@ public class RunArchiveRunner implements IRunner {
             }
 
             // Decide targets using targetUnion
-            List<IThreadContainer> targets = new ArrayList<>();
-            boolean handledForumTarget = false;
+            List<GuildChannel> targets = new ArrayList<>();
             if (targetUnion != null) {
                 if (targetUnion.getType().isThread()) {
                     // Reject threads as direct targets
                     lastRunNotes.add("[ERROR] targetオプションはチャンネルのみ指定できます。スレッドは直接指定できません。親チャンネルを指定してください。");
                     return; // スレッド直接指定エラー
                 }
-                targets.add(targetUnion.asThreadContainer());
+                targets.add(targetUnion.asStandardGuildChannel());
             }
-            if (handledForumTarget == false && targets.isEmpty()) {
+            if (targets.isEmpty()) {
                 // 指定されていない場合、Guild内のMONITOR全対象チャンネルを取得
                 List<Channels> chs = channelDao.selectChannelArchiveDo(target);
                 for (Channels ch : chs) {
-                    IThreadContainer tc = jda.getJda().getGuildById(ch.getGuidId().getValue())
-                            .getChannelById(IThreadContainer.class, ch.getChannelId().getValue());
-                    if (tc != null && !tc.getType().isThread()) {
-                        targets.add(tc);
+                    GuildChannel gc = jda.getJda().getGuildById(ch.getGuidId().getValue())
+                            .getChannelById(GuildChannel.class, ch.getChannelId().getValue());
+                    if (gc != null && !gc.getType().isThread()) {
+                        targets.add(gc);
                     }
                 }
             }
 
             // Generate for each target channel using the public day-specific interface
-            for (IThreadContainer tc : targets) {
+            for (GuildChannel gc : targets) {
                 try {
-                    runForSpecificDay(tc, day);
+                    runForSpecificDay(gc, day);
                 } catch (Exception e) {
                     String msg = (e.getMessage() != null && !e.getMessage().isBlank()) ? e.getMessage() : e.getClass().getName();
-                    lastRunNotes.add("[ERROR] チャンネル " + tc.getName() + " の日付指定アーカイブ生成に失敗: " + msg);
+                    lastRunNotes.add("[ERROR] チャンネル " + gc.getName() + " の日付指定アーカイブ生成に失敗: " + msg);
                 }
             }
 
@@ -225,14 +224,16 @@ public class RunArchiveRunner implements IRunner {
                 if(on.getValue() == now) {
                     List<Channels> chs = channelDao.selectChannelArchiveDo(guilds.getGuildId());
                     for(Channels ch : chs) {
-                        IThreadContainer parent =
+                        GuildChannel parent =
                                 jda.getJda().getGuildById(ch.getGuidId().getValue())
-                                        .getChannelById(IThreadContainer.class, ch.getChannelId().getValue());
+                                        .getChannelById(GuildChannel.class, ch.getChannelId().getValue());
                         if (parent != null) {
                             if(!(parent instanceof ForumChannel)) {
                                 run(parent, beginDate, endDate, true);
                             }
-                            runActiveThreadsUnder(parent, beginDate, endDate, true);
+                            if(parent instanceof IThreadContainer container) {
+                                runActiveThreadsUnder(container, beginDate, endDate, true);
+                            }
                         }
                     }
                     
@@ -267,7 +268,7 @@ public class RunArchiveRunner implements IRunner {
     /**
      * run for a specific day (00:00 to 23:59:59.999 if past day, or now if today) in JST.
      */
-    private void runForSpecificDay(IThreadContainer channel, Calendar dayJst) {
+    private void runForSpecificDay(GuildChannel channel, Calendar dayJst) {
         Calendar begin = (Calendar) dayJst.clone();
         begin.set(Calendar.HOUR_OF_DAY, 0);
         begin.set(Calendar.MINUTE, 0);
@@ -284,10 +285,12 @@ public class RunArchiveRunner implements IRunner {
             end.set(Calendar.SECOND, 59);
             end.set(Calendar.MILLISECOND, 999);
         }
-        if(!(channel instanceof ForumChannel)) {
-            run(channel, begin, end, false);
+        if(channel instanceof GuildMessageChannel msgCh) {
+            run(msgCh, begin, end, false);
         }
-        runActiveThreadsUnder(channel, begin, end, false);
+        if(channel instanceof IThreadContainer container) {
+            runActiveThreadsUnder(container, begin, end, false);
+        }
     }
 
 
