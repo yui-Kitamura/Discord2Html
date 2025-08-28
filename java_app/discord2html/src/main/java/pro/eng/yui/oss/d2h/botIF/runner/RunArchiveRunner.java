@@ -467,11 +467,13 @@ public class RunArchiveRunner implements IRunner {
     private void runActiveThreadsUnder(IThreadContainer parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
         try {
             if (parent == null) { return; }
-            List<ThreadChannel> threads = parent.getThreadChannels();
+            List<ThreadChannel> threads = new ArrayList<>(parent.getThreadChannels());
+            threads.addAll(parent.retrieveArchivedPublicThreadChannels().complete());
             for (ThreadChannel t : threads) {
                 run(t, beginDate, endDate, scheduled);
             }
         } catch (Throwable ignore) {
+            ignore.printStackTrace();
             // best-effort; skip on any error
         }
     }
