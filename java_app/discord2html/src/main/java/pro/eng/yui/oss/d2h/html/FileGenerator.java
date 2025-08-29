@@ -339,6 +339,9 @@ public class FileGenerator {
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", false);
+        // Standardized nav variables for list template
+        ctx.setVariable("rootHref", basePrefix() + "/index.html");
+        ctx.setVariable("isThread", false);
         String page = templateEngine.process("list", ctx);
         writeIfChanged(channelArchive, page);
         // Ensure the thread index page exists for this channel (even if no thread pages yet)
@@ -425,6 +428,9 @@ public class FileGenerator {
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", false);
+        // Standardized nav variables for list template
+        ctx.setVariable("rootHref", basePrefix() + "/index.html");
+        ctx.setVariable("isThread", false);
         String page = templateEngine.process("list", ctx);
         // Ensure the thread index page exists for this channel
         try {
@@ -948,6 +954,9 @@ public class FileGenerator {
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", true);
         ctx.setVariable("backToChannelArchivesHref", basePrefix() + "/archives/" + parentChannelId + ".html");
+        // Standardized nav variables for list template
+        ctx.setVariable("rootHref", basePrefix() + "/index.html");
+        ctx.setVariable("isThread", false);
         String page = templateEngine.process("list", ctx);
         writeIfChanged(index, page);
     }
@@ -1263,6 +1272,11 @@ public class FileGenerator {
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("basePrefix", basePrefix());
+        // Standardized nav variables
+        ctx.setVariable("isThread", true);
+        if (channel.getParentChannelId() != null) {
+            ctx.setVariable("threadIndexHref", String.format(basePrefix() + "/archives/%s/threads/index.html", channel.getParentChannelId().toString()));
+        }
         String html = templateEngine.process(THREAD_TEMPLATE_NAME, ctx);
         Path out = Path.of(
                 appConfig.getOutputPath(),

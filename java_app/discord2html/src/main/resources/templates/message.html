@@ -11,8 +11,7 @@
 <body>
 <div class="container">
   <nav class="nav">
-    <a th:if="${backToTopHref}" th:href="${backToTopHref}">トップ</a>
-    <span class="sep" th:if="${backToTopHref}">|</span>
+    <a th:if="${backToTopHref}" th:href="${backToTopHref}">トップ</a><span class="sep" th:if="${backToTopHref}">|</span>
     <a th:if="${backToChannelHref}" th:href="${backToChannelHref}">チャンネルのアーカイブ一覧</a>
   </nav>
   <div class="guild-header">

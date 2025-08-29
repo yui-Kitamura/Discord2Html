@@ -14,11 +14,9 @@
 <body>
 <div class="container">
   <nav class="nav">
-    <a th:if="${backToTopHref}" th:href="${backToTopHref}">トップ</a>
-    <span class="sep" th:if="${backToTopHref}">|</span>
+    <a th:if="${backToTopHref}" th:href="${backToTopHref}">トップ</a><span class="sep" th:if="${backToTopHref}">|</span>
     <a th:if="${backToParentArchiveHref}" th:href="${backToParentArchiveHref}">親チャンネルのアーカイブ一覧に戻る</a>
-    <span class="sep" th:if="${backToParentArchiveHref}">|</span>
-    <a th:if="${backToParentThreadsHref}" th:href="${backToParentThreadsHref}">親チャンネルに属するスレッドの一覧に戻る</a>
+    <span class="sep" th:if="${threadIndexHref}">|</span><a th:if="${threadIndexHref}" th:href="${threadIndexHref}">親チャンネルに属するスレッドの一覧に戻る</a>
   </nav>
   <div class="guild-header">
     <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="${guildName} + ' アイコン'" />
