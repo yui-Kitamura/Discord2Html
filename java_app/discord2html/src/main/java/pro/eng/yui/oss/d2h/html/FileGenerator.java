@@ -957,9 +957,7 @@ public class FileGenerator {
         ctx.setVariable("guildIconUrl", resolveGuildIconUrl());
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", true);
-        ctx.setVariable("backToChannelArchivesHref", basePrefix() + "/archives/" + parentChannelId + ".html");
-        // Standardized nav variables for list template
-        ctx.setVariable("rootHref", basePrefix() + "/index.html");
+        ctx.setVariable("backToTopHref", basePrefix() + "/index.html");
         ctx.setVariable("isThread", false);
         String page = templateEngine.process("list", ctx);
         writeIfChanged(index, page);
