@@ -348,14 +348,6 @@ public class RunArchiveRunner implements IRunner {
         List<MessageInfo> messages = new ArrayList<>();
         Calendar beginForOutput = (Calendar) beginDate.clone();
         if (isThread && channel instanceof ThreadChannel tc) {
-            if (tc.isArchived() || tc.isLocked()) {
-                long existingEnd = getExistingThreadPageEndMillis(tc);
-                long targetEnd = endDate.getTimeInMillis();
-                if (existingEnd >= targetEnd - 1) {
-                    // Already up-to-date, skip regeneration
-                    return;
-                }
-            }
             messages = getMessagesForThread(tc, endDate);
         } else if (channel instanceof GuildMessageChannel msgCh){
             messages = getMessagesForMessageChannel(msgCh, beginDate, endDate);
@@ -371,6 +363,12 @@ public class RunArchiveRunner implements IRunner {
                 calBegin.setTime(first);
                 beginForOutput = calBegin;
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
+            try {
+                Date last = DateTimeUtil.time().parse(messages.get(messages.size() - 1).getCreatedTimestamp());
+                Calendar calEnd = Calendar.getInstance(DateTimeUtil.JST);
+                calEnd.setTime(last);
+                endForOutput = calEnd;
+            } catch (Exception ignore) { /* keep prior endForOutput */ }
         }
         
         Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, endForOutput, 1);
