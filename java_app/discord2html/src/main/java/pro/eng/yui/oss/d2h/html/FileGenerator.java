@@ -610,13 +610,17 @@ public class FileGenerator {
                 .sorted()
                 .map(id -> {
                     String label = id;
+                    String href = "archives/" + id + ".html";
                     try {
                         GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, id);
                         if (gc != null && gc.getName().isEmpty() == false) {
                             label = gc.getName();
                         }
+                        if (gc instanceof ForumChannel) {
+                            href = "archives/" + id + "/threads/index.html";
+                        }
                     } catch (Throwable ignore) { }
-                    return new Link("archives/" + id + ".html", label);
+                    return new Link(href, label);
                 })
                 .toList());
         Path index = base.resolve("index.html");
