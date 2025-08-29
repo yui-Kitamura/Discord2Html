@@ -228,11 +228,11 @@ public class RunArchiveRunner implements IRunner {
                                 jda.getJda().getGuildById(ch.getGuidId().getValue())
                                         .getChannelById(GuildChannel.class, ch.getChannelId().getValue());
                         if (parent != null) {
-                            if(!(parent instanceof ForumChannel)) {
-                                run(parent, beginDate, endDate, true);
-                            }
                             if(parent instanceof IThreadContainer container) {
                                 runActiveThreadsUnder(container, beginDate, endDate, true);
+                            }
+                            if(!(parent instanceof ForumChannel)) {
+                                run(parent, beginDate, endDate, true);
                             }
                         }
                     }
@@ -285,11 +285,11 @@ public class RunArchiveRunner implements IRunner {
             end.set(Calendar.SECOND, 59);
             end.set(Calendar.MILLISECOND, 999);
         }
-        if(channel instanceof GuildMessageChannel msgCh) {
-            run(msgCh, begin, end, false);
-        }
         if(channel instanceof IThreadContainer container) {
             runActiveThreadsUnder(container, begin, end, false);
+        }
+        if(channel instanceof GuildMessageChannel msgCh) {
+            run(msgCh, begin, end, false);
         }
     }
 
