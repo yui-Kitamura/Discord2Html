@@ -474,6 +474,24 @@ public class FileGenerator {
             } catch (IOException ignore) {
                 // best-effort on root html scan
             }
+            // 3) Add forum channels that have thread directories: archives/<channelId>/threads/
+            try (DirectoryStream<Path> dirs = Files.newDirectoryStream(archivesRoot)) {
+                for (Path dir : dirs) {
+                    if (!Files.isDirectory(dir)) {
+                        continue;
+                    }
+                    String name = dir.getFileName().toString();
+                    if (!name.matches("\\d+")) {
+                        continue;
+                    }
+                    Path threads = dir.resolve("threads");
+                    if (Files.exists(threads) && Files.isDirectory(threads)) {
+                        ids.add(name);
+                    }
+                }
+            } catch (IOException ignore) {
+                // best-effort on forum channels scan
+            }
         } catch (IOException ignore) {
             // best-effort: return what we have
         }
