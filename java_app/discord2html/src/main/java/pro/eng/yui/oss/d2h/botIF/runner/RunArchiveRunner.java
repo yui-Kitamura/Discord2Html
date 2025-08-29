@@ -363,17 +363,17 @@ public class RunArchiveRunner implements IRunner {
         // sort chronologically
         messages.sort(Comparator.comparing(MessageInfo::getCreatedTimestamp));
         
-        // For threads: ensure beginForOutput reflects the earliest message timestamp (after sorting)
+        Calendar endForOutput = (Calendar) endDate.clone();
         if (isThread && !messages.isEmpty()) {
             try {
                 Date first = DateTimeUtil.time().parse(messages.get(0).getCreatedTimestamp());
-                Calendar cal = Calendar.getInstance(DateTimeUtil.JST);
-                cal.setTime(first);
-                beginForOutput = cal;
+                Calendar calBegin = Calendar.getInstance(DateTimeUtil.JST);
+                calBegin.setTime(first);
+                beginForOutput = calBegin;
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
         }
         
-        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, (Calendar) endDate.clone(), 1);
+        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, endForOutput, 1);
         generatedFiles.add(generatedFile);
         
         Path indexPath = Path.of(config.getOutputPath(), "index.html");
