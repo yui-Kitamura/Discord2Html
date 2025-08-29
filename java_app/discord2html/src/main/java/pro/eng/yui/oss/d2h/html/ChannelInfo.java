@@ -42,9 +42,9 @@ public class ChannelInfo {
         if (this.thread) {
             try {
                 ThreadChannel tc = (ThreadChannel) ch;
-                if (tc.getParentMessageChannel() != null) {
-                    this.parentChannelName = tc.getParentMessageChannel().getName();
-                    this.parentChannelId = new ChannelId(tc.getParentMessageChannel());
+                if (tc.getParentChannel() != null) {
+                    this.parentChannelName = tc.getParentChannel().getName();
+                    this.parentChannelId = new ChannelId(tc.getParentChannel());
                 }
             } catch (ClassCastException ignore) {
                 // fallback: leave parent fields null
