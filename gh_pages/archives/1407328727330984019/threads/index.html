@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>🐈ねこ のスレッド一覧</title>
+  <link rel="stylesheet" href="/Discord2Html/css/style.css" />
+  <link rel="icon" href="https://cdn.discordapp.com/icons/1383048154206965822/cdfc61ed42912726d3f0ca4f9cbb7775.png" />
+  <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+<div class="container">
+  <nav class="nav">
+    <a href="/Discord2Html/index.html">トップ</a>
+    <span class="sep">|</span>
+    <a href="/Discord2Html/archives/1407328727330984019.html">このチャンネルのアーカイブ一覧に戻る</a>
+  </nav>
+  <header class="guild-header">
+    <img class="guild-icon" src="https://cdn.discordapp.com/icons/1383048154206965822/cdfc61ed42912726d3f0ca4f9cbb7775.png" alt="null アイコン" />
+    <h1>🐈ねこ のスレッド一覧</h1>
+  </header>
+  <p>このチャンネルに属するスレッドのアーカイブ一覧</p>
+  
+
+  <!-- アーカイブ日付セレクタ（スレッド一覧では非表示） -->
+  
+
+  <ul>
+    
+  </ul>
+</div>
+<footer>
+  <p class="footer">
+    <span>bot ver1.5.3@1fb0c83</span>
+  </p>
+</footer>
+<script src="/Discord2Html/js/archive-date.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    if (window.twemoji) {
+      try { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); } catch (e) { /* noop */ }
+    }
+    // Center scroll to anchor
+    try {
+      if (location.hash && location.hash.length > 1) {
+        const el = document.getElementById(decodeURIComponent(location.hash.substring(1)));
+        if (el && typeof el.scrollIntoView === 'function') {
+          el.scrollIntoView({ behavior: 'auto', block: 'center', inline: 'nearest' });
+        }
+      }
+    } catch (ignore) { }
+  });
+</script>
+</body>
+</html>
