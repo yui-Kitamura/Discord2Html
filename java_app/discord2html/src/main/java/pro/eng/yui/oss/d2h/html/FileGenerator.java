@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.channel.ChannelType;
 import net.dv8tion.jda.api.entities.channel.attribute.IThreadContainer;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
@@ -616,7 +617,7 @@ public class FileGenerator {
                         if (gc != null && gc.getName().isEmpty() == false) {
                             label = gc.getName();
                         }
-                        if (gc instanceof ForumChannel) {
+                        if (gc != null && gc.getType() == ChannelType.FORUM) {
                             href = "archives/" + id + "/threads/index.html";
                         }
                     } catch (Throwable ignore) { }
