@@ -34,6 +34,7 @@ import pro.eng.yui.oss.d2h.html.FileGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -374,14 +375,20 @@ public class RunArchiveRunner implements IRunner {
         Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, endForOutput, 1);
         generatedFiles.add(generatedFile);
         
-        Path indexPath = Path.of(config.getOutputPath(), "index.html");
-        if (!generatedFiles.contains(indexPath)) {
-            generatedFiles.add(indexPath);
-        }
-        Path helpPath = Path.of(config.getOutputPath(), "help.html");
-        if (!generatedFiles.contains(helpPath)) {
-            generatedFiles.add(helpPath);
-        }
+        try {
+            fileGenerator.regenerateTopIndex();
+            Path indexPath = Path.of(config.getOutputPath(), "index.html");
+            if (!generatedFiles.contains(indexPath)) {
+                generatedFiles.add(indexPath);
+            }
+        }catch(IOException e){ e.printStackTrace(); }
+        try {
+            fileGenerator.regenerateHelpPage();
+            Path helpPath = Path.of(config.getOutputPath(), "help.html");
+            if (!generatedFiles.contains(helpPath)) {
+                generatedFiles.add(helpPath);
+            }
+        }catch (IOException e){ e.printStackTrace(); }
 
         if (!isThread) {
             Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getId() + ".html");

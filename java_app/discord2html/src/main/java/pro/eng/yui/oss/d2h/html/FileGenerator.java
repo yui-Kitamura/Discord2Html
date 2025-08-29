@@ -282,8 +282,6 @@ public class FileGenerator {
             for (String d8 : affectedDate8) {
                 prependChannelArchiveEntry(channel.getChannelId(), d8);
             }
-            regenerateTopIndex();
-            regenerateHelpPage();
         } catch (IOException e) {
             // Do not fail the main generation if index regeneration fails; log via RuntimeException to keep visibility
             throw new RuntimeException("Failed to regenerate archives/index pages", e);
@@ -834,7 +832,7 @@ public class FileGenerator {
         return messages;
     }
 
-    private void regenerateHelpPage() throws IOException {
+    public void regenerateHelpPage() throws IOException {
         Path base = Paths.get(appConfig.getOutputPath());
         if (!Files.exists(base)) {
             return;
