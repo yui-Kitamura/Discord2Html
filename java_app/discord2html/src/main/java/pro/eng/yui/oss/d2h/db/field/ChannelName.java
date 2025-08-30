@@ -2,7 +2,7 @@ package pro.eng.yui.oss.d2h.db.field;
 
 import net.dv8tion.jda.api.entities.channel.Channel;
 
-public class ChannelName extends AbstVarChar {
+public class ChannelName extends AbstName {
     
     public static int LIMIT = 255;
     

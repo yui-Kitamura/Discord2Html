@@ -2,9 +2,8 @@ package pro.eng.yui.oss.d2h.db.field;
 
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 
-public class CategoryName extends AbstVarChar {
+public class CategoryName extends AbstName {
     public static int LIMIT = 255;
-    public static String EMPTY_NAME = "";
 
     public CategoryName(String value){
         super(value, LIMIT);
