@@ -555,7 +555,7 @@ public class FileGenerator {
                 CategoryGroup group = map.get(catId);
                 String label = ch.getChannelName().getValue();
                 if(group.isDeleted()) {
-                    label += " (削除済み)";
+                    label += " "+CategoryName.SUFFIX_DELETED;
                 }
                 String href = "archives/" + chId + ".html";
                 group.getChannels().add(new Link(href, label));
@@ -582,7 +582,7 @@ public class FileGenerator {
                 List<Link> live = new ArrayList<>();
                 List<Link> gone = new ArrayList<>();
                 for (Link l : g.getChannels()) {
-                    if (l.getLabel() != null && l.getLabel().endsWith("(削除済み)")) {
+                    if (l.getLabel() != null && l.getLabel().endsWith(CategoryName.SUFFIX_DELETED)) {
                         gone.add(l);
                     } else {
                         live.add(l);
