@@ -492,6 +492,10 @@ public class FileGenerator {
         } catch (IOException ignore) {
             // best-effort: return what we have
         }
+        
+        /* * debug * */
+        for(String s : ids) { System.out.print(s + ","); }
+        
         return ids;
     }
     
