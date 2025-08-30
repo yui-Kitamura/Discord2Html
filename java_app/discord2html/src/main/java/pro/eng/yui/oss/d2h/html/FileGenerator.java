@@ -481,9 +481,6 @@ public class FileGenerator {
                         continue;
                     }
                     String name = dir.getFileName().toString();
-                    if (!name.matches("\\d+")) {
-                        continue;
-                    }
                     Path threads = dir.resolve("threads");
                     if (Files.exists(threads) && Files.isDirectory(threads)) {
                         ids.add(name);
@@ -633,7 +630,7 @@ public class FileGenerator {
                         if (gc != null && gc.getName().isEmpty() == false) {
                             label = gc.getName();
                         }
-                        if (gc != null && gc.getType() == ChannelType.FORUM) {
+                        if (gc != null && gc instanceof ForumChannel) {
                             href = "archives/" + id + "/threads/index.html";
                         }
                     } catch (Throwable ignore) { }
