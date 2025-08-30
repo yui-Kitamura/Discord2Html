@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.Category;
 
 public class CategoryName extends AbstVarChar {
     public static int LIMIT = 255;
+    public static String EMPTY_NAME = "";
 
     public CategoryName(String value){
         super(value, LIMIT);
@@ -12,6 +13,8 @@ public class CategoryName extends AbstVarChar {
         this(category.getName());
     }
 
+    public static CategoryName EMPTY = new CategoryName(EMPTY_NAME);
+    
     @Override
     public int hashCode() { return super.hashCode(); }
 
