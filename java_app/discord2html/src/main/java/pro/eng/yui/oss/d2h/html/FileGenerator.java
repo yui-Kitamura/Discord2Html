@@ -630,11 +630,11 @@ public class FileGenerator {
                     String label = id;
                     String href = "archives/" + id + ".html";
                     try {
-                        GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, id);
+                        GuildChannel gc = jdaProvider.getJda().getGuildChannelById(id);
                         if (gc != null && gc.getName().isEmpty() == false) {
                             label = gc.getName();
                         }
-                        if (gc != null && gc instanceof ForumChannel) {
+                        if (gc instanceof ForumChannel) {
                             href = "archives/" + id + "/threads/index.html";
                         }
                     } catch (Throwable ignore) { }
