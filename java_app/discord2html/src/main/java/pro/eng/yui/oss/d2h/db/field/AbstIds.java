@@ -2,6 +2,8 @@ package pro.eng.yui.oss.d2h.db.field;
 
 public abstract class AbstIds {
 
+    public static long NO_ID = 0L;
+
     protected final long value;
 
     /** 文字列表現が欲しい時は toString() を直接用いること（unsigned） */
