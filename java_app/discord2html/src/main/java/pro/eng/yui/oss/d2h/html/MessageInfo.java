@@ -9,6 +9,8 @@ import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MessageInfo {
 
@@ -183,15 +185,21 @@ public class MessageInfo {
         // 2) Plain https://... (stop before whitespace, <, ), or an HTML entity starting with & that is NOT &amp;). Allow &amp; within URLs for query params.
         escaped = escaped.replaceAll("(?<![\\\"'>])https://[^\\s<)]+?(?=(?:&(?!amp;))|\\s|<|\\)|$)",
                 "<a href=\"$0\">$0</a>");
-        // 3) Custom Discord emoji tokens (escaped) -> <img> tags
-        // Animated: &lt;a:NAME:ID&gt; -> .gif
-        escaped = escaped.replaceAll(
-                "&lt;a:([A-Za-z0-9_~\\-]+):(\\d+)&gt;",
-                "<img class='emoji' src='/Discord2Html/archives/emoji/$2.gif' alt='$1' onerror='this.onerror=null;this.src=\"https://cdn.discordapp.com/emojis/$2.gif\"' />");
-        // Static: &lt;:NAME:ID&gt; -> .png
-        escaped = escaped.replaceAll(
-                "&lt;:([A-Za-z0-9_~\\-]+):(\\d+)&gt;",
-                "<img class='emoji' src='/Discord2Html/archives/emoji/$2.png' alt='$1' onerror='this.onerror=null;this.src=\"https://cdn.discordapp.com/emojis/$2.png\"' />");
+        // 3) Custom Discord emoji tokens (escaped) -> <img> with multi-fallback (archive-day -> id-stable -> CDN)
+        {
+            Pattern p = Pattern.compile("&lt;(a?):([A-Za-z0-9_~\\-]+):(\\d+)&gt;");
+            Matcher m = p.matcher(escaped);
+            StringBuffer sb = new StringBuffer();
+            while (m.find()) {
+                boolean animated = m.group(1) != null && !m.group(1).isEmpty();
+                String name = m.group(2);
+                String id = m.group(3);
+                String img = FileGenerateUtil.buildEmojiImgHtml(name, id, animated);
+                m.appendReplacement(sb, Matcher.quoteReplacement(img));
+            }
+            m.appendTail(sb);
+            escaped = sb.toString();
+        }
         // 4) Convert newline characters to <br> so original message line breaks render on HTML
         escaped = escaped.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>");
         return escaped;

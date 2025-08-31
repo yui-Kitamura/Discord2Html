@@ -146,7 +146,7 @@ public final class FileGenerateUtil {
         } catch (Exception ignore) { }
         return null;
     }
-
+    
     public static void archiveCustomEmojis(Path outputPath, List<MessageInfo> messages) throws IOException {
         if (messages == null || messages.isEmpty()){ return; }
         Path emojiDir = outputPath.resolve("archives").resolve("emoji");
@@ -180,48 +180,7 @@ public final class FileGenerateUtil {
                         bytes = null;
                     }
                     if (bytes != null) {
-                        String safeName = (name == null) ? "emoji" : name;
-                        safeName = safeName.replaceAll("[^A-Za-z0-9_-]", "_"); //不許容文字のreplace
-                        Path target = emojiDir.resolve(safeName + "_" + today + "." + ext);
-
-                        if (Files.exists(target)) {
-                            try {
-                                byte[] existing = Files.readAllBytes(target);
-                                if (Arrays.equals(existing, bytes)) {
-                                    // 同一ファイルの場合スキップ
-                                } else {
-                                    int idx = 2;
-                                    Path alternativePath;
-                                    do {
-                                        alternativePath = emojiDir.resolve(safeName + "_" + today + "_" + idx + "." + ext);
-                                        idx++;
-                                    } while (Files.exists(alternativePath));
-                                    Files.write(alternativePath, bytes);
-                                }
-                            } catch (IOException ioe) {
-                                // ignore single emoji failure
-                            }
-                        } else {
-                            try {
-                                Files.write(target, bytes);
-                            } catch (IOException ioe) {
-                                // ignore single emoji failure
-                            }
-                        }
-                        // Also write stable id-based copy for template reference
-                        try {
-                            Path idStable = emojiDir.resolve(id + "." + ext);
-                            Files.write(idStable, bytes); // replace or create
-                        } catch (IOException ioe) {
-                            // ignore
-                        }
-                        // Write new path: emoji_{id}_{yyyyMMdd}.{ext}
-                        try {
-                            Path newNaming = emojiDir.resolve("emoji_" + id + "_" + today + "." + ext);
-                            Files.write(newNaming, bytes); // replace or create
-                        } catch (IOException ioe) {
-                            // ignore
-                        }
+                        saveCustomEmoji(emojiDir, id, name, ext, today, bytes);
                     }
                 }
             }
@@ -259,47 +218,7 @@ public final class FileGenerateUtil {
                             // skip this emoji if fetch fails
                             continue;
                         }
-                        String safeName = (name == null) ? "emoji" : name;
-                        safeName = safeName.replaceAll("[^A-Za-z0-9_-]", "_");
-                        Path target = emojiDir.resolve(safeName + "_" + today + "." + ext);
-                        if (Files.exists(target)) {
-                            try {
-                                byte[] existing = Files.readAllBytes(target);
-                                if (Arrays.equals(existing, bytes)) {
-                                    // same content, no extra name_date copy
-                                } else {
-                                    int idx = 2;
-                                    Path alternativePath;
-                                    do {
-                                        alternativePath = emojiDir.resolve(safeName + "_" + today + "_" + idx + "." + ext);
-                                        idx++;
-                                    } while (Files.exists(alternativePath));
-                                    Files.write(alternativePath, bytes);
-                                }
-                            } catch (IOException ioe) {
-                                // ignore single emoji failure
-                            }
-                        } else {
-                            try {
-                                Files.write(target, bytes);
-                            } catch (IOException ioe) {
-                                // ignore single emoji failure
-                            }
-                        }
-                        // Also write stable id-based copy
-                        try {
-                            Path idStable = emojiDir.resolve(id + "." + ext);
-                            Files.write(idStable, bytes);
-                        } catch (IOException ioe) {
-                            // ignore
-                        }
-                        // Write new path: emoji_{id}_{yyyyMMdd}.{ext}
-                        try {
-                            Path newNaming = emojiDir.resolve("emoji_" + id + "_" + today + "." + ext);
-                            Files.write(newNaming, bytes); // replace or create
-                        } catch (IOException ioe) {
-                            // ignore
-                        }
+                        saveCustomEmoji(emojiDir, id, name, ext, today, bytes);
                     }
                 }
             } catch (Throwable ignore) {
@@ -307,4 +226,63 @@ public final class FileGenerateUtil {
             }
         }
     }
+
+    /** カスタム絵文字を物理パスに保存する */
+    private static void saveCustomEmoji(Path emojiDir, String id, String name, String ext, String today, byte[] bytes) {
+        if (emojiDir == null || id == null || ext == null || today == null || bytes == null) { return; }
+        String safeName = getSafeEmojiName(name);
+        Path todayPath = emojiDir.resolve("emoji_" + id + "_" + safeName + "_" + today + "." + ext);
+        try {
+            if (Files.exists(todayPath)) {
+                Files.write(todayPath, bytes); // overwrite within same day
+            } else {
+                boolean sameFound = false;
+                try {
+                    for (Path p : Files.newDirectoryStream(emojiDir, "emoji_" + id + "_*." + ext)) {
+                        if (p.getFileName().toString().equals(todayPath.getFileName().toString())) { continue; }
+                        try {
+                            byte[] past = Files.readAllBytes(p);
+                            if (Arrays.equals(past, bytes)) { sameFound = true; break; }
+                        } catch (IOException ignore) { }
+                    }
+                } catch (IOException ignore) { }
+                if (!sameFound) {
+                    Files.write(todayPath, bytes);
+                }
+            }
+        } catch (IOException ioe) {
+            // ignore single emoji failure
+        }
+        // Also write stable id-based copy
+        try {
+            Path idStable = emojiDir.resolve(id + "." + ext);
+            Files.write(idStable, bytes);
+        } catch (IOException ioe) {
+            // ignore
+        }
+    }
+
+    /**
+     * カスタム絵文字<img>タグを生成する。フォールバック順は:
+     * 1) アーカイブ日のスナップショット (emoji_{id}_{safeName}_{date}.{ext})
+     * 2) 最新ID固定パス ({id}.{ext})
+     * 3) Discord CDN
+     */
+    public static String buildEmojiImgHtml(String name, String id, boolean animated) {
+        String ext = animated ? "gif" : "png";
+        String date = DateTimeUtil.date8().format(new Date());
+        String safe = getSafeEmojiName(name);
+        String first = "/Discord2Html/archives/emoji/emoji_" + id + "_" + safe + "_" + date + "." + ext;
+        String second = "/Discord2Html/archives/emoji/" + id + "." + ext;
+        String cdn = "https://cdn.discordapp.com/emojis/" + id + "." + ext;
+        // 二段階 onerror: 1) 日付付き → 2) id固定 → 3) CDN
+        return "<img class='emoji' src='" + first + "' alt='" + (name == null ? "" : name) + "' " +
+               "onerror=\"this.onerror=function(){this.onerror=null;this.src='" + cdn + "';};this.src='" + second + "';\" />";
+    }
+
+    private static String getSafeEmojiName(String name) {
+        String safe = (name == null || name.isEmpty()) ? "emoji" : name;
+        return safe.replaceAll("[^A-Za-z0-9_-]", "_");
+    }
+
 }
