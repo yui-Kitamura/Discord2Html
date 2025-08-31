@@ -63,8 +63,6 @@ public class IndexGenerator {
         this.botVersion = secrets.getBotVersion();
     }
 
-
-
     // ===== Top index generation =====
     public void regenerateTopIndex(GuildId targetGuild) throws IOException {
         Path base = appConfig.getOutputPath();

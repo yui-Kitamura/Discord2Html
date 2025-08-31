@@ -3,7 +3,6 @@ package pro.eng.yui.oss.d2h.db.field;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 
 public class CategoryId extends AbstIds{
-
     public CategoryId(long value){
         super(value);
     }
