@@ -2,8 +2,11 @@ package pro.eng.yui.oss.d2h.db.model;
 
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.User;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
+import pro.eng.yui.oss.d2h.consts.UserAnon;
+import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
 
 import java.util.Objects;
@@ -81,6 +84,22 @@ public class Users {
         this.user_name = new UserName(user);
         this.nickname = new Nickname(user.getName());
         this.avatar = new Avatar(user);
+    }
+    
+    public static Users get(Message msg, AnonStatsDAO anonStatsDao){
+        Users author;
+        if (msg.getMember() == null) {
+            // bot or non-member
+            author = new Users(msg.getAuthor(), msg.getGuild());
+            UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
+            author.setAnonStats(new AnonStats(anonStatus));
+        } else {
+            // member
+            author = new Users(msg.getMember());
+            UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
+            author.setAnonStats(new AnonStats(anonStatus));
+        }
+        return author;
     }
 
     @Override
