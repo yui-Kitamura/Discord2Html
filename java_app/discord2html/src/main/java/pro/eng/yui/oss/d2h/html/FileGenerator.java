@@ -1,13 +1,9 @@
 package pro.eng.yui.oss.d2h.html;
 
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.attribute.IThreadContainer;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
-import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
-import net.dv8tion.jda.api.entities.channel.concrete.Category;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Contract;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -16,26 +12,17 @@ import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import pro.eng.yui.oss.d2h.db.field.*;
-import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.github.GitUtil;
-import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
-import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
-import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
-import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 
 @Service
 public class FileGenerator {
-
-
     private static final String TEMPLATE_NAME = "message";
     private static final String THREAD_TEMPLATE_NAME = "thread_message";
 
@@ -43,10 +30,6 @@ public class FileGenerator {
     private final GitConfig gitConfig;
     private final TemplateEngine templateEngine;
     private final GitUtil gitUtil;
-    private final GuildsDAO guildsDao;
-    private final UsersDAO usersDao;
-    private final AnonStatsDAO anonStatsDao;
-    private final ChannelsDAO channelsDao;
     private final DiscordJdaProvider jdaProvider;
     private final IndexGenerator indexGenerator;
     private final String botVersion;
@@ -55,17 +38,11 @@ public class FileGenerator {
     private GuildId lastGuildId = null;
 
     public FileGenerator(ApplicationConfig config, Secrets secrets, GitConfig gitConfig,
-                         GitUtil gitUtil, GuildsDAO guildsDao,
-                         UsersDAO usersDao, AnonStatsDAO anonStatsDao,
-                         ChannelsDAO channelsDao, DiscordJdaProvider jdaProvider,
+                         GitUtil gitUtil, DiscordJdaProvider jdaProvider,
                          TemplateEngine templateEngine, IndexGenerator indexGenerator) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
         this.gitUtil = gitUtil;
-        this.guildsDao = guildsDao;
-        this.usersDao = usersDao;
-        this.anonStatsDao = anonStatsDao;
-        this.channelsDao = channelsDao;
         this.jdaProvider = jdaProvider;
         this.indexGenerator = indexGenerator;
         this.botVersion = secrets.getBotVersion();
@@ -231,168 +208,6 @@ public class FileGenerator {
         return lastOutput;
     }
 
-    // Discover channel IDs that have at least one archived daily file under output/archives/yyyyMMdd/*.html
-    private Set<String> discoverArchivedChannelIds() {
-        Set<String> ids = new HashSet<>();
-        try {
-            Path base = appConfig.getOutputPath();
-            if (!Files.exists(base)) { return ids; }
-            Path archivesRoot = base.resolve("archives");
-            if (!Files.exists(archivesRoot) || !Files.isDirectory(archivesRoot)) { 
-                return ids;
-            }
-            // 1) Collect from daily folders: archives/yyyyMMdd/*.html
-            try (DirectoryStream<Path> days = Files.newDirectoryStream(archivesRoot)) {
-                for (Path dayDir : days) {
-                    String name = dayDir.getFileName().toString();
-                    if (!Files.isDirectory(dayDir) || !name.matches("\\d{8}")) { continue; }
-                    try (DirectoryStream<Path> htmls = Files.newDirectoryStream(dayDir, "*.html")) {
-                        for (Path p : htmls) {
-                            String fileName = p.getFileName().toString();
-                            ids.add(fileName.substring(0, fileName.length() - 5));
-                        }
-                    } catch (IOException ignore) {
-                        // best-effort per day dir
-                    }
-                }
-            }
-            // 2) Also collect channel IDs that have per-channel list pages: archives/<channelId>.html
-            try (DirectoryStream<Path> rootHtmls = Files.newDirectoryStream(archivesRoot, "*.html")) {
-                for (Path p : rootHtmls) {
-                    String fileName = p.getFileName().toString();
-                    if (fileName.matches("\\d+\\.html")) {
-                        ids.add(fileName.substring(0, fileName.length() - 5));
-                    }
-                }
-            } catch (IOException ignore) {
-                // best-effort on root html scan
-            }
-            // 3) Add forum channels that have thread directories: archives/<channelId>/threads/
-            try (DirectoryStream<Path> dirs = Files.newDirectoryStream(archivesRoot)) {
-                for (Path dir : dirs) {
-                    if (!Files.isDirectory(dir)) {
-                        continue;
-                    }
-                    String name = dir.getFileName().toString();
-                    Path threads = dir.resolve("threads");
-                    if (Files.exists(threads) && Files.isDirectory(threads)) {
-                        ids.add(name);
-                    }
-                }
-            } catch (IOException ignore) {
-                // best-effort on forum channels scan
-            }
-        } catch (IOException ignore) {
-            // best-effort: return what we have
-        }
-        return ids;
-    }
-    
-    // Helper to ensure a CategoryGroup exists in the map
-    private void ensureCategoryGroup(Map<CategoryId, FileGenerateUtil.CategoryGroup> map, Guild guild, CategoryId id, CategoryName name) {
-        if (map.get(id) == null) {
-            boolean deleted;
-            CategoryName resolvedName;
-            if (id.getValue() == CategoryId.NO_CATEGORY_ID) {
-                // 未分類カテゴリ''
-                deleted = false; 
-                resolvedName = CategoryName.EMPTY;
-            } else {
-                boolean live = guild.getCategories().stream().anyMatch(c -> {
-                    return new CategoryId(c).equals(id);
-                });
-                deleted = !live;
-                resolvedName = name;
-            }
-            map.put(id, new FileGenerateUtil.CategoryGroup(id, resolvedName, deleted));
-        }
-    }
-
-    private List<FileGenerateUtil.CategoryGroup> buildCategoryGroups() {
-        if (lastGuildId == null) { return List.of(); }
-        try {
-            Guild guild = jdaProvider.getJda().getGuildById(lastGuildId.getValue());
-            List<Channels> dbChannels = channelsDao.selectAllInGuild(lastGuildId);
-            Set<String> archivedIds = discoverArchivedChannelIds();
-            // Map categories by id string (or "0" for uncategorized)
-            Map<CategoryId, FileGenerateUtil.CategoryGroup> map = new LinkedHashMap<>();
-            List<CategoryId> liveOrder = new ArrayList<>();
-            if (guild != null) {
-                guild.getCategories().forEach(cat -> liveOrder.add(new CategoryId(cat)));
-            }
-            // Compose links per channel, mark deleted channels; only include archived channels
-            for (Channels ch : dbChannels) {
-                String chId = ch.getChannelId().toString();
-                if (!archivedIds.contains(chId)) {
-                    continue; // skip channels with no archives
-                }
-                CategoryId catId = ch.getCategoryId() == null ? CategoryId.NO_CATEGORY : ch.getCategoryId();
-                CategoryName catName = ch.getCategoryName() == null ? CategoryName.EMPTY : ch.getCategoryName();
-                // If DB lacks category info, try to supplement from live JDA
-                if (guild != null && catId.getValue() == CategoryId.NO_CATEGORY_ID) {
-                    try {
-                        GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, ch.getChannelId().getValue());
-                        if (gc instanceof ICategorizableChannel cc) {
-                            Category parent = cc.getParentCategory();
-                            if (parent != null) {
-                                catId = new CategoryId(parent);
-                                CategoryName liveName = new CategoryName(parent);
-                                if (!liveName.getValue().isEmpty()) {
-                                    catName = liveName;
-                                }
-                            }
-                        }
-                    } catch (Throwable ignore) { /* best-effort */ }
-                }
-                ensureCategoryGroup(map, guild, catId, catName);
-                FileGenerateUtil.CategoryGroup group = map.get(catId);
-                String label = ch.getChannelName().getValue();
-                if(group.isDeleted()) {
-                    label += " "+CategoryName.SUFFIX_DELETED;
-                }
-                String href = "archives/" + chId + ".html";
-                group.getChannels().add(new FileGenerateUtil.Link(href, label));
-            }
-            // Order groups: live categories in guild order, then non-live (deleted) categories by name
-            List<FileGenerateUtil.CategoryGroup> groups = new ArrayList<>();
-            for (CategoryId id : liveOrder) {
-                FileGenerateUtil.CategoryGroup g = map.get(id);
-                if (g != null) { groups.add(g); }
-            }
-            // Ensure uncategorized ("0") comes after live categories but before deleted categories
-            if (map.containsKey(CategoryId.NO_CATEGORY)) {
-                boolean included = groups.stream().anyMatch(g -> g.getId().equals(CategoryId.NO_CATEGORY));
-                if (!included) { groups.add(map.get(CategoryId.NO_CATEGORY)); }
-            }
-            // Add remaining deleted categories (not live and not uncategorized) at the end sorted by name
-            List<FileGenerateUtil.CategoryGroup> deletedGroups = map.values().stream()
-                    .filter(g -> !liveOrder.contains(g.getId()) && g.getId().getValue()!= 0)
-                    .sorted(Comparator.comparing(g -> g.getName().getValue()))
-                    .toList();
-            groups.addAll(deletedGroups);
-            // Within each group, sort: existing channels first (no "(削除済み)" suffix), then deleted
-            for (FileGenerateUtil.CategoryGroup g : groups) {
-                List<FileGenerateUtil.Link> live = new ArrayList<>();
-                List<FileGenerateUtil.Link> gone = new ArrayList<>();
-                for (FileGenerateUtil.Link l : g.getChannels()) {
-                    if (l.getLabel() != null && l.getLabel().endsWith(CategoryName.SUFFIX_DELETED)) {
-                        gone.add(l);
-                    } else {
-                        live.add(l);
-                    }
-                }
-                live.sort(Comparator.comparing(FileGenerateUtil.Link::getLabel));
-                gone.sort(Comparator.comparing(FileGenerateUtil.Link::getLabel));
-                g.getChannels().clear();
-                g.getChannels().addAll(live);
-                g.getChannels().addAll(gone);
-            }
-            return groups;
-        } catch (Throwable ignore) {
-            return List.of();
-        }
-    }
-
     public void regenerateHelpPage() throws IOException {
         Path base = appConfig.getOutputPath();
         if (!Files.exists(base)) {
@@ -406,11 +221,13 @@ public class FileGenerator {
         FileGenerateUtil.writeIfChanged(help, page);
     }
 
-    private List<FileGenerateUtil.Link> getActiveThreadLinks(@NotNull ChannelInfo channel) {
+    @Contract("null -> fail")
+    private List<FileGenerateUtil.Link> getActiveThreadLinks(ChannelInfo channel) {
         try {
-            JDA jda = jdaProvider.getJda();
-            GuildChannel raw = jda.getChannelById(GuildChannel.class, channel.getChannelId().getValue());
-            if (raw == null || !(raw instanceof IThreadContainer container)) { return List.of(); }
+            GuildChannel raw = jdaProvider.getJda().getChannelById(GuildChannel.class, channel.getChannelId().getValue());
+            if (!(raw instanceof IThreadContainer container)) { 
+                return List.of(); 
+            }
             List<ThreadChannel> threads = container.getThreadChannels();
             List<FileGenerateUtil.Link> links = new ArrayList<>();
             for (ThreadChannel t : threads) {
@@ -466,7 +283,7 @@ public class FileGenerator {
             boolean shouldWrite = true;
             if (Files.exists(logoTarget)) {
                 byte[] existing = Files.readAllBytes(logoTarget);
-                shouldWrite = (existing == null || existing.length != logo.length || !java.util.Arrays.equals(existing, logo));
+                shouldWrite = (existing.length != logo.length || !java.util.Arrays.equals(existing, logo));
             }
             if (shouldWrite) {
                 Files.write(logoTarget, logo);
