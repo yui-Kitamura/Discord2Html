@@ -12,6 +12,7 @@ public final class DateTimeUtil {
 
     /** JST timezone constant (Asia/Tokyo). */
     public static final TimeZone JST = TimeZone.getTimeZone("Asia/Tokyo");
+    public static final String endOfDay = "235959";
 
     private static ThreadLocal<SimpleDateFormat> tl(String pattern) {
         return ThreadLocal.withInitial(() -> {
@@ -26,7 +27,7 @@ public final class DateTimeUtil {
     private static final ThreadLocal<SimpleDateFormat> SDF_MILLIS = tl("yyyy/MM/dd HH:mm:ss.SSS");
     private static final ThreadLocal<SimpleDateFormat> SDF_TIME = tl("yyyy/MM/dd HH:mm:ss");
     private static final ThreadLocal<SimpleDateFormat> SDF_DATE_ONLY = tl("yyyy/MM/dd");
-    private static final ThreadLocal<SimpleDateFormat> SDF_FOLDER = tl("yyyyMMddHHmmss");
+    private static final ThreadLocal<SimpleDateFormat> SDF_FOLDER = tl("yyyyMMddHHmm");
     private static final ThreadLocal<SimpleDateFormat> SDF_DATE8 = tl("yyyyMMdd");
 
     public static SimpleDateFormat mill() { return SDF_MILLIS.get(); }

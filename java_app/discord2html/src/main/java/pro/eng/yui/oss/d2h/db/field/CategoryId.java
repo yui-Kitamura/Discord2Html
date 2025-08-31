@@ -10,6 +10,8 @@ public class CategoryId extends AbstIds{
         super(category.getIdLong());
     }
 
+    public static CategoryId NO_CATEGORY = new CategoryId(NO_ID);
+
     @Override
     public int hashCode() { return super.hashCode(); }
 

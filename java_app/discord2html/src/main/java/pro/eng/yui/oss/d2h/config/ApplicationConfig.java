@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.filter.ForwardedHeaderFilter;
 
+import java.nio.file.Path;
+
 @Configuration
 public class ApplicationConfig {
 
@@ -22,8 +24,8 @@ public class ApplicationConfig {
 
     @Value("${d2h.output.path}")
     private String outputPath;
-    public String getOutputPath(){
-        return outputPath;
+    public Path getOutputPath(){
+        return Path.of(outputPath);
     }
     
     @Value("${d2h.github.push:false}")
