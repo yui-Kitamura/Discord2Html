@@ -177,6 +177,14 @@ kbd { background: #2b2f33; border: 1px solid #555; border-bottom-width: 2px; bor
 .args { color: var(--muted); }
 .perm { color: #e5c075; font-size: .95em; }
 
+/* Inline mention/link styling */
+.mention-user, .mention-role, .mention-channel, .msg-link {
+  background: #264f8a; /* blue-ish background */
+  color: #e3f0ff;      /* light blue text */
+  padding: 0.25em;
+  border-radius: 4px;
+}
+
 /* Archive date search (list.html) */
 .archive-date-search {
   margin: 1rem 0;
