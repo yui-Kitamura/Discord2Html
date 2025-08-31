@@ -27,7 +27,7 @@ public final class DateTimeUtil {
     private static final ThreadLocal<SimpleDateFormat> SDF_MILLIS = tl("yyyy/MM/dd HH:mm:ss.SSS");
     private static final ThreadLocal<SimpleDateFormat> SDF_TIME = tl("yyyy/MM/dd HH:mm:ss");
     private static final ThreadLocal<SimpleDateFormat> SDF_DATE_ONLY = tl("yyyy/MM/dd");
-    private static final ThreadLocal<SimpleDateFormat> SDF_FOLDER = tl("yyyyMMddHHmmss");
+    private static final ThreadLocal<SimpleDateFormat> SDF_FOLDER = tl("yyyyMMddHHmm");
     private static final ThreadLocal<SimpleDateFormat> SDF_DATE8 = tl("yyyyMMdd");
 
     public static SimpleDateFormat mill() { return SDF_MILLIS.get(); }
