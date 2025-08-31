@@ -1,20 +1,28 @@
 package pro.eng.yui.oss.d2h.html;
 
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.Guild;
 import org.jetbrains.annotations.Contract;
+import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import pro.eng.yui.oss.d2h.db.field.CategoryId;
 import pro.eng.yui.oss.d2h.db.field.CategoryName;
+import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Paths;
+import java.util.*;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class FileGenerateUtil {
+
+    private static final Pattern CUSTOM_EMOJI_PATTERN = Pattern.compile("<(a?):([A-Za-z0-9_~\\-]+):(\\d+)>" );
 
     public static class Link {
         // --- Utilities to preserve/merge existing list links ---
@@ -70,18 +78,22 @@ public final class FileGenerateUtil {
     /**
      * Write content to a file only if it changed. Creates the file when missing.
      */
-    public static void writeIfChanged(Path target, String newContent) throws IOException {
-        String existing = null;
-        if (Files.exists(target)) {
-            existing = Files.readString(target, StandardCharsets.UTF_8);
-        }
-        if (existing == null || !existing.equals(newContent)) {
-            if (target.getParent() != null) {
-                Files.createDirectories(target.getParent());
+    public static void writeIfChanged(Path target, String newContent) {
+        try {
+            String existing = null;
+            if (Files.exists(target)) {
+                existing = Files.readString(target, StandardCharsets.UTF_8);
             }
-            try (FileWriter writer = new FileWriter(target.toString())) {
-                writer.write(newContent);
+            if (existing == null || !existing.equals(newContent)) {
+                if (target.getParent() != null) {
+                    Files.createDirectories(target.getParent());
+                }
+                try (FileWriter writer = new FileWriter(target.toString())) {
+                    writer.write(newContent);
+                }
             }
+        }catch(IOException ioe) {
+            throw new RuntimeException(ioe);
         }
     }
 
@@ -121,5 +133,178 @@ public final class FileGenerateUtil {
             val = val.substring(2);
         }
         return val;
+    }
+
+    @Contract("_,null -> null; null,_ -> null")
+    public static String resolveGuildIconUrl(JDA jda, GuildId guildId) {
+        if (jda == null || guildId == null) { return null; }
+        try {
+            Guild guild = jda.getGuildById(guildId.getValue());
+            if (guild != null && guild.getIconUrl() != null && !guild.getIconUrl().isEmpty()) {
+                return guild.getIconUrl();
+            }
+        } catch (Exception ignore) { }
+        return null;
+    }
+
+    public static void archiveCustomEmojis(Path outputPath, List<MessageInfo> messages) throws IOException {
+        if (messages == null || messages.isEmpty()){ return; }
+        Path emojiDir = outputPath.resolve("archives").resolve("emoji");
+        Files.createDirectories(emojiDir);
+        String today = DateTimeUtil.date8().format(new Date());
+
+        // Avoid duplicate downloads in the same run by emoji id+ext
+        Set<String> processed = new HashSet<>();
+        for (MessageInfo mi : messages) {
+            // --- 1) From message content ---
+            String content = (mi == null) ? null : mi.getContentRaw();
+            if (content != null && !content.isEmpty()) {
+                Matcher m = CUSTOM_EMOJI_PATTERN.matcher(content);
+                while (m.find()) {
+                    boolean animated = m.group(1) != null && !m.group(1).isEmpty();
+                    String name = m.group(2);
+                    String id = m.group(3);
+                    String ext = animated ? "gif" : "png";
+                    String key = id + "." + ext;
+                    if (processed.contains(key)) {
+                        continue; // skip
+                    }
+                    processed.add(key);
+
+                    String url = "https://cdn.discordapp.com/emojis/" + id + "." + ext;
+                    byte[] bytes;
+                    try (var in = new URL(url).openStream()) {
+                        bytes = in.readAllBytes();
+                    } catch (IOException ioe) {
+                        // skip this emoji if fetch fails
+                        bytes = null;
+                    }
+                    if (bytes != null) {
+                        String safeName = (name == null) ? "emoji" : name;
+                        safeName = safeName.replaceAll("[^A-Za-z0-9_-]", "_"); //不許容文字のreplace
+                        Path target = emojiDir.resolve(safeName + "_" + today + "." + ext);
+
+                        if (Files.exists(target)) {
+                            try {
+                                byte[] existing = Files.readAllBytes(target);
+                                if (Arrays.equals(existing, bytes)) {
+                                    // 同一ファイルの場合スキップ
+                                } else {
+                                    int idx = 2;
+                                    Path alternativePath;
+                                    do {
+                                        alternativePath = emojiDir.resolve(safeName + "_" + today + "_" + idx + "." + ext);
+                                        idx++;
+                                    } while (Files.exists(alternativePath));
+                                    Files.write(alternativePath, bytes);
+                                }
+                            } catch (IOException ioe) {
+                                // ignore single emoji failure
+                            }
+                        } else {
+                            try {
+                                Files.write(target, bytes);
+                            } catch (IOException ioe) {
+                                // ignore single emoji failure
+                            }
+                        }
+                        // Also write stable id-based copy for template reference
+                        try {
+                            Path idStable = emojiDir.resolve(id + "." + ext);
+                            Files.write(idStable, bytes); // replace or create
+                        } catch (IOException ioe) {
+                            // ignore
+                        }
+                        // Write new path: emoji_{id}_{yyyyMMdd}.{ext}
+                        try {
+                            Path newNaming = emojiDir.resolve("emoji_" + id + "_" + today + "." + ext);
+                            Files.write(newNaming, bytes); // replace or create
+                        } catch (IOException ioe) {
+                            // ignore
+                        }
+                    }
+                }
+            }
+
+            // --- 2) From reactions (custom emojis) ---
+            try {
+                List<MessageInfo.ReactionView> rvs = mi.getReactionViews();
+                if (rvs != null) {
+                    for (MessageInfo.ReactionView rv : rvs) {
+                        if (rv == null || !rv.isCustom()) { continue; }
+                        String url = rv.getEmojiUrl();
+                        String name = rv.getAlt();
+                        if (url == null || url.isEmpty()) { continue; }
+                        // Extract id and ext from CDN URL: https://cdn.discordapp.com/emojis/{id}.{ext}
+                        String id = null;
+                        String ext = null;
+                        int lastSlash = url.lastIndexOf('/');
+                        if (lastSlash >= 0 && lastSlash + 1 < url.length()) {
+                            String file = url.substring(lastSlash + 1); // e.g., 123456789012345678.png
+                            int dot = file.lastIndexOf('.');
+                            if (dot > 0) {
+                                id = file.substring(0, dot);
+                                ext = file.substring(dot + 1).toLowerCase();
+                            }
+                        }
+                        if (id == null || ext == null) { continue; }
+                        String key = id + "." + ext;
+                        if (processed.contains(key)) { continue; }
+                        processed.add(key);
+
+                        byte[] bytes;
+                        try (var in = new URL(url).openStream()) {
+                            bytes = in.readAllBytes();
+                        } catch (IOException ioe) {
+                            // skip this emoji if fetch fails
+                            continue;
+                        }
+                        String safeName = (name == null) ? "emoji" : name;
+                        safeName = safeName.replaceAll("[^A-Za-z0-9_-]", "_");
+                        Path target = emojiDir.resolve(safeName + "_" + today + "." + ext);
+                        if (Files.exists(target)) {
+                            try {
+                                byte[] existing = Files.readAllBytes(target);
+                                if (Arrays.equals(existing, bytes)) {
+                                    // same content, no extra name_date copy
+                                } else {
+                                    int idx = 2;
+                                    Path alternativePath;
+                                    do {
+                                        alternativePath = emojiDir.resolve(safeName + "_" + today + "_" + idx + "." + ext);
+                                        idx++;
+                                    } while (Files.exists(alternativePath));
+                                    Files.write(alternativePath, bytes);
+                                }
+                            } catch (IOException ioe) {
+                                // ignore single emoji failure
+                            }
+                        } else {
+                            try {
+                                Files.write(target, bytes);
+                            } catch (IOException ioe) {
+                                // ignore single emoji failure
+                            }
+                        }
+                        // Also write stable id-based copy
+                        try {
+                            Path idStable = emojiDir.resolve(id + "." + ext);
+                            Files.write(idStable, bytes);
+                        } catch (IOException ioe) {
+                            // ignore
+                        }
+                        // Write new path: emoji_{id}_{yyyyMMdd}.{ext}
+                        try {
+                            Path newNaming = emojiDir.resolve("emoji_" + id + "_" + today + "." + ext);
+                            Files.write(newNaming, bytes); // replace or create
+                        } catch (IOException ioe) {
+                            // ignore
+                        }
+                    }
+                }
+            } catch (Throwable ignore) {
+                // best-effort
+            }
+        }
     }
 }

@@ -193,7 +193,7 @@ public class GitHubService {
      */
     private void ensureEmojisInRepo(File repoDirFile, List<String> filesToAdd) throws IOException {
         if (appConfig == null) return;
-        Path sourceEmojiDir = Paths.get(appConfig.getOutputPath(), "archives", "emoji");
+        Path sourceEmojiDir = appConfig.getOutputPath().resolve("archives").resolve("emoji");
         if (!Files.exists(sourceEmojiDir) || !Files.isDirectory(sourceEmojiDir)) {
             return;
         }

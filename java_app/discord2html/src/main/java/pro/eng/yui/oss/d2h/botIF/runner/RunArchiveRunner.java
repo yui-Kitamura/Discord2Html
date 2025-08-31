@@ -31,6 +31,7 @@ import pro.eng.yui.oss.d2h.github.GitHubService;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.html.ChannelInfo;
 import pro.eng.yui.oss.d2h.html.FileGenerator;
+import pro.eng.yui.oss.d2h.html.IndexGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
 
@@ -64,14 +65,15 @@ public class RunArchiveRunner implements IRunner {
     private final GitHubService gitHubService;
     private final GitConfig gitConfig;
     private final List<Path> generatedFiles = new ArrayList<>();
+    private final IndexGenerator indexGenerator;
 
     @Autowired
     public RunArchiveRunner(
             ApplicationConfig c,
             GuildsDAO g, ChannelsDAO ch, UsersDAO u, AnonStatsDAO a,
             DiscordJdaProvider j, FileGenerator fileGenerator,
-            GitHubService gitHubService, GitConfig gitConfig
-    ){
+            GitHubService gitHubService, GitConfig gitConfig,
+            IndexGenerator indexGenerator){
         this.config = c;
         this.guildDao = g;
         this.channelDao = ch;
@@ -81,6 +83,7 @@ public class RunArchiveRunner implements IRunner {
         this.fileGenerator = fileGenerator;
         this.gitHubService = gitHubService;
         this.gitConfig = gitConfig;
+        this.indexGenerator = indexGenerator;
     }
     
     public void run(GuildId target, List<OptionMapping> options){
@@ -376,22 +379,23 @@ public class RunArchiveRunner implements IRunner {
         generatedFiles.add(generatedFile);
         
         try {
-            fileGenerator.regenerateTopIndex();
-            Path indexPath = Path.of(config.getOutputPath(), "index.html");
+            indexGenerator.regenerateTopIndex(new GuildId(channel.getGuild()));
+            Path indexPath = config.getOutputPath().resolve("index.html");
             if (!generatedFiles.contains(indexPath)) {
                 generatedFiles.add(indexPath);
             }
         }catch(IOException e){ e.printStackTrace(); }
         try {
             fileGenerator.regenerateHelpPage();
-            Path helpPath = Path.of(config.getOutputPath(), "help.html");
+            Path helpPath = config.getOutputPath().resolve("help.html");
             if (!generatedFiles.contains(helpPath)) {
                 generatedFiles.add(helpPath);
             }
         }catch (IOException e){ e.printStackTrace(); }
 
         if (!isThread) {
-            Path channelArchivePath = Path.of(config.getOutputPath(), "archives", channel.getId() + ".html");
+            Path channelArchivePath = config.getOutputPath()
+                    .resolve("archives").resolve(channel.getId() + ".html");
             if (Files.exists(channelArchivePath) && !generatedFiles.contains(channelArchivePath)) {
                 generatedFiles.add(channelArchivePath);
             }
@@ -407,7 +411,8 @@ public class RunArchiveRunner implements IRunner {
                 // Iterate days inclusively from begin to end
                 while (!dayIter.after(endDay)) {
                     String date8 = DateTimeUtil.date8().format(dayIter.getTime());
-                    Path dailyPath = Path.of(config.getOutputPath(), "archives", date8, channel.getId() + ".html");
+                    Path dailyPath = config.getOutputPath()
+                            .resolve("archives").resolve(date8).resolve(channel.getId() + ".html");
                     if (Files.exists(dailyPath) && !generatedFiles.contains(dailyPath)) {
                         generatedFiles.add(dailyPath);
                     }
@@ -417,7 +422,8 @@ public class RunArchiveRunner implements IRunner {
         }
         // Include thread archive files under archives/<channelId>/threads/*.html
         try {
-            Path threadsDir = Path.of(config.getOutputPath(), "archives", channel.getId(), "threads");
+            Path threadsDir = config.getOutputPath()
+                    .resolve("archives").resolve(channel.getId()).resolve("threads");
             if (Files.exists(threadsDir) && Files.isDirectory(threadsDir)) {
                 try (DirectoryStream<Path> stream = Files.newDirectoryStream(threadsDir, "*.html")) {
                     for (Path p : stream) {
@@ -428,7 +434,9 @@ public class RunArchiveRunner implements IRunner {
                 }
             }
             // Include thread index at archives/<parentChannelId>/threads/index.html (for parent channels)
-            Path threadIndex = Path.of(config.getOutputPath(), "archives", channel.getId(), "threads", "index.html");
+            Path threadIndex = config.getOutputPath()
+                    .resolve("archives").resolve(channel.getId()).resolve("threads")
+                    .resolve("index.html");
             if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
                 generatedFiles.add(threadIndex);
             }
@@ -436,7 +444,9 @@ public class RunArchiveRunner implements IRunner {
             try {
                 if (channel.getType().isThread() && channel instanceof ThreadChannel tc) {
                     String parentId = tc.getParentChannel().getId();
-                    Path parentIndex = Path.of(config.getOutputPath(), "archives", parentId, "threads", "index.html");
+                    Path parentIndex = config.getOutputPath()
+                            .resolve("archives").resolve(parentId).resolve("threads")
+                            .resolve("index.html");
                     if (Files.exists(parentIndex) && !generatedFiles.contains(parentIndex)) {
                         generatedFiles.add(parentIndex);
                     }
@@ -530,18 +540,7 @@ public class RunArchiveRunner implements IRunner {
                             return afterBeginOk && beforeEndOk;
                         })
                         .forEach(msg -> {
-                            Users author;
-                            if (msg.getMember() == null) {
-                                // bot or non-member
-                                author = new Users(msg.getAuthor(), channel.getGuild());
-                                UserAnon anonStatus = msg.getAuthor().isBot() ? UserAnon.OPEN : UserAnon.ANONYMOUS;
-                                author.setAnonStats(new AnonStats(anonStatus));
-                            } else {
-                                // member
-                                author = new Users(msg.getMember());
-                                UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
-                                author.setAnonStats(new AnonStats(anonStatus));
-                            }
+                            Users author = Users.get(msg, anonStatsDao);
                             if (!marked.contains(author)) {
                                 usersDao.upsertUserInfo(author);
                                 marked.add(author);
@@ -573,7 +572,9 @@ public class RunArchiveRunner implements IRunner {
     private long getExistingThreadPageEndMillis(ThreadChannel tc) {
         try {
             String parentId = tc.getParentChannel().getId();
-            Path out = Path.of(config.getOutputPath(), "archives", parentId, "threads", "t-" + tc.getId() + ".html");
+            Path out = config.getOutputPath()
+                    .resolve("archives").resolve(parentId).resolve("threads")
+                    .resolve("t-" + tc.getId() + ".html");
             if (!Files.exists(out)) { return 0L; }
             String html = Files.readString(out, StandardCharsets.UTF_8);
             // <meta name="d2h-thread-end-epoch" content="...">

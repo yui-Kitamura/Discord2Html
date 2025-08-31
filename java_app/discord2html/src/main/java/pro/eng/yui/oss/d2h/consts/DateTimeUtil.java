@@ -12,6 +12,7 @@ public final class DateTimeUtil {
 
     /** JST timezone constant (Asia/Tokyo). */
     public static final TimeZone JST = TimeZone.getTimeZone("Asia/Tokyo");
+    public static final String endOfDay = "235959";
 
     private static ThreadLocal<SimpleDateFormat> tl(String pattern) {
         return ThreadLocal.withInitial(() -> {
