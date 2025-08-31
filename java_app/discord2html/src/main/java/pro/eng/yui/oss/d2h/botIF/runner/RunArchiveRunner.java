@@ -1,7 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.OnlineStatus;
-import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
@@ -22,7 +21,6 @@ import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
-import pro.eng.yui.oss.d2h.consts.UserAnon;
 import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
@@ -30,7 +28,7 @@ import pro.eng.yui.oss.d2h.db.model.Users;
 import pro.eng.yui.oss.d2h.github.GitHubService;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.html.ChannelInfo;
-import pro.eng.yui.oss.d2h.html.FileGenerator;
+import pro.eng.yui.oss.d2h.html.FileGenerateService;
 import pro.eng.yui.oss.d2h.html.IndexGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
@@ -61,7 +59,7 @@ public class RunArchiveRunner implements IRunner {
     private final UsersDAO usersDao;
     private final AnonStatsDAO anonStatsDao;
     private final DiscordJdaProvider jda;
-    private final FileGenerator fileGenerator;
+    private final FileGenerateService fileGenerator;
     private final GitHubService gitHubService;
     private final GitConfig gitConfig;
     private final List<Path> generatedFiles = new ArrayList<>();
@@ -71,7 +69,7 @@ public class RunArchiveRunner implements IRunner {
     public RunArchiveRunner(
             ApplicationConfig c,
             GuildsDAO g, ChannelsDAO ch, UsersDAO u, AnonStatsDAO a,
-            DiscordJdaProvider j, FileGenerator fileGenerator,
+            DiscordJdaProvider j, FileGenerateService fileGenerator,
             GitHubService gitHubService, GitConfig gitConfig,
             IndexGenerator indexGenerator){
         this.config = c;
