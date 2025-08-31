@@ -373,18 +373,21 @@ public class RunArchiveRunner implements IRunner {
             } catch (Exception ignore) { /* keep prior endForOutput */ }
         }
         
-        Path generatedFile = fileGenerator.generate(new ChannelInfo(channel), messages, beginForOutput, endForOutput, 1);
+        ChannelInfo chInfo = new ChannelInfo(channel);
+        System.out.println(chInfo.toString());
+        
+        Path generatedFile = fileGenerator.generate(chInfo, messages, beginForOutput, endForOutput, 1);
         generatedFiles.add(generatedFile);
         
         try {
-            indexGenerator.regenerateTopIndex(new GuildId(channel.getGuild()));
+            indexGenerator.regenerateTopIndex(new GuildId(chInfo));
             Path indexPath = config.getOutputPath().resolve("index.html");
             if (!generatedFiles.contains(indexPath)) {
                 generatedFiles.add(indexPath);
             }
         }catch(IOException e){ e.printStackTrace(); }
         try {
-            fileGenerator.regenerateHelpPage();
+            fileGenerator.regenerateHelpPage(new GuildId(chInfo));
             Path helpPath = config.getOutputPath().resolve("help.html");
             if (!generatedFiles.contains(helpPath)) {
                 generatedFiles.add(helpPath);
