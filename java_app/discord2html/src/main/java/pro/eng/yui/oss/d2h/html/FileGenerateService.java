@@ -111,6 +111,14 @@ public class FileGenerateService {
         if (data != null) {
             FileGenerateUtil.writeIfChanged(target, new String(data, StandardCharsets.UTF_8));
         }
+        // Copy classpath:/static/js/archive-date.js -> {output}/js/archive-date.js
+        Path jsDir = base.resolve("js");
+        Files.createDirectories(jsDir);
+        Path jsTarget = jsDir.resolve("archive-date.js");
+        byte[] jsData = readClasspathResource("/static/js/archive-date.js");
+        if (jsData != null) {
+            FileGenerateUtil.writeIfChanged(jsTarget, new String(jsData, StandardCharsets.UTF_8));
+        }
         // Copy D2H_logo.png from classpath root to output root for favicon/header in help.html
         Path logoTarget = base.resolve("D2H_logo.png");
         byte[] logo = readClasspathResource("/D2H_logo.png");
