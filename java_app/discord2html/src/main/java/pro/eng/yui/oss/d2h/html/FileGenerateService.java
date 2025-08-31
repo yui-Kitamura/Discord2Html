@@ -30,11 +30,6 @@ public class FileGenerateService {
     private final ArchiveGenerator archiveGenerator;
     private final String botVersion;
 
-    /**
-     * 現在実行対象としているguildの情報
-     */
-    private GuildId lastGuildId = null;
-
     public FileGenerateService(ApplicationConfig config, Secrets secrets,
                                GitUtil gitUtil,
                                DiscordJdaProvider jdaProvider, TemplateEngine templateEngine, 
@@ -75,21 +70,18 @@ public class FileGenerateService {
             System.out.println("[EmojiArchive] failed: " + ioe.getMessage());
         }
 
-        // remember guild context for subsequent index generation and thread pages
-        this.lastGuildId = new GuildId(channel);
-
         // Delegate the core archive generation
-        return archiveGenerator.generate(lastGuildId, channel, messages, begin, end, seq);
+        return archiveGenerator.generate(new GuildId(channel), channel, messages, begin, end, seq);
     }
 
-    public void regenerateHelpPage() throws IOException {
+    public void regenerateHelpPage(GuildId guildId) throws IOException {
         Path base = appConfig.getOutputPath();
         if (!Files.exists(base)) {
             return;
         }
         Path help = base.resolve("help.html");
         Context ctx = new Context();
-        ctx.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), lastGuildId));
+        ctx.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), guildId));
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("help", ctx);
         FileGenerateUtil.writeIfChanged(help, page);
