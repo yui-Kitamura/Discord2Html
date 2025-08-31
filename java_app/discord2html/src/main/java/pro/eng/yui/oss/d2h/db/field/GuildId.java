@@ -1,6 +1,7 @@
 package pro.eng.yui.oss.d2h.db.field;
 
 import net.dv8tion.jda.api.entities.Guild;
+import pro.eng.yui.oss.d2h.html.ChannelInfo;
 
 public class GuildId extends AbstIds{
     
@@ -9,6 +10,9 @@ public class GuildId extends AbstIds{
     }
     public GuildId(Guild guild){
         this(guild.getIdLong());
+    }
+    public GuildId(ChannelInfo channel){
+        this(channel.getGuildId());
     }
 
     @Override
