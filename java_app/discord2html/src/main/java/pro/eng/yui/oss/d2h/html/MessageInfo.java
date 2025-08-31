@@ -88,8 +88,7 @@ public class MessageInfo {
     public List<MessageReaction> getReactions(){
         return this.reactions;
     }
-
-    // Derived views for rendering reactions with custom emoji support
+    /** Derived views for rendering reactions with custom emoji support */
     public List<ReactionView> getReactionViews() {
         List<ReactionView> views = new ArrayList<>();
         if (reactions == null) return views;
@@ -159,6 +158,7 @@ public class MessageInfo {
         return this.refOriginMessageContent;
     }
     
+    /** コンストラクタ */
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
         this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
@@ -177,6 +177,7 @@ public class MessageInfo {
         }
     }
     
+    @Contract("_ -> new")
     public static String toHtmlWithLinks(String content) {
         String escaped = htmlEscape(content == null ? "" : content);
         // 1) Markdown-style: [label](https://url)
