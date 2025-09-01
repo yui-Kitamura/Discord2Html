@@ -25,17 +25,19 @@ import java.util.List;
 public class FileGenerateService {
     private final ApplicationConfig appConfig;
     private final TemplateEngine templateEngine;
+    private final FileGenerateUtil fileUtil;
     private final GitUtil gitUtil;
     private final DiscordJdaProvider jdaProvider;
     private final ArchiveGenerator archiveGenerator;
     private final String botVersion;
 
     public FileGenerateService(ApplicationConfig config, Secrets secrets,
-                               GitUtil gitUtil,
+                               FileGenerateUtil fileUtil, GitUtil gitUtil,
                                DiscordJdaProvider jdaProvider, TemplateEngine templateEngine, 
                                ArchiveGenerator archiveGenerator) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
+        this.fileUtil = fileUtil;
         this.gitUtil = gitUtil;
         this.jdaProvider = jdaProvider;
         this.archiveGenerator = archiveGenerator;
@@ -64,7 +66,7 @@ public class FileGenerateService {
 
         // Archive custom emojis used in messages to gh_pages resources
         try {
-            FileGenerateUtil.archiveCustomEmojis(appConfig.getOutputPath(), messages);
+            fileUtil.archiveCustomEmojis(appConfig.getOutputPath(), messages);
         } catch (IOException ioe) {
             // non-fatal: continue even if emoji archiving fails
             System.out.println("[EmojiArchive] failed: " + ioe.getMessage());
@@ -81,10 +83,10 @@ public class FileGenerateService {
         }
         Path help = base.resolve("help.html");
         Context ctx = new Context();
-        ctx.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), guildId));
+        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("help", ctx);
-        FileGenerateUtil.writeIfChanged(help, page);
+        fileUtil.writeIfChanged(help, page);
     }
 
     /**
@@ -101,7 +103,7 @@ public class FileGenerateService {
         Path target = cssDir.resolve("style.css");
         byte[] data = readClasspathResource("/static/css/style.css");
         if (data != null) {
-            FileGenerateUtil.writeIfChanged(target, new String(data, StandardCharsets.UTF_8));
+            fileUtil.writeIfChanged(target, new String(data, StandardCharsets.UTF_8));
         }
         // Copy classpath:/static/js/archive-date.js -> {output}/js/archive-date.js
         Path jsDir = base.resolve("js");
@@ -109,7 +111,7 @@ public class FileGenerateService {
         Path jsTarget = jsDir.resolve("archive-date.js");
         byte[] jsData = readClasspathResource("/static/js/archive-date.js");
         if (jsData != null) {
-            FileGenerateUtil.writeIfChanged(jsTarget, new String(jsData, StandardCharsets.UTF_8));
+            fileUtil.writeIfChanged(jsTarget, new String(jsData, StandardCharsets.UTF_8));
         }
         // Copy D2H_logo.png from classpath root to output root for favicon/header in help.html
         Path logoTarget = base.resolve("D2H_logo.png");
