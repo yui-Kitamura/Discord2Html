@@ -179,9 +179,9 @@ kbd { background: #2b2f33; border: 1px solid #555; border-bottom-width: 2px; bor
 
 /* Inline mention/link styling */
 .mention-user, .mention-role, .mention-channel, .msg-link {
-  background: #264f8a; /* blue-ish background */
-  color: #e3f0ff;      /* light blue text */
-  padding: 0.25em;
+  background: #264f8a; /* blue-ish */
+  color: #e3f0ff;      /* light blue */
+  padding: 0.1em;
   border-radius: 4px;
 }
 
