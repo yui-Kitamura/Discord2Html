@@ -444,7 +444,7 @@ public class MessageInfo {
                         if (guildName.isBlank()) {
                             guildName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
                         }
-                        chDisplay = guildName + "&gt;" + ch.getName();
+                        chDisplay = guildName + ">" + ch.getName();
                     } else {
                         chDisplay = ch.getName();
                     }
@@ -465,7 +465,7 @@ public class MessageInfo {
                     } catch (Throwable ignore) { }
                     if (isExternal) {
                         // External server and not resolvable: show an explicit external label with channelId hint
-                        chDisplay = "外部サーバー&gt;ch:" + htmlEscape(channelIdStr);
+                        chDisplay = "外部サーバーch:" + htmlEscape(channelIdStr);
                     } else {
                         chDisplay = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
                     }
