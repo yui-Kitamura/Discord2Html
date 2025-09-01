@@ -434,6 +434,7 @@ public class MessageInfo {
             String contentPreview = "";
             try {
                 GuildMessageChannel ch = null;
+                boolean externalChannel = false;
                 try {
                     ch = msg.getJDA().getChannelById(GuildMessageChannel.class, channelIdStr);
                 } catch (Throwable ignore) { }
@@ -450,20 +451,18 @@ public class MessageInfo {
                     }
                 } else {
                     // Could not resolve channel via JDA cache.
-                    // Distinguish external vs deleted using guildId from URL.
-                    boolean isExternal = false;
                     try {
                         if (guildIdStr != null && !"@me".equals(guildIdStr)) {
                             Guild g = msg.getJDA().getGuildById(guildIdStr);
                             if (g == null) {
-                                isExternal = true; // bot not in that guild
+                                externalChannel = true; // bot not in that guild
                             } else if (g.getIdLong() != msg.getGuild().getIdLong()) {
                                 // Different guild present but channel missing -> treat as deleted in that guild
-                                isExternal = false;
+                                externalChannel = false;
                             }
                         }
                     } catch (Throwable ignore) { }
-                    if (isExternal) {
+                    if (externalChannel) {
                         // External server and not resolvable: show an explicit external label with channelId hint
                         chDisplay = "外部サーバーch:" + htmlEscape(channelIdStr);
                     } else {
@@ -499,7 +498,7 @@ public class MessageInfo {
                     } catch (Throwable ignore) { }
                 } else {
                     // target == null
-                    authorDisplay = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
+                    authorDisplay = externalChannel ? AbstName.UNKNOWN : (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
                     timeDisplay = "";
                 }
             } catch (Throwable ignore) { }
