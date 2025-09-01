@@ -385,7 +385,23 @@ public class MessageInfo {
                         display = "#" + chName;
                     }
                 } else {
-                    display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+                    // Not resolvable from cache: external vs deleted
+                    boolean isExternal = false;
+                    try {
+                        GuildChannel same = null;
+                        try { same = msg.getGuild().getGuildChannelById(id); } catch (Throwable ignore) { }
+                        GuildChannel any = null;
+                        try { any = msg.getJDA().getChannelById(GuildChannel.class, id); } catch (Throwable ignore) { }
+                        // If neither resolves, likely an external server channel (bot not joined)
+                        if (same == null && any == null) {
+                            isExternal = true;
+                        }
+                    } catch (Throwable ignore) { }
+                    if (isExternal) {
+                        display = "#" + "外部サーバーチャンネル";
+                    } else {
+                        display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+                    }
                 }
             } catch (Throwable t) {
                 display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
@@ -425,7 +441,7 @@ public class MessageInfo {
                     boolean sameGuild = (ch.getGuild().getIdLong() == msg.getGuild().getIdLong());
                     if (!sameGuild) {
                         String guildName = ch.getGuild().getName();
-                        if (guildName == null || guildName.isBlank()) {
+                        if (guildName.isBlank()) {
                             guildName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
                         }
                         chDisplay = guildName + "&gt;" + ch.getName();
@@ -433,7 +449,26 @@ public class MessageInfo {
                         chDisplay = ch.getName();
                     }
                 } else {
-                    chDisplay = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
+                    // Could not resolve channel via JDA cache.
+                    // Distinguish external vs deleted using guildId from URL.
+                    boolean isExternal = false;
+                    try {
+                        if (guildIdStr != null && !"@me".equals(guildIdStr)) {
+                            Guild g = msg.getJDA().getGuildById(guildIdStr);
+                            if (g == null) {
+                                isExternal = true; // bot not in that guild
+                            } else if (g.getIdLong() != msg.getGuild().getIdLong()) {
+                                // Different guild present but channel missing -> treat as deleted in that guild
+                                isExternal = false;
+                            }
+                        }
+                    } catch (Throwable ignore) { }
+                    if (isExternal) {
+                        // External server and not resolvable: show an explicit external label with channelId hint
+                        chDisplay = "外部サーバー&gt;ch:" + htmlEscape(channelIdStr);
+                    } else {
+                        chDisplay = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
+                    }
                 }
                 Message target = null;
                 try {
@@ -446,7 +481,7 @@ public class MessageInfo {
                         Member mbr = target.getMember();
                         if (mbr != null) {
                             authorDisplay = mbr.getEffectiveName();
-                        } else if (target.getAuthor() != null) {
+                        } else {
                             authorDisplay = target.getAuthor().getName();
                         }
                     } catch (Throwable ignore) { }
