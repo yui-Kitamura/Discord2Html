@@ -1,8 +1,7 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.OnlineStatus;
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageHistory;
+import pro.eng.yui.oss.d2h.html.FileGenerateUtil;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.StageChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
@@ -17,14 +16,11 @@ import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.botIF.DiscordBot;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
-import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
-import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
-import pro.eng.yui.oss.d2h.db.model.Users;
 import pro.eng.yui.oss.d2h.github.GitHubService;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.html.ChannelInfo;
@@ -34,19 +30,15 @@ import pro.eng.yui.oss.d2h.html.MessageInfo;
 import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Component
 public class RunArchiveRunner implements IRunner {
@@ -56,10 +48,9 @@ public class RunArchiveRunner implements IRunner {
     private final ApplicationConfig config;
     private final GuildsDAO guildDao;
     private final ChannelsDAO channelDao;
-    private final UsersDAO usersDao;
-    private final AnonStatsDAO anonStatsDao;
     private final DiscordJdaProvider jda;
     private final FileGenerateService fileGenerator;
+    private final FileGenerateUtil fileUtil;
     private final GitHubService gitHubService;
     private final GitConfig gitConfig;
     private final List<Path> generatedFiles = new ArrayList<>();
@@ -68,17 +59,16 @@ public class RunArchiveRunner implements IRunner {
     @Autowired
     public RunArchiveRunner(
             ApplicationConfig c,
-            GuildsDAO g, ChannelsDAO ch, UsersDAO u, AnonStatsDAO a,
-            DiscordJdaProvider j, FileGenerateService fileGenerator,
+            GuildsDAO g, ChannelsDAO ch,
+            DiscordJdaProvider j, FileGenerateService fileGenerator, FileGenerateUtil fileUtil,
             GitHubService gitHubService, GitConfig gitConfig,
             IndexGenerator indexGenerator){
         this.config = c;
         this.guildDao = g;
         this.channelDao = ch;
-        this.usersDao = u;
-        this.anonStatsDao = a;
         this.jda = j;
         this.fileGenerator = fileGenerator;
+        this.fileUtil = fileUtil;
         this.gitHubService = gitHubService;
         this.gitConfig = gitConfig;
         this.indexGenerator = indexGenerator;
@@ -496,97 +486,20 @@ public class RunArchiveRunner implements IRunner {
 
     /** メッセージ取得（通常のメッセージチャンネル向け） */
     private List<MessageInfo> getMessagesForMessageChannel(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
-        Instant begin = beginDate.toInstant();
-        Instant end = endDate.toInstant();
-        return collectMessages(channel, begin, end);
+        return fileUtil.fetchMessagesForDaily(channel, beginDate, endDate);
     }
 
     /** メッセージ取得（スレッド向け：過去日も含め全期間を1ファイルに統一） */
     private List<MessageInfo> getMessagesForThread(ThreadChannel thread, Calendar endDate) {
-        // No begin
-        Instant end = endDate.toInstant();
-        return collectMessages(thread, null, end);
-    }
-
-    /**
-     * 汎用メッセージ取得メソッド
-     * @param channel target channel (message channel or thread)
-     * @param beginInstantOrNull null to disable lower bound; otherwise messages strictly after or at begin depending on exclusiveBegin
-     */
-    private List<MessageInfo> collectMessages(
-            GuildMessageChannel channel,
-            Instant beginInstantOrNull,
-            Instant endInstant
-    ) {
-        List<MessageInfo> messages = new ArrayList<>();
-        List<Users> marked = new ArrayList<>();
-        boolean breakEarlyByBegin = (beginInstantOrNull != null);
-        
-        GuildId guildId = new GuildId(channel.getGuild());
-        Guilds guildInfo = guildDao.selectGuildInfo(guildId);
-        int anonCycle = guildInfo.getAnonCycle().getValue();
-        if (anonCycle < 1 || 24 < anonCycle) { anonCycle = 24; }
-        final int finalAnonCycle = anonCycle;
-        try {
-            MessageHistory history = channel.getHistory();
-            while (true) {
-                List<Message> batch = history.retrievePast(100).complete();
-                if (batch == null || batch.isEmpty()) { break; }
-                Message oldest = batch.get(batch.size() - 1);
-                Instant oldestInstant = oldest.getTimeCreated().toInstant();
-                batch.stream()
-                        .filter(msg -> {
-                            boolean afterBeginOk = (breakEarlyByBegin == false) || msg.getTimeCreated().toInstant().isAfter(beginInstantOrNull);
-                            boolean beforeEndOk = msg.getTimeCreated().toInstant().isBefore(endInstant);
-                            return afterBeginOk && beforeEndOk;
-                        })
-                        .forEach(msg -> {
-                            Users author = Users.get(msg, anonStatsDao);
-                            if (!marked.contains(author)) {
-                                usersDao.upsertUserInfo(author);
-                                marked.add(author);
-                            }
-                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
-                            calJst.setTime(msgDate);
-                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                            int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = DateTimeUtil.date8().format(msgDate);
-                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                            messages.add(new MessageInfo(msg, author, scopeKey));
-                        });
-                if (breakEarlyByBegin && oldestInstant.isBefore(beginInstantOrNull)) {
-                    break;
-                }
-            }
-        } catch (Throwable ignore) {
-            // best-effort
-        }
-        return messages;
+        // スレッドの開始時刻を下限として取得
+        Calendar begin = Calendar.getInstance(DateTimeUtil.JST);
+        begin.setTime(Date.from(thread.getTimeCreated().toInstant()));
+        return fileUtil.fetchMessagesForDaily(thread, begin, endDate);
     }
 
     private boolean isVoiceText(GuildChannel ch) {
         if (ch == null) { return false; }
         return (ch instanceof VoiceChannel || ch instanceof StageChannel);
-    }
-
-    private long getExistingThreadPageEndMillis(ThreadChannel tc) {
-        try {
-            String parentId = tc.getParentChannel().getId();
-            Path out = config.getOutputPath()
-                    .resolve("archives").resolve(parentId).resolve("threads")
-                    .resolve("t-" + tc.getId() + ".html");
-            if (!Files.exists(out)) { return 0L; }
-            String html = Files.readString(out, StandardCharsets.UTF_8);
-            // <meta name="d2h-thread-end-epoch" content="...">
-            Pattern p = Pattern.compile("<meta\\s+[^>]*name=\\\"d2h-thread-end-epoch\\\"[^>]*content=\\\"(\\d+)\\\"", Pattern.CASE_INSENSITIVE);
-            Matcher m = p.matcher(html);
-            if (m.find()) {
-                try { return Long.parseLong(m.group(1)); } catch (Exception ignore) { /* fallback */ }
-            }
-        
-        } catch (Exception ignore) { }
-        return 0L;
     }
 
     private String buildChannelArchiveUrl(GuildMessageChannel channel, String date8) {
