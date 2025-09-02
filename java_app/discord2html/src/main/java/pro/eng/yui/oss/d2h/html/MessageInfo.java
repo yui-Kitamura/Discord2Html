@@ -569,7 +569,7 @@ public class MessageInfo {
                     } catch (Throwable ignore) { }
                     if (externalChannel) {
                         // External server and not resolvable: show an explicit external label with channelId hint
-                        chDisplay = "外部サーバーch:" + htmlEscape(channelIdStr);
+                        chDisplay = ChannelName.ANOTHER_GUILD + htmlEscape(channelIdStr);
                     } else {
                         chDisplay = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
                     }
