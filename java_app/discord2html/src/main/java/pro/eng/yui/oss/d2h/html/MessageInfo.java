@@ -184,6 +184,12 @@ public class MessageInfo {
     public String getRefOriginMessageContent(){
         return this.refOriginMessageContent;
     }
+
+    // Forwarded message support
+    private final boolean forwarded;
+    private final String forwardedHtml; // prebuilt HTML block for a forwarded source (blockquote)
+    public boolean isForwarded() { return this.forwarded; }
+    public String getForwardedHtml() { return this.forwardedHtml; }
     
     /** コンストラクタ */
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
@@ -205,6 +211,44 @@ public class MessageInfo {
             String content = extractContentIncludingEmbeds(msg.getReferencedMessage());
             this.refOriginMessageContent = content.length() > 30 ? content.substring(0, 30) : content;
         }
+        // Determine forwarded status and build forwarded HTML
+        boolean tmpForwarded = false;
+        String tmpForwardedHtml = null;
+        try {
+            String typeStr = null;
+            try { 
+                Object t = msg.getType();
+                typeStr = String.valueOf(t);
+            } catch (Throwable ignore) { }
+            boolean looksForward = (typeStr != null && typeStr.toUpperCase().contains("FORWARD"));
+            Message src = null;
+            if (looksForward && msg.getReferencedMessage() != null) {
+                src = msg.getReferencedMessage();
+            } else {
+                // Try reflective methods that might exist on newer JDA
+                try {
+                    var m1 = msg.getClass().getMethod("getForwardedMessage");
+                    Object r = m1.invoke(msg);
+                    if (r instanceof Message rMsg) { src = rMsg; }
+                } catch (Throwable ignore) { }
+                if (src == null) {
+                    try {
+                        var m2 = msg.getClass().getMethod("getForwardedMessages");
+                        Object r2 = m2.invoke(msg);
+                        if (r2 instanceof java.util.List<?> list && !list.isEmpty() && list.get(0) instanceof Message) {
+                            src = (Message) list.get(0);
+                        }
+                    } catch (Throwable ignore) { }
+                }
+                looksForward = (src != null);
+            }
+            if (looksForward && src != null) {
+                tmpForwarded = true;
+                tmpForwardedHtml = buildForwardedBlockquoteHtml(src);
+            }
+        } catch (Throwable ignore) { }
+        this.forwarded = tmpForwarded;
+        this.forwardedHtml = tmpForwardedHtml;
     }
     
     @Contract("_ -> new")
@@ -470,16 +514,18 @@ public class MessageInfo {
     private String formatChannelDisplay(GuildChannel chAny, Message msg) {
         // Builds display including leading '#', handling threads and cross-guild.
         try {
-            boolean sameGuild = chAny.getGuild() != null && msg.getGuild() != null && chAny.getGuild().getIdLong() == msg.getGuild().getIdLong();
+            boolean sameGuild = chAny.getGuild().getIdLong() == msg.getGuild().getIdLong();
             String chName = null;
             try { chName = chAny.getName(); } catch (Throwable ignore) { }
             String threadSuffix = null;
             try {
-                if (chAny.getType() != null && chAny.getType().isThread()) {
-                    net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel tc = (net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel) chAny;
+                if (chAny.getType().isThread()) {
+                    ThreadChannel tc = (ThreadChannel) chAny;
                     String parentName = null;
-                    try { parentName = tc.getParentChannel() != null ? tc.getParentChannel().getName() : null; } catch (Throwable ignore) { }
-                    if (parentName == null || parentName.isBlank()) { parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                    try { parentName = tc.getParentChannel().getName(); } catch (Throwable ignore) { }
+                    if (parentName == null || parentName.isBlank()) { 
+                        parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; 
+                    }
                     String threadName = (chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName;
                     threadSuffix = parentName + ">" + threadName;
                 }
@@ -618,5 +664,19 @@ public class MessageInfo {
         }
         m.appendTail(sb);
         return sb.toString();
+    }
+
+    private String buildForwardedBlockquoteHtml(Message src) {
+        try {
+            String origin = formatChannelDisplay(src.getGuildChannel(), src);
+            String bodyProcessed = preprocessArchiveText(src, extractContentIncludingEmbeds(src));
+            String bodyHtml = toHtmlWithLinks(bodyProcessed);
+            return "<blockquote class=\"forwarded\">"
+                   + bodyHtml
+                   + "<cite>" + origin + "</cite>"
+                   + "</blockquote>";
+        } catch (Throwable t) {
+            return null;
+        }
     }
 }
