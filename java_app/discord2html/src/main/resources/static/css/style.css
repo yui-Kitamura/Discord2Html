@@ -143,6 +143,15 @@ section {
     margin-top: 6px;
 }
 
+blockquote.forwarded {
+  border-left: 3px solid #4b4f56;
+  padding-left: .6em;
+  margin: .2em 0 .6em;
+  color: var(--muted);
+  background: #2b2f33;
+  border-radius: 4px;
+}
+
 /* Reactions */
 .reactions {
     margin-top: 6px;
