@@ -1,6 +1,7 @@
 package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import org.jetbrains.annotations.Contract;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
@@ -392,15 +393,31 @@ public class MessageInfo {
                 if (chAny != null) {
                     boolean sameGuild = chAny.getGuild() != null && msg.getGuild() != null && chAny.getGuild().getIdLong() == msg.getGuild().getIdLong();
                     String chName = chAny.getName();
+                    // Thread-aware formatting: parent>thread
+                    String threadSuffix = null;
+                    try {
+                        if (chAny.getType() != null && chAny.getType().isThread()) {
+                            net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel tc = (net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel) chAny;
+                            String parentName = null;
+                            try { parentName = tc.getParentChannel() != null ? tc.getParentChannel().getName() : null; } catch (Throwable ignore) { }
+                            if (parentName == null || parentName.isBlank()) { parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                            String threadName = (chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName;
+                            threadSuffix = parentName + ">" + threadName;
+                        }
+                    } catch (Throwable ignore) { }
                     if (!sameGuild) {
                         String gName = null;
                         try { gName = chAny.getGuild().getName(); } catch (Throwable ignore) { }
                         if (gName == null || gName.isBlank()) { gName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
-                        if (chName == null || chName.isBlank()) { chName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
-                        display = "#" + gName + ">" + chName;
+                        String body = (threadSuffix != null) ? threadSuffix : ((chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName);
+                        display = "#" + gName + ">" + body;
                     } else {
-                        if (chName == null || chName.isBlank()) { chName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
-                        display = "#" + chName;
+                        if (threadSuffix != null) {
+                            display = "#" + threadSuffix;
+                        } else {
+                            if (chName == null || chName.isBlank()) { chName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                            display = "#" + chName;
+                        }
                     }
                 } else {
                     // Not resolvable from cache: external vs deleted
@@ -458,14 +475,31 @@ public class MessageInfo {
                 } catch (Throwable ignore) { }
                 if (ch != null) {
                     boolean sameGuild = (ch.getGuild().getIdLong() == msg.getGuild().getIdLong());
+                    // Thread-aware formatting
+                    String threadSuffix = null;
+                    if (ch.getType().isThread()) {
+                        ThreadChannel tc = (ThreadChannel) ch;
+                        String parentName = tc.getParentChannel().getName();
+                        if (parentName.isBlank()) { 
+                            parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; 
+                        }
+                        String threadName = ch.getName().isBlank() ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : ch.getName();
+                        threadSuffix = parentName + ">" + threadName;
+                    }
                     if (!sameGuild) {
                         String guildName = ch.getGuild().getName();
-                        if (guildName.isBlank()) {
-                            guildName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
-                        }
-                        chDisplay = guildName + ">" + ch.getName();
+                        if (guildName.isBlank()) { guildName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                        String body = (threadSuffix != null) ? threadSuffix : (ch.getName());
+                        if (body.isBlank()) { body = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                        chDisplay = guildName + ">" + body;
                     } else {
-                        chDisplay = ch.getName();
+                        if (threadSuffix != null) {
+                            chDisplay = threadSuffix;
+                        } else {
+                            String name = ch.getName();
+                            if (name.isBlank()) { name = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                            chDisplay = name;
+                        }
                     }
                 } else {
                     // Could not resolve channel via JDA cache.
