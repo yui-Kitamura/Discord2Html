@@ -503,7 +503,7 @@ public class MessageInfo {
                 }
             } catch (Throwable ignore) { }
 
-            String textDisplay = "#" + chDisplay + ">\uD83D\uDCAC@" + authorDisplay + "（"+timeDisplay+"）";
+            String textDisplay = "#" + chDisplay + "\uD83D\uDCAC@" + authorDisplay + "（"+timeDisplay+"）";
             String attrPreview = htmlEscape(contentPreview);
             String attrTitle = attrPreview; // use the same text for native tooltip
             String spanHtml = "<span class=\"msg-link\" data-content=\"" + attrPreview + "\" title=\"" + attrTitle + "\">" + htmlEscape(textDisplay) + "</span>";
