@@ -101,7 +101,7 @@ jobs:
           BASE: ${{ steps.vars.outputs.base_branch }}
 
       - name: Prepare working branch from base
-        if: steps.prcheck.outputs.exists != 'true'
+        if: steps.PR_check.outputs.exists != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -110,7 +110,7 @@ jobs:
           git checkout -b "${{ steps.branch.outputs.name }}"
 
       - name: Create tree from upstream tag excluding gh_pages
-        if: steps.prcheck.outputs.exists != 'true'
+        if: steps.PR_check.outputs.exists != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -126,7 +126,7 @@ jobs:
           git checkout -- .github || true
 
       - name: Commit changes if any
-        if: steps.prcheck.outputs.exists != 'true'
+        if: steps.PR_check.outputs.exists != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -139,13 +139,13 @@ jobs:
           fi
 
       - name: Push branch
-        if: steps.prcheck.outputs.exists != 'true'
+        if: steps.PR_check.outputs.exists != 'true'
         shell: bash
         run: |
           git push --set-upstream origin "${{ steps.branch.outputs.name }}"
 
       - name: Open PR to main
-        if: steps.prcheck.outputs.exists != 'true'
+        if: steps.PR_check.outputs.exists != 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -168,7 +168,7 @@ jobs:
             core.info(`Opened PR #${pr.number}`);
 
       - name: Update existing PR title and body
-        if: steps.prcheck.outputs.exists == 'true'
+        if: steps.PR_check.outputs.exists == 'true'
         uses: actions/github-script@v7
         with:
           script: |
