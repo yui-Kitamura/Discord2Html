@@ -3,6 +3,7 @@ package pro.eng.yui.oss.d2h.html;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import org.jetbrains.annotations.Contract;
+import pro.eng.yui.oss.d2h.db.field.ChannelName;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
@@ -380,6 +381,7 @@ public class MessageInfo {
     }
 
     private String replaceChannelMentions(Message msg, String text) {
+        // 1) Replace <#channelId> tokens
         Pattern p = Pattern.compile("<#([0-9]+)>");
         Matcher m = p.matcher(text);
         StringBuilder sb = new StringBuilder();
@@ -391,34 +393,7 @@ public class MessageInfo {
                 GuildChannel chAny = null;
                 try { chAny = msg.getJDA().getChannelById(GuildChannel.class, id); } catch (Throwable ignore) { }
                 if (chAny != null) {
-                    boolean sameGuild = chAny.getGuild() != null && msg.getGuild() != null && chAny.getGuild().getIdLong() == msg.getGuild().getIdLong();
-                    String chName = chAny.getName();
-                    // Thread-aware formatting: parent>thread
-                    String threadSuffix = null;
-                    try {
-                        if (chAny.getType() != null && chAny.getType().isThread()) {
-                            net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel tc = (net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel) chAny;
-                            String parentName = null;
-                            try { parentName = tc.getParentChannel() != null ? tc.getParentChannel().getName() : null; } catch (Throwable ignore) { }
-                            if (parentName == null || parentName.isBlank()) { parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
-                            String threadName = (chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName;
-                            threadSuffix = parentName + ">" + threadName;
-                        }
-                    } catch (Throwable ignore) { }
-                    if (!sameGuild) {
-                        String gName = null;
-                        try { gName = chAny.getGuild().getName(); } catch (Throwable ignore) { }
-                        if (gName == null || gName.isBlank()) { gName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
-                        String body = (threadSuffix != null) ? threadSuffix : ((chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName);
-                        display = "#" + gName + ">" + body;
-                    } else {
-                        if (threadSuffix != null) {
-                            display = "#" + threadSuffix;
-                        } else {
-                            if (chName == null || chName.isBlank()) { chName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
-                            display = "#" + chName;
-                        }
-                    }
+                    display = formatChannelDisplay(chAny, msg);
                 } else {
                     // Not resolvable from cache: external vs deleted
                     boolean isExternal = false;
@@ -433,7 +408,7 @@ public class MessageInfo {
                         }
                     } catch (Throwable ignore) { }
                     if (isExternal) {
-                        display = "#" + "外部サーバーチャンネル";
+                        display = "#" + ChannelName.ANOTHER_GUILD;
                     } else {
                         display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
                     }
@@ -447,7 +422,85 @@ public class MessageInfo {
             m.appendReplacement(sb, Matcher.quoteReplacement(placeholder));
         }
         m.appendTail(sb);
-        return sb.toString();
+        String out = sb.toString();
+
+        // 2) Additionally, replace channel URL patterns: https://discord.com/channels/{guildId}/{channelId}
+        Pattern pUrl = Pattern.compile("https?://(?:(?:canary|ptb)\\.)?discord(?:app)?\\.com/channels/([0-9@me]+)/([0-9]+)(?!/)");
+        Matcher mUrl = pUrl.matcher(out);
+        StringBuilder sb2 = new StringBuilder();
+        while (mUrl.find()) {
+            String guildIdStr = mUrl.group(1);
+            String channelIdStr = mUrl.group(2);
+            String display = null;
+            try {
+                GuildChannel chAny = null;
+                try { chAny = msg.getJDA().getChannelById(GuildChannel.class, channelIdStr); } catch (Throwable ignore) { }
+                if (chAny != null) {
+                    display = formatChannelDisplay(chAny, msg);
+                } else {
+                    // Could not resolve channel; use guildIdStr to differentiate external vs deleted
+                    boolean external = false;
+                    try {
+                        if (guildIdStr != null && !"@me".equals(guildIdStr)) {
+                            Guild g = msg.getJDA().getGuildById(guildIdStr);
+                            if (g == null) {
+                                external = true;
+                            } else if (g.getIdLong() != msg.getGuild().getIdLong()) {
+                                external = false; // known other guild but channel missing -> deleted
+                            }
+                        }
+                    } catch (Throwable ignore) { }
+                    if (external) {
+                        display = "#" + ChannelName.ANOTHER_GUILD;
+                    } else {
+                        display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+                    }
+                }
+            } catch (Throwable ignore) {
+                display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+            }
+            String placeholder = D2H_INLINE_C_PREFIX + placeholderNonce + "_URL_" + (idx++) + "}}";
+            String html = "<span class=\"mention-channel\">" + htmlEscape(display) + "</span>";
+            inlineHtmlMap.put(placeholder, html);
+            mUrl.appendReplacement(sb2, Matcher.quoteReplacement(placeholder));
+        }
+        mUrl.appendTail(sb2);
+        return sb2.toString();
+    }
+    private String formatChannelDisplay(GuildChannel chAny, Message msg) {
+        // Builds display including leading '#', handling threads and cross-guild.
+        try {
+            boolean sameGuild = chAny.getGuild() != null && msg.getGuild() != null && chAny.getGuild().getIdLong() == msg.getGuild().getIdLong();
+            String chName = null;
+            try { chName = chAny.getName(); } catch (Throwable ignore) { }
+            String threadSuffix = null;
+            try {
+                if (chAny.getType() != null && chAny.getType().isThread()) {
+                    net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel tc = (net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel) chAny;
+                    String parentName = null;
+                    try { parentName = tc.getParentChannel() != null ? tc.getParentChannel().getName() : null; } catch (Throwable ignore) { }
+                    if (parentName == null || parentName.isBlank()) { parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                    String threadName = (chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName;
+                    threadSuffix = parentName + ">" + threadName;
+                }
+            } catch (Throwable ignore) { }
+            if (!sameGuild) {
+                String gName = null;
+                try { gName = chAny.getGuild().getName(); } catch (Throwable ignore) { }
+                if (gName == null || gName.isBlank()) { gName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                String body = (threadSuffix != null) ? threadSuffix : ((chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName);
+                return "#" + gName + ">" + body;
+            } else {
+                if (threadSuffix != null) {
+                    return "#" + threadSuffix;
+                } else {
+                    if (chName == null || chName.isBlank()) { chName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                    return "#" + chName;
+                }
+            }
+        } catch (Throwable t) {
+            return "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+        }
     }
 
     private String replaceDiscordMessageLinksWithPlaceholders(Message msg, String text) {
