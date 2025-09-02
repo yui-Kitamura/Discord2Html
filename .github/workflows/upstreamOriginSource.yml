@@ -86,8 +86,8 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const head = `${context.repo.owner}:${core.getInput('branch')}`;
-            const base = core.getInput('base');
+            const head = `${context.repo.owner}:${process.env.BRANCH}`;
+            const base = process.env.BASE;
             const { data: prs } = await github.rest.pulls.list({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', head, base });
             if (prs.length > 0) {
               core.setOutput('exists', 'true');
@@ -95,10 +95,10 @@ jobs:
             } else {
               core.setOutput('exists', 'false');
             }
-          branch: ${{ steps.branch.outputs.name }}
-          base: ${{ steps.vars.outputs.base_branch }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: ${{ steps.branch.outputs.name }}
+          BASE: ${{ steps.vars.outputs.base_branch }}
 
       - name: Prepare working branch from base
         if: steps.prcheck.outputs.exists != 'true'
@@ -148,7 +148,7 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const title = `Sync upstream ${core.getInput('tag')} (exclude gh_pages)`;
+            const title = `Sync upstream ${{ steps.release.outputs.tag_name }} (exclude gh_pages)`;
             const body = [
               `This PR syncs changes from upstream release: ${{ steps.release.outputs.name }} (${{ steps.release.outputs.tag_name }})`,
               `Upstream URL: ${{ steps.release.outputs.html_url }}`,
@@ -165,15 +165,14 @@ jobs:
               body
             });
             core.info(`Opened PR #${pr.number}`);
-          tag: ${{ steps.release.outputs.tag_name }}
 
       - name: Update existing PR title and body
         if: steps.prcheck.outputs.exists == 'true'
         uses: actions/github-script@v7
         with:
           script: |
-            const prNumber = Number(core.getInput('number'));
-            const title = `Sync upstream ${core.getInput('tag')} (exclude gh_pages)`;
+            const prNumber = Number(${{ steps.prcheck.outputs.number }});
+            const title = `Sync upstream ${{ steps.release.outputs.tag_name }} (exclude gh_pages)`;
             const body = [
               `This PR syncs changes from upstream release: ${{ steps.release.outputs.name }} (${{ steps.release.outputs.tag_name }})`,
               `Upstream URL: ${{ steps.release.outputs.html_url }}`,
@@ -182,5 +181,3 @@ jobs:
               '- Files under gh_pages/ were excluded from this sync.'
             ].join('\n');
             await github.rest.pulls.update({ owner: context.repo.owner, repo: context.repo.repo, pull_number: prNumber, title, body });
-          number: ${{ steps.prcheck.outputs.number }}
-          tag: ${{ steps.release.outputs.tag_name }}
