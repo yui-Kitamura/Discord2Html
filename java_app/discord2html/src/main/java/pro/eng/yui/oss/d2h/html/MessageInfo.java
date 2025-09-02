@@ -298,7 +298,7 @@ public class MessageInfo {
     /** Discord内部リンクの表示形式対応 */
     protected String preprocessArchiveText(Message msg, String text) {
         if (text == null){ return ""; }
-        String processed = text;
+        String processed = replaceEveryoneHereMentions(text);
         // 1) Replace user and role mentions: <@123>, <@!123>, <@&456> -> @表示名
         processed = replaceUserAndRoleMentions(msg, processed);
         // 2) Replace channel mentions: <#789> -> #表示名
@@ -307,6 +307,24 @@ public class MessageInfo {
         processed = replaceDiscordMessageLinksWithPlaceholders(msg, processed);
 
         return processed;
+    }
+
+    private String replaceEveryoneHereMentions(String text) {
+        int idx = 0;
+        Pattern p = Pattern.compile("(?<![\\w@.#])@(everyone|here)(?![\\w@])");
+        Matcher m = p.matcher(text);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            String token = m.group(1);
+            String label = "@" + token; // exactly as typed
+            String placeholder = D2H_INLINE_R_PREFIX + placeholderNonce + "_EH_" + (idx++) + "}}";
+            // Reuse mention-role styling to keep same blue style
+            String html = "<span class=\"mention-role\">" + htmlEscape(label) + "</span>";
+            inlineHtmlMap.put(placeholder, html);
+            m.appendReplacement(sb, Matcher.quoteReplacement(placeholder));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 
     private String replaceUserAndRoleMentions(Message msg, String text) {
