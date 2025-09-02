@@ -1,0 +1,186 @@
+name: Upstream Release Sync PR
+
+on:
+  workflow_dispatch:
+    inputs:
+      upstream_repo:
+        description: 'Upstream repository in owner/repo format'
+        required: false
+        default: 'yui-Kitamura/Discord2Html'
+      base_branch:
+        description: 'Base branch to open PR against'
+        required: false
+        default: 'main'
+  schedule:
+    - cron: '0 */6 * * *'  # every 6 hours
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set variables
+        id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.event.inputs.upstream_repo || '' }}" != '' ]]; then
+            UPSTREAM_REPO="${{ github.event.inputs.upstream_repo }}"
+          else
+            UPSTREAM_REPO="yui-Kitamura/Discord2Html"
+          fi
+          if [[ "${{ github.event.inputs.base_branch || '' }}" != '' ]]; then
+            BASE_BRANCH="${{ github.event.inputs.base_branch }}"
+          else
+            BASE_BRANCH="main"
+          fi
+          echo "upstream_repo=$UPSTREAM_REPO" >> "$GITHUB_OUTPUT"
+          echo "base_branch=$BASE_BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Configure Git
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Add upstream remote and fetch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream "https://github.com/${{ steps.vars.outputs.upstream_repo }}.git" || true
+          git fetch upstream --tags --prune
+
+      - name: Get latest release tag from upstream
+        id: release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const upstream = core.getInput('upstream_repo') || process.env.UPSTREAM_REPO;
+            const [owner, repo] = upstream.split('/');
+            // Get latest release (not draft, not prerelease)
+            const { data } = await github.rest.repos.getLatestRelease({ owner, repo });
+            core.setOutput('tag_name', data.tag_name);
+            core.setOutput('name', data.name || data.tag_name);
+            core.setOutput('html_url', data.html_url);
+        env:
+          UPSTREAM_REPO: ${{ steps.vars.outputs.upstream_repo }}
+
+      - name: Determine branch name
+        id: branch
+        shell: bash
+        run: |
+          TAG="${{ steps.release.outputs.tag_name }}"
+          BRANCH="sync/upstream-${TAG}"
+          echo "name=$BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Check if PR already exists
+        id: PR_check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const head = `${context.repo.owner}:${core.getInput('branch')}`;
+            const base = core.getInput('base');
+            const { data: prs } = await github.rest.pulls.list({ owner: context.repo.owner, repo: context.repo.repo, state: 'open', head, base });
+            if (prs.length > 0) {
+              core.setOutput('exists', 'true');
+              core.setOutput('number', String(prs[0].number));
+            } else {
+              core.setOutput('exists', 'false');
+            }
+          branch: ${{ steps.branch.outputs.name }}
+          base: ${{ steps.vars.outputs.base_branch }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare working branch from base
+        if: steps.prcheck.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout "${{ steps.vars.outputs.base_branch }}"
+          git pull --ff-only origin "${{ steps.vars.outputs.base_branch }}"
+          git checkout -b "${{ steps.branch.outputs.name }}"
+
+      - name: Create tree from upstream tag excluding gh_pages
+        if: steps.prcheck.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.release.outputs.tag_name }}"
+          # Create a temporary directory with upstream content at the tag
+          tmpdir=$(mktemp -d)
+          git archive --remote="$(git remote get-url upstream)" --format=tar --prefix=upstream/ "$TAG" | tar -x -C "$tmpdir"
+          # Rsync contents into repo excluding gh_pages directory at top-level
+          rsync -a --delete --exclude='gh_pages/' "$tmpdir/upstream" ./
+          rm -rf "$tmpdir"
+          # Ensure .github/workflows remains (rsync shouldn't delete hidden unless present in source); re-add our workflow if removed
+          git checkout -- .github || true
+
+      - name: Commit changes if any
+        if: steps.prcheck.outputs.exists != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit. Exiting early."
+            echo "no_changes=true" >> $GITHUB_OUTPUT
+          else
+            git commit -m "chore(sync): upstream ${{ steps.release.outputs.tag_name }} (exclude gh_pages)"
+          fi
+
+      - name: Push branch
+        if: steps.prcheck.outputs.exists != 'true'
+        shell: bash
+        run: |
+          git push --set-upstream origin "${{ steps.branch.outputs.name }}"
+
+      - name: Open PR to main
+        if: steps.prcheck.outputs.exists != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Sync upstream ${core.getInput('tag')} (exclude gh_pages)`;
+            const body = [
+              `This PR syncs changes from upstream release: ${{ steps.release.outputs.name }} (${{ steps.release.outputs.tag_name }})`,
+              `Upstream URL: ${{ steps.release.outputs.html_url }}`,
+              '',
+              'Notes:',
+              '- Files under gh_pages/ were excluded from this sync.'
+            ].join('\n');
+            const { data: pr } = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${{ steps.branch.outputs.name }}`,
+              base: `${{ steps.vars.outputs.base_branch }}`,
+              title,
+              body
+            });
+            core.info(`Opened PR #${pr.number}`);
+          tag: ${{ steps.release.outputs.tag_name }}
+
+      - name: Update existing PR title and body
+        if: steps.prcheck.outputs.exists == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = Number(core.getInput('number'));
+            const title = `Sync upstream ${core.getInput('tag')} (exclude gh_pages)`;
+            const body = [
+              `This PR syncs changes from upstream release: ${{ steps.release.outputs.name }} (${{ steps.release.outputs.tag_name }})`,
+              `Upstream URL: ${{ steps.release.outputs.html_url }}`,
+              '',
+              'Notes:',
+              '- Files under gh_pages/ were excluded from this sync.'
+            ].join('\n');
+            await github.rest.pulls.update({ owner: context.repo.owner, repo: context.repo.repo, pull_number: prNumber, title, body });
+          number: ${{ steps.prcheck.outputs.number }}
+          tag: ${{ steps.release.outputs.tag_name }}
