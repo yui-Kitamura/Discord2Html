@@ -1,12 +1,20 @@
 package pro.eng.yui.oss.d2h.html;
 
-import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import org.jetbrains.annotations.Contract;
+import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
+import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
+import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
+import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
 import pro.eng.yui.oss.d2h.db.field.CategoryId;
 import pro.eng.yui.oss.d2h.db.field.CategoryName;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
+import pro.eng.yui.oss.d2h.db.model.Guilds;
+import pro.eng.yui.oss.d2h.db.model.Users;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 
 import java.net.URL;
@@ -15,12 +23,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public final class FileGenerateUtil {
+@Component
+public class FileGenerateUtil {
 
     private static final Pattern CUSTOM_EMOJI_PATTERN = Pattern.compile("<(a?):([A-Za-z0-9_~\\-]+):(\\d+)>" );
 
@@ -72,13 +81,28 @@ public final class FileGenerateUtil {
         public List<Link> getChannels() { return channels; }
         public boolean isDeleted() { return deleted; }
     }
+
+    private final GuildsDAO guildsDao;
+    private final AnonStatsDAO anonStatsDao;
+    private final UsersDAO usersDao;
+    private final GitConfig gitConfig;
+    private final DiscordJdaProvider jdaProvider;
     
-    private FileGenerateUtil() {}
+    public FileGenerateUtil(
+            GuildsDAO guildsDAO, AnonStatsDAO anonStatsDAO, UsersDAO usersDAO,
+            DiscordJdaProvider jdaProvider,
+            GitConfig gitConfig) {
+        this.guildsDao = guildsDAO;
+        this.jdaProvider = jdaProvider;
+        this.anonStatsDao = anonStatsDAO;
+        this.usersDao = usersDAO;
+        this.gitConfig = gitConfig;
+    }
 
     /**
      * Write content to a file only if it changed. Creates the file when missing.
      */
-    public static void writeIfChanged(Path target, String newContent) {
+    public void writeIfChanged(Path target, String newContent) {
         try {
             String existing = null;
             if (Files.exists(target)) {
@@ -97,10 +121,10 @@ public final class FileGenerateUtil {
         }
     }
 
-    @Contract("_ -> !null")
-    public static String repoBase(GitConfig.Repo repo) {
+    @Contract(" -> !null")
+    public String repoBase() {
         try {
-            String name = repo.getName();
+            String name = gitConfig.getRepo().getName();
             if (name == null) { return ""; }
             name = name.trim();
             while (name.startsWith("/")) { name = name.substring(1); }
@@ -111,17 +135,16 @@ public final class FileGenerateUtil {
         }
     }
 
-    @Contract("_ -> !null")
-    public static String repoBaseWithPrefix(GitConfig.Repo repo) {
-        return "/" + repoBase(repo);
+    @Contract(" -> !null")
+    public String repoBaseWithPrefix() {
+        return "/" + repoBase();
     }
-
     
     @Contract("_,_ -> !null")
-    public static String normalizeHref(String href, GitConfig.Repo repo) {
+    public String normalizeHref(String href) {
         if (href == null) { return ""; }
         String val = href;
-        String base = FileGenerateUtil.repoBase(repo);
+        String base = repoBase();
         if (base != null && !base.isEmpty()) {
             String pref = "/" + base + "/";
             if (val.startsWith(pref)) {
@@ -135,11 +158,11 @@ public final class FileGenerateUtil {
         return val;
     }
 
-    @Contract("_,null -> null; null,_ -> null")
-    public static String resolveGuildIconUrl(JDA jda, GuildId guildId) {
-        if (jda == null || guildId == null) { return null; }
+    @Contract("null -> null")
+    public String resolveGuildIconUrl(GuildId guildId) {
+        if (guildId == null) { return null; }
         try {
-            Guild guild = jda.getGuildById(guildId.getValue());
+            Guild guild = jdaProvider.getJda().getGuildById(guildId.getValue());
             if (guild != null && guild.getIconUrl() != null && !guild.getIconUrl().isEmpty()) {
                 return guild.getIconUrl();
             }
@@ -147,7 +170,7 @@ public final class FileGenerateUtil {
         return null;
     }
     
-    public static void archiveCustomEmojis(Path outputPath, List<MessageInfo> messages) throws IOException {
+    public void archiveCustomEmojis(Path outputPath, List<MessageInfo> messages) throws IOException {
         if (messages == null || messages.isEmpty()){ return; }
         Path emojiDir = outputPath.resolve("archives").resolve("emoji");
         Files.createDirectories(emojiDir);
@@ -228,7 +251,7 @@ public final class FileGenerateUtil {
     }
 
     /** カスタム絵文字を物理パスに保存する */
-    private static void saveCustomEmoji(Path emojiDir, String id, String name, String ext, String today, byte[] bytes) {
+    private void saveCustomEmoji(Path emojiDir, String id, String name, String ext, String today, byte[] bytes) {
         if (emojiDir == null || id == null || ext == null || today == null || bytes == null) { return; }
         String safeName = getSafeEmojiName(name);
         Path todayPath = emojiDir.resolve("emoji_" + id + "_" + safeName + "_" + today + "." + ext);
@@ -268,6 +291,7 @@ public final class FileGenerateUtil {
      * 2) 最新ID固定パス ({id}.{ext})
      * 3) Discord CDN
      */
+    // 依存性注入がない処理のためstaticで提供
     public static String buildEmojiImgHtml(String name, String id, boolean animated) {
         String ext = animated ? "gif" : "png";
         String date = DateTimeUtil.date8().format(new Date());
@@ -283,6 +307,60 @@ public final class FileGenerateUtil {
     private static String getSafeEmojiName(String name) {
         String safe = (name == null || name.isEmpty()) ? "emoji" : name;
         return safe.replaceAll("[^A-Za-z0-9_-]", "_");
+    }
+
+    public List<MessageInfo> fetchMessagesForDaily(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
+        List<MessageInfo> messages = new ArrayList<>();
+        List<Users> marked = new ArrayList<>();
+
+        try {
+            Guilds guildInfo = guildsDao.selectGuildInfo(new GuildId(channel.getGuild()));
+            int anonCycle = guildInfo != null && guildInfo.getAnonCycle() != null ? guildInfo.getAnonCycle().getValue() : 24;
+            if (anonCycle < 1 || 24 < anonCycle) {
+                anonCycle = 24;
+            }
+            final int finalAnonCycle = anonCycle;
+            
+            MessageHistory history = channel.getHistory();
+            GuildId guildId = new GuildId(channel.getGuild());
+            final Instant beginInstant = beginDate.toInstant();
+            final Instant endInstant = endDate.toInstant();
+            boolean more = true;
+            while (more) {
+                var batch = history.retrievePast(100).complete();
+                if (batch == null || batch.isEmpty()) {
+                    break;
+                }
+                var oldest = batch.get(batch.size() - 1);
+                var oldestInstant = oldest.getTimeCreated().toInstant();
+                batch.stream()
+                        .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginInstant)
+                                && !msg.getTimeCreated().toInstant().isAfter(endInstant))
+                        .forEach(msg -> {
+                            Users author = Users.get(msg, anonStatsDao);
+                            try {
+                                if (!marked.contains(author)) {
+                                    usersDao.upsertUserInfo(author);
+                                    marked.add(author);
+                                }
+                            } catch (Exception ignore) { /* ignore DB issues */ }
+                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
+                            calJst.setTime(msgDate);
+                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
+                            int cycleIndex = hour / finalAnonCycle;
+                            String dateStr = DateTimeUtil.date8().format(msgDate);
+                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
+                            messages.add(new MessageInfo(msg, author, scopeKey));
+                        });
+                if (!oldestInstant.isAfter(beginInstant)) {
+                    more = false;
+                }
+            }
+        } catch (Throwable ignore) {
+            // best-effort: return what we have
+        }
+        return messages;
     }
 
 }

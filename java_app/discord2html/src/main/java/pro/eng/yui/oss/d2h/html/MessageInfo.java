@@ -1,18 +1,29 @@
 package pro.eng.yui.oss.d2h.html;
 
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.MessageReaction;
-import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import org.jetbrains.annotations.Contract;
+import pro.eng.yui.oss.d2h.db.field.ChannelName;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import pro.eng.yui.oss.d2h.db.field.AbstName;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
+
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MessageInfo {
+
+    // Placeholder constants for internal replacements (prefixes are combined with per-instance nonce)
+    private static final String D2H_MSG_PLACEHOLDER_PREFIX = "{{D2H_MSG_";
+    private static final String D2H_INLINE_U_PREFIX = "{{D2H_INLINE_U_";
+    private static final String D2H_INLINE_R_PREFIX = "{{D2H_INLINE_R_";
+    private static final String D2H_INLINE_C_PREFIX = "{{D2H_INLINE_C_";
+    // Nonce to prevent user-forgeable placeholders
+    private final String placeholderNonce = Long.toHexString(Double.doubleToLongBits(Math.random())) + Long.toHexString(System.nanoTime());
 
     public static class ReactionView {
         private final boolean custom;
@@ -39,6 +50,9 @@ public class MessageInfo {
 
     
     private final String contentRaw;
+    private final String contentProcessed;
+    private final Map<String, String> msgLinkHtmlMap;
+    private final Map<String, String> inlineHtmlMap;
     public String getContentRaw() {
         return this.contentRaw;
     }
@@ -49,7 +63,20 @@ public class MessageInfo {
      * Non-link parts are HTML-escaped for safety.
      */
     public String getContentHtml() {
-        return toHtmlWithLinks(this.contentRaw);
+        String base = (this.contentProcessed != null) ? this.contentProcessed : this.contentRaw;
+        String html = toHtmlWithLinks(base);
+        // Inject prepared HTML for Discord message links (placeholders)
+        if (!msgLinkHtmlMap.isEmpty() && html.isEmpty() == false) {
+            for (Map.Entry<String, String> e : msgLinkHtmlMap.entrySet()) {
+                html = html.replace(e.getKey(), e.getValue());
+            }
+        }
+        if (!inlineHtmlMap.isEmpty() && html.isEmpty() == false) {
+            for (Map.Entry<String, String> e : inlineHtmlMap.entrySet()) {
+                html = html.replace(e.getKey(), e.getValue());
+            }
+        }
+        return html;
     }
     
     private final Users userInfo;
@@ -88,8 +115,7 @@ public class MessageInfo {
     public List<MessageReaction> getReactions(){
         return this.reactions;
     }
-
-    // Derived views for rendering reactions with custom emoji support
+    /** Derived views for rendering reactions with custom emoji support */
     public List<ReactionView> getReactionViews() {
         List<ReactionView> views = new ArrayList<>();
         if (reactions == null) return views;
@@ -159,7 +185,10 @@ public class MessageInfo {
         return this.refOriginMessageContent;
     }
     
+    /** コンストラクタ */
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
+        this.msgLinkHtmlMap = new HashMap<>();
+        this.inlineHtmlMap = new HashMap<>();
         this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
         this.anonymizeScopeKey = anonymizeScopeKey;
@@ -167,6 +196,7 @@ public class MessageInfo {
                 ? AnonymizationUtil.anonymizeUser(authorInfo)
                 : AnonymizationUtil.anonymizeUser(authorInfo, anonymizeScopeKey);
         this.contentRaw = extractContentIncludingEmbeds(msg);
+        this.contentProcessed = preprocessArchiveText(msg, this.contentRaw);
         this.attachments = msg.getAttachments();
         this.reactions = msg.getReactions();
         if(msg.getReferencedMessage() == null) {
@@ -177,6 +207,7 @@ public class MessageInfo {
         }
     }
     
+    @Contract("_ -> new")
     public static String toHtmlWithLinks(String content) {
         String escaped = htmlEscape(content == null ? "" : content);
         // 1) Markdown-style: [label](https://url)
@@ -264,5 +295,328 @@ public class MessageInfo {
         }
         if (content == null) content = "";
         return content;
+    }
+
+    /** Discord内部リンクの表示形式対応 */
+    protected String preprocessArchiveText(Message msg, String text) {
+        if (text == null){ return ""; }
+        String processed = replaceEveryoneHereMentions(text); // @here/everyone
+        // 1) Replace Discord message links
+        processed = replaceDiscordMessageLinksWithPlaceholders(msg, processed);
+        // 2) Replace user and role mentions: <@123>, <@!123>, <@&456> -> @表示名
+        processed = replaceUserAndRoleMentions(msg, processed);
+        // 3) Replace channel mentions: <#789> -> #表示名
+        processed = replaceChannelMentions(msg, processed);
+
+        return processed;
+    }
+
+    private String replaceEveryoneHereMentions(String text) {
+        int idx = 0;
+        Pattern p = Pattern.compile("(?<![\\w@.#])@(everyone|here)(?![\\w@])");
+        Matcher m = p.matcher(text);
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            String token = m.group(1);
+            String label = "@" + token; // exactly as typed
+            String placeholder = D2H_INLINE_R_PREFIX + placeholderNonce + "_EH_" + (idx++) + "}}";
+            // Reuse mention-role styling to keep same blue style
+            String html = "<span class=\"mention-role\">" + htmlEscape(label) + "</span>";
+            inlineHtmlMap.put(placeholder, html);
+            m.appendReplacement(sb, Matcher.quoteReplacement(placeholder));
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
+
+    private String replaceUserAndRoleMentions(Message msg, String text) {
+        int idx = 0;
+        // Users: <@123> or <@!123>
+        Pattern pUser = Pattern.compile("<@!?([0-9]+)>");
+        Matcher mUser = pUser.matcher(text);
+        StringBuilder sbUser = new StringBuilder();
+        while (mUser.find()) {
+            String id = mUser.group(1);
+            String name = null;
+            try {
+                Member member = msg.getGuild().getMemberById(id);
+                if (member != null) {
+                    name = member.getEffectiveName();
+                } else if (msg.getJDA().getUserById(id) != null) {
+                    name = msg.getJDA().getUserById(id).getName();
+                }
+            } catch (Throwable ignore) { }
+            if (name == null || name.isBlank()) {
+                name = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
+            }
+            String placeholder = D2H_INLINE_U_PREFIX + placeholderNonce + "_" + (idx++) + "}}";
+            String html = "<span class=\"mention-user\">" + htmlEscape("@" + name) + "</span>";
+            inlineHtmlMap.put(placeholder, html);
+            mUser.appendReplacement(sbUser, Matcher.quoteReplacement(placeholder));
+        }
+        mUser.appendTail(sbUser);
+        String out = sbUser.toString();
+
+        // Roles: <@&456>
+        Pattern pRole = Pattern.compile("<@&([0-9]+)>");
+        Matcher mRole = pRole.matcher(out);
+        StringBuffer sbRole = new StringBuffer();
+        while (mRole.find()) {
+            String id = mRole.group(1);
+            String roleName = null;
+            try {
+                Role role = msg.getGuild().getRoleById(id);
+                if (role != null) { roleName = role.getName(); }
+            } catch (Throwable ignore) { }
+            if (roleName == null || roleName.isBlank()) {
+                roleName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
+            }
+            String placeholder = D2H_INLINE_R_PREFIX + placeholderNonce + "_" + (idx++) + "}}";
+            String html = "<span class=\"mention-role\">" + htmlEscape("@" + roleName) + "</span>";
+            inlineHtmlMap.put(placeholder, html);
+            mRole.appendReplacement(sbRole, Matcher.quoteReplacement(placeholder));
+        }
+        mRole.appendTail(sbRole);
+        return sbRole.toString();
+    }
+
+    private String replaceChannelMentions(Message msg, String text) {
+        // 1) Replace <#channelId> tokens
+        Pattern p = Pattern.compile("<#([0-9]+)>");
+        Matcher m = p.matcher(text);
+        StringBuilder sb = new StringBuilder();
+        int idx = 0;
+        while (m.find()) {
+            String id = m.group(1);
+            String display;
+            try {
+                GuildChannel chAny = null;
+                try { chAny = msg.getJDA().getChannelById(GuildChannel.class, id); } catch (Throwable ignore) { }
+                if (chAny != null) {
+                    display = formatChannelDisplay(chAny, msg);
+                } else {
+                    // Not resolvable from cache: external vs deleted
+                    boolean isExternal = false;
+                    try {
+                        GuildChannel same = null;
+                        try { same = msg.getGuild().getGuildChannelById(id); } catch (Throwable ignore) { }
+                        GuildChannel any = null;
+                        try { any = msg.getJDA().getChannelById(GuildChannel.class, id); } catch (Throwable ignore) { }
+                        // If neither resolves, likely an external server channel (bot not joined)
+                        if (same == null && any == null) {
+                            isExternal = true;
+                        }
+                    } catch (Throwable ignore) { }
+                    if (isExternal) {
+                        display = "#" + ChannelName.ANOTHER_GUILD;
+                    } else {
+                        display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+                    }
+                }
+            } catch (Throwable t) {
+                display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+            }
+            String placeholder = D2H_INLINE_C_PREFIX + placeholderNonce + "_" + (idx++) + "}}";
+            String html = "<span class=\"mention-channel\">" + htmlEscape(display) + "</span>";
+            inlineHtmlMap.put(placeholder, html);
+            m.appendReplacement(sb, Matcher.quoteReplacement(placeholder));
+        }
+        m.appendTail(sb);
+        String out = sb.toString();
+
+        // 2) Additionally, replace channel URL patterns: https://discord.com/channels/{guildId}/{channelId}
+        Pattern pUrl = Pattern.compile("https?://(?:(?:canary|ptb)\\.)?discord(?:app)?\\.com/channels/([0-9@me]+)/([0-9]+)(?!/)");
+        Matcher mUrl = pUrl.matcher(out);
+        StringBuilder sb2 = new StringBuilder();
+        while (mUrl.find()) {
+            String guildIdStr = mUrl.group(1);
+            String channelIdStr = mUrl.group(2);
+            String display = null;
+            try {
+                GuildChannel chAny = null;
+                try { chAny = msg.getJDA().getChannelById(GuildChannel.class, channelIdStr); } catch (Throwable ignore) { }
+                if (chAny != null) {
+                    display = formatChannelDisplay(chAny, msg);
+                } else {
+                    // Could not resolve channel; use guildIdStr to differentiate external vs deleted
+                    boolean external = false;
+                    try {
+                        if (guildIdStr != null && !"@me".equals(guildIdStr)) {
+                            Guild g = msg.getJDA().getGuildById(guildIdStr);
+                            if (g == null) {
+                                external = true;
+                            } else if (g.getIdLong() != msg.getGuild().getIdLong()) {
+                                external = false; // known other guild but channel missing -> deleted
+                            }
+                        }
+                    } catch (Throwable ignore) { }
+                    if (external) {
+                        display = "#" + ChannelName.ANOTHER_GUILD;
+                    } else {
+                        display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+                    }
+                }
+            } catch (Throwable ignore) {
+                display = "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+            }
+            String placeholder = D2H_INLINE_C_PREFIX + placeholderNonce + "_URL_" + (idx++) + "}}";
+            String html = "<span class=\"mention-channel\">" + htmlEscape(display) + "</span>";
+            inlineHtmlMap.put(placeholder, html);
+            mUrl.appendReplacement(sb2, Matcher.quoteReplacement(placeholder));
+        }
+        mUrl.appendTail(sb2);
+        return sb2.toString();
+    }
+    private String formatChannelDisplay(GuildChannel chAny, Message msg) {
+        // Builds display including leading '#', handling threads and cross-guild.
+        try {
+            boolean sameGuild = chAny.getGuild() != null && msg.getGuild() != null && chAny.getGuild().getIdLong() == msg.getGuild().getIdLong();
+            String chName = null;
+            try { chName = chAny.getName(); } catch (Throwable ignore) { }
+            String threadSuffix = null;
+            try {
+                if (chAny.getType() != null && chAny.getType().isThread()) {
+                    net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel tc = (net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel) chAny;
+                    String parentName = null;
+                    try { parentName = tc.getParentChannel() != null ? tc.getParentChannel().getName() : null; } catch (Throwable ignore) { }
+                    if (parentName == null || parentName.isBlank()) { parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                    String threadName = (chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName;
+                    threadSuffix = parentName + ">" + threadName;
+                }
+            } catch (Throwable ignore) { }
+            if (!sameGuild) {
+                String gName = null;
+                try { gName = chAny.getGuild().getName(); } catch (Throwable ignore) { }
+                if (gName == null || gName.isBlank()) { gName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                String body = (threadSuffix != null) ? threadSuffix : ((chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName);
+                return "#" + gName + ">" + body;
+            } else {
+                if (threadSuffix != null) {
+                    return "#" + threadSuffix;
+                } else {
+                    if (chName == null || chName.isBlank()) { chName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                    return "#" + chName;
+                }
+            }
+        } catch (Throwable t) {
+            return "#" + (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+        }
+    }
+
+    private String replaceDiscordMessageLinksWithPlaceholders(Message msg, String text) {
+        // Match discord message URLs: https://discord.com/channels/{guildId}/{channelId}/{messageId}
+        Pattern p = Pattern.compile("https?://(?:(?:canary|ptb)\\.)?discord(?:app)?\\.com/channels/([0-9@me]+)/([0-9]+)/([0-9]+)");
+        Matcher m = p.matcher(text);
+        int idx = 0;
+        StringBuffer sb = new StringBuffer();
+        while (m.find()) {
+            String guildIdStr = m.group(1);
+            String channelIdStr = m.group(2);
+            String messageIdStr = m.group(3);
+            String placeholder = D2H_MSG_PLACEHOLDER_PREFIX + placeholderNonce + "_" + (idx++) + "}}";
+
+            // Build display elements
+            String chDisplay = "";
+            String authorDisplay = "";
+            String timeDisplay = ""; // yyyy/MM/dd HH:mm
+            String contentPreview = "";
+            try {
+                GuildMessageChannel ch = null;
+                boolean externalChannel = false;
+                try {
+                    ch = msg.getJDA().getChannelById(GuildMessageChannel.class, channelIdStr);
+                } catch (Throwable ignore) { }
+                if (ch != null) {
+                    boolean sameGuild = (ch.getGuild().getIdLong() == msg.getGuild().getIdLong());
+                    // Thread-aware formatting
+                    String threadSuffix = null;
+                    if (ch.getType().isThread()) {
+                        ThreadChannel tc = (ThreadChannel) ch;
+                        String parentName = tc.getParentChannel().getName();
+                        if (parentName.isBlank()) { 
+                            parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; 
+                        }
+                        String threadName = ch.getName().isBlank() ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : ch.getName();
+                        threadSuffix = parentName + ">" + threadName;
+                    }
+                    if (!sameGuild) {
+                        String guildName = ch.getGuild().getName();
+                        if (guildName.isBlank()) { guildName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                        String body = (threadSuffix != null) ? threadSuffix : (ch.getName());
+                        if (body.isBlank()) { body = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                        chDisplay = guildName + ">" + body;
+                    } else {
+                        if (threadSuffix != null) {
+                            chDisplay = threadSuffix;
+                        } else {
+                            String name = ch.getName();
+                            if (name.isBlank()) { name = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                            chDisplay = name;
+                        }
+                    }
+                } else {
+                    // Could not resolve channel via JDA cache.
+                    try {
+                        if (guildIdStr != null && !"@me".equals(guildIdStr)) {
+                            Guild g = msg.getJDA().getGuildById(guildIdStr);
+                            if (g == null) {
+                                externalChannel = true; // bot not in that guild
+                            } else if (g.getIdLong() != msg.getGuild().getIdLong()) {
+                                // Different guild present but channel missing -> treat as deleted in that guild
+                                externalChannel = false;
+                            }
+                        }
+                    } catch (Throwable ignore) { }
+                    if (externalChannel) {
+                        // External server and not resolvable: show an explicit external label with channelId hint
+                        chDisplay = "外部サーバーch:" + htmlEscape(channelIdStr);
+                    } else {
+                        chDisplay = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
+                    }
+                }
+                Message target = null;
+                try {
+                    if (ch != null) {
+                        target = ch.retrieveMessageById(messageIdStr).complete();
+                    }
+                } catch (Throwable ignore) { }
+                if (target != null) {
+                    try {
+                        Member mbr = target.getMember();
+                        if (mbr != null) {
+                            authorDisplay = mbr.getEffectiveName();
+                        } else {
+                            authorDisplay = target.getAuthor().getName();
+                        }
+                    } catch (Throwable ignore) { }
+                    if (authorDisplay.isBlank()) {
+                        authorDisplay = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
+                    }
+                    try {
+                        Date d = Date.from(target.getTimeCreated().toInstant());
+                        String full = DateTimeUtil.time().format(d); // yyyy/MM/dd HH:mm:ss
+                        timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full; // drop :ss
+                    } catch (Throwable ignore) { }
+                    try {
+                        String raw = extractContentIncludingEmbeds(target);
+                        contentPreview = raw.length() > 50 ? raw.substring(0, 50)+"..." : raw;
+                    } catch (Throwable ignore) { }
+                } else {
+                    // target == null
+                    authorDisplay = externalChannel ? AbstName.UNKNOWN : (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED);
+                    timeDisplay = "";
+                }
+            } catch (Throwable ignore) { }
+
+            String textDisplay = "#" + chDisplay + "\uD83D\uDCAC@" + authorDisplay + (timeDisplay.isEmpty() ? "" :("("+timeDisplay+")"));
+            String attrPreview = htmlEscape(contentPreview);
+            String attrTitle = attrPreview; // use the same text for native tooltip
+            String spanHtml = "<span class=\"msg-link\" data-content=\"" + attrPreview + "\" title=\"" + attrTitle + "\">" + htmlEscape(textDisplay) + "</span>";
+
+            msgLinkHtmlMap.put(placeholder, spanHtml);
+            m.appendReplacement(sb, Matcher.quoteReplacement(placeholder));
+        }
+        m.appendTail(sb);
+        return sb.toString();
     }
 }

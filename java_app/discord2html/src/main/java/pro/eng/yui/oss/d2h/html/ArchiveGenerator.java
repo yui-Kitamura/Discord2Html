@@ -27,17 +27,19 @@ public class ArchiveGenerator {
     private final GitConfig gitConfig;
     private final TemplateEngine templateEngine;
     private final DiscordJdaProvider jdaProvider;
+    private final FileGenerateUtil fileUtil;
     private final IndexGenerator indexGenerator;
     private final String botVersion;
 
     public ArchiveGenerator(ApplicationConfig appConfig, Secrets secrets, GitConfig gitConfig,
                             TemplateEngine templateEngine,
-                            DiscordJdaProvider jdaProvider,
+                            DiscordJdaProvider jdaProvider, FileGenerateUtil fileUtil,
                             IndexGenerator indexGenerator) {
         this.appConfig = appConfig;
         this.gitConfig = gitConfig;
         this.templateEngine = templateEngine;
         this.jdaProvider = jdaProvider;
+        this.fileUtil = fileUtil;
         this.indexGenerator = indexGenerator;
         this.botVersion = secrets.getBotVersion();
     }
@@ -79,7 +81,7 @@ public class ArchiveGenerator {
             List<MessageInfo> segmentMessages = filterMessagesByRange(messages, cur, segmentEnd);
 
             // Always render the template, even if segmentMessages is empty.
-            final String basePrefix = FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo());
+            final String basePrefix = fileUtil.repoBaseWithPrefix();
             Context context = new Context();
             context.setVariable("channel", channel);
             context.setVariable("messages", segmentMessages);
@@ -88,7 +90,7 @@ public class ArchiveGenerator {
             context.setVariable("sequence", seq);
             context.setVariable("backToChannelHref", basePrefix+ "/archives/" + channel.getChannelId().toString() + ".html");
             context.setVariable("backToTopHref", basePrefix + "/index.html");
-            context.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), guildId));
+            context.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
             context.setVariable("botVersion", botVersion);
             context.setVariable("basePrefix", basePrefix);
             // Add active thread links for this channel at the top
@@ -104,7 +106,7 @@ public class ArchiveGenerator {
             String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
             Path output = appConfig.getOutputPath().resolve(runTimestamp).resolve(channel.getChannelId().toString() + ".html");
-            FileGenerateUtil.writeIfChanged(output, htmlContent);
+            fileUtil.writeIfChanged(output, htmlContent);
 
             lastOutput = output;
 
@@ -169,7 +171,7 @@ public class ArchiveGenerator {
     }
 
     private Path generateThreadArchive(GuildId guildId, ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end, int seq) {
-        final String basePrefix = FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo());
+        final String basePrefix = fileUtil.repoBaseWithPrefix();
         Context ctx = new Context();
         ctx.setVariable("channel", channel);
         ctx.setVariable("messages", messages);
@@ -190,7 +192,7 @@ public class ArchiveGenerator {
             ctx.setVariable("backToParentArchiveHref", basePrefix + "/index.html");
         }
         ctx.setVariable("backToTopHref", basePrefix + "/index.html");
-        ctx.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), guildId));
+        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("basePrefix", basePrefix);
         // Standardized nav variables
@@ -204,7 +206,7 @@ public class ArchiveGenerator {
                 .resolve(channel.getParentChannelId() == null ? "unknown" : channel.getParentChannelId().toString())
                 .resolve("threads")
                 .resolve("t-" + channel.getChannelId().toString() + ".html");
-        FileGenerateUtil.writeIfChanged(outPath, html);
+        fileUtil.writeIfChanged(outPath, html);
         try {
             if (channel.getParentChannelId() != null) {
                 indexGenerator.regenerateThreadIndex(guildId, channel.getParentChannelId());
@@ -242,7 +244,7 @@ public class ArchiveGenerator {
             List<FileGenerateUtil.Link> links = new ArrayList<>();
             for (net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel t : threads) {
                 if (!t.isArchived()) {
-                    String href = FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo()) + "/archives/" + channel.getChannelId() + "/threads/t-" + t.getId() + ".html";
+                    String href = fileUtil.repoBaseWithPrefix() + "/archives/" + channel.getChannelId() + "/threads/t-" + t.getId() + ".html";
                     String label = t.getName();
                     links.add(new FileGenerateUtil.Link(href, label, null, null, label, t.getId()));
                 }

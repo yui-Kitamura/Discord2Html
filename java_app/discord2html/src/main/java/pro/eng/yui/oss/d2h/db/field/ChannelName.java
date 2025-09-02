@@ -4,6 +4,8 @@ import net.dv8tion.jda.api.entities.channel.Channel;
 
 public class ChannelName extends AbstName {
     
+    public static final String ANOTHER_GUILD = "外部サーバーチャンネル";
+    
     public static int LIMIT = 255;
     
     public ChannelName(String value){

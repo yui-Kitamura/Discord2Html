@@ -12,17 +12,13 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
-import pro.eng.yui.oss.d2h.consts.UserAnon;
-import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
-import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.Secrets;
-import pro.eng.yui.oss.d2h.db.model.Users;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 
 import java.io.IOException;
@@ -31,7 +27,6 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.text.SimpleDateFormat;
-import java.time.Instant;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -43,24 +38,22 @@ public class IndexGenerator {
     private final TemplateEngine templateEngine;
     private final GuildsDAO guildsDao;
     private final ChannelsDAO channelsDao;
-    private final AnonStatsDAO anonStatsDao;
-    private final UsersDAO usersDao;
     private final DiscordJdaProvider jdaProvider;
     private final String botVersion;
     private final GitConfig gitConfig;
+    private final FileGenerateUtil fileUtil;
 
     public IndexGenerator(ApplicationConfig config, Secrets secrets, GitConfig gitConfig, TemplateEngine templateEngine,
-                          GuildsDAO guildsDao, ChannelsDAO channelsDao, AnonStatsDAO anonStatsDao, UsersDAO usersDao,
-                          DiscordJdaProvider jdaProvider) {
+                          GuildsDAO guildsDao, ChannelsDAO channelsDao,
+                          DiscordJdaProvider jdaProvider, FileGenerateUtil fileUtil) {
         this.appConfig = config;
         this.gitConfig = gitConfig;
         this.templateEngine = templateEngine;
         this.guildsDao = guildsDao;
         this.channelsDao = channelsDao;
-        this.anonStatsDao = anonStatsDao;
-        this.usersDao = usersDao;
         this.jdaProvider = jdaProvider;
         this.botVersion = secrets.getBotVersion();
+        this.fileUtil = fileUtil;
     }
 
     // ===== Top index generation =====
@@ -107,10 +100,10 @@ public class IndexGenerator {
             if (g != null && g.getGuildName() != null) { guildName = g.getGuildName().getValue(); }
         } catch (Exception ignore) { }
         ctx.setVariable("guildName", guildName);
-        ctx.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), targetGuild));
+        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(targetGuild));
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("top", ctx);
-        FileGenerateUtil.writeIfChanged(index, page);
+        fileUtil.writeIfChanged(index, page);
     }
 
     // ===== Channel list pages =====
@@ -119,7 +112,7 @@ public class IndexGenerator {
         if (!Files.exists(base)) { return; }
         Path archivesRoot = base.resolve("archives");
         Files.createDirectories(archivesRoot);
-        String href = FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo()) + "/archives/" + date8 + "/" + channelId + ".html";
+        String href = fileUtil.repoBaseWithPrefix() + "/archives/" + date8 + "/" + channelId + ".html";
         String displayName = channelId.toString();
         try {
             GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, channelId.getValue());
@@ -143,21 +136,21 @@ public class IndexGenerator {
         final String threadIndexNorm = "archives/" + channelId + "/threads/index.html";
         merged = merged.stream()
                 .filter(l -> {
-                    return !FileGenerateUtil.normalizeHref(l.getHref(), gitConfig.getRepo()).endsWith(threadIndexNorm);
+                    return !fileUtil.normalizeHref(l.getHref()).endsWith(threadIndexNorm);
                 })
                 .collect(Collectors.toList());
         Context ctx = new Context();
         ctx.setVariable("title", displayName + " のアーカイブ一覧");
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
-        ctx.setVariable("threadIndexHref", FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo()) + "/" + threadIndexNorm);
-        ctx.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), guildId));
+        ctx.setVariable("threadIndexHref", fileUtil.repoBaseWithPrefix() + "/" + threadIndexNorm);
+        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", false);
-        ctx.setVariable("rootHref", FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo()) + "/index.html");
+        ctx.setVariable("rootHref", fileUtil.repoBaseWithPrefix() + "/index.html");
         ctx.setVariable("isThread", false);
         String page = templateEngine.process("list", ctx);
-        FileGenerateUtil.writeIfChanged(channelArchive, page);
+        fileUtil.writeIfChanged(channelArchive, page);
         try { regenerateThreadIndex(guildId, channelId); } catch (IOException ignore) { }
     }
 
@@ -202,7 +195,7 @@ public class IndexGenerator {
                 if (!target.getName().isEmpty()) {
                     displayChannelName = target.getName();
                 }
-                messages = fetchMessagesForDaily(target, beginCal, endCal);
+                messages = fileUtil.fetchMessagesForDaily(target, beginCal, endCal);
             }
         } catch (Throwable ignore) {
             // Fall through with empty messages on errors
@@ -233,14 +226,14 @@ public class IndexGenerator {
         }
 
         Context ctx = new Context();
-        final String basePrefix = FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo());
+        final String basePrefix = fileUtil.repoBaseWithPrefix();
         ctx.setVariable("channelName", displayChannelName);
         ctx.setVariable("humanDate", humanDate);
         ctx.setVariable("endText", endText);
         ctx.setVariable("messages", messages);
         ctx.setVariable("backToTopHref", basePrefix + "/index.html");
         ctx.setVariable("backToChannelHref", basePrefix + "/archives/" + channelId + ".html#d-" + date8);
-        ctx.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), guildId));
+        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("basePrefix", basePrefix);
         // Add navigation links for previous/next day (mechanically computed)
@@ -260,7 +253,7 @@ public class IndexGenerator {
         } catch (Exception ignore) { /* best-effort */ }
 
         String rendered = templateEngine.process("daily", ctx);
-        FileGenerateUtil.writeIfChanged(dailyCombined, rendered);
+        fileUtil.writeIfChanged(dailyCombined, rendered);
     }
 
     public void regenerateChannelArchives(GuildId guildId, ChannelId channelId) throws IOException {
@@ -286,7 +279,7 @@ public class IndexGenerator {
             String date8 = dateDir.getFileName().toString();
             Path file = dateDir.resolve(channelId.toString() + ".html");
             if (Files.exists(file)) {
-                String href = FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo()) + "/archives/" + date8 + "/" + channelId + ".html";
+                String href = fileUtil.repoBaseWithPrefix() + "/archives/" + date8 + "/" + channelId + ".html";
                 String displayTs;
                 try {
                     String today8 = DateTimeUtil.date8().format(Calendar.getInstance().getTime());
@@ -306,22 +299,22 @@ public class IndexGenerator {
         final String threadIndexNorm = "archives/" + channelId + "/threads/index.html";
         merged = merged.stream()
                 .filter(l -> {
-                    return !FileGenerateUtil.normalizeHref(l.getHref(), gitConfig.getRepo()).endsWith(threadIndexNorm);
+                    return !fileUtil.normalizeHref(l.getHref()).endsWith(threadIndexNorm);
                 })
                 .collect(Collectors.toList());
         Context ctx = new Context();
         ctx.setVariable("title", displayName + " のアーカイブ一覧");
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
-        ctx.setVariable("threadIndexHref", FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo()) + "/archives/" + channelId + "/threads/index.html");
-        ctx.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), guildId));
+        ctx.setVariable("threadIndexHref", fileUtil.repoBaseWithPrefix() + "/archives/" + channelId + "/threads/index.html");
+        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", false);
-        ctx.setVariable("rootHref", FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo()) + "/index.html");
+        ctx.setVariable("rootHref", fileUtil.repoBaseWithPrefix() + "/index.html");
         ctx.setVariable("isThread", false);
         String page = templateEngine.process("list", ctx);
         try { regenerateThreadIndex(guildId, channelId); } catch (IOException ignore) { }
-        FileGenerateUtil.writeIfChanged(channelArchive, page);
+        fileUtil.writeIfChanged(channelArchive, page);
     }
 
     public void regenerateThreadIndex(GuildId guildId, ChannelId parentChannelId) throws IOException {
@@ -329,14 +322,16 @@ public class IndexGenerator {
         if (!Files.exists(base)) { return; }
         Path parentThreadsDir = base.resolve("archives").resolve(parentChannelId.toString()).resolve("threads");
         Files.createDirectories(parentThreadsDir);
-        class ThreadEntry { String href; String label; boolean active; long lastModified; long created; }
+        class ThreadEntry { 
+            String href; String label; boolean active; long lastModified; long created; 
+        }
         List<ThreadEntry> entries = new ArrayList<>();
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(parentThreadsDir, "*.html")) {
             for (Path p : stream) {
                 String file = p.getFileName().toString();
                 String label = file.replaceFirst("\\.html$", "");
                 if (label.equals("index")) { continue; }
-                String href = FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo()) + "/archives/" + parentChannelId + "/threads/" + file;
+                String href = fileUtil.repoBaseWithPrefix() + "/archives/" + parentChannelId + "/threads/" + file;
                 String idPart = label;
                 if (label.startsWith("t-")) { idPart = label.substring(2); }
                 ThreadChannel thread = null; boolean active = false; long created = 0L;
@@ -395,69 +390,16 @@ public class IndexGenerator {
         ctx.setVariable("title", parentDisplayName + " のスレッド一覧");
         ctx.setVariable("description", "このチャンネルに属するスレッドのアーカイブ一覧");
         ctx.setVariable("items", items);
-        ctx.setVariable("guildIconUrl", FileGenerateUtil.resolveGuildIconUrl(jdaProvider.getJda(), guildId));
+        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", true);
-        ctx.setVariable("backToTopHref", FileGenerateUtil.repoBaseWithPrefix(gitConfig.getRepo()) + "/index.html");
+        ctx.setVariable("backToTopHref", fileUtil.repoBaseWithPrefix() + "/index.html");
         ctx.setVariable("isThread", false);
         String page = templateEngine.process("list", ctx);
-        FileGenerateUtil.writeIfChanged(index, page);
+        fileUtil.writeIfChanged(index, page);
     }
 
     // ===== Helpers =====
-    private List<MessageInfo> fetchMessagesForDaily(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
-        List<MessageInfo> messages = new ArrayList<>();
-        List<Users> marked = new ArrayList<>();
-
-        try {
-            var history = channel.getHistory();
-            GuildId guildId = new GuildId(channel.getGuild());
-            Guilds guildInfo = guildsDao.selectGuildInfo(guildId);
-            int anonCycle = guildInfo != null && guildInfo.getAnonCycle() != null ? guildInfo.getAnonCycle().getValue() : 24;
-            if (anonCycle < 1 || 24 < anonCycle) {
-                anonCycle = 24;
-            }
-            final int finalAnonCycle = anonCycle;
-            final Instant beginInstant = beginDate.toInstant();
-            final Instant endInstant = endDate.toInstant();
-            boolean more = true;
-            while (more) {
-                var batch = history.retrievePast(100).complete();
-                if (batch == null || batch.isEmpty()) {
-                    break;
-                }
-                var oldest = batch.get(batch.size() - 1);
-                var oldestInstant = oldest.getTimeCreated().toInstant();
-                batch.stream()
-                        .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginInstant)
-                                && !msg.getTimeCreated().toInstant().isAfter(endInstant))
-                        .forEach(msg -> {
-                            Users author = Users.get(msg, anonStatsDao);
-                            try {
-                                if (!marked.contains(author)) {
-                                    usersDao.upsertUserInfo(author);
-                                    marked.add(author);
-                                }
-                            } catch (Exception ignore) { /* ignore DB issues */ }
-                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
-                            calJst.setTime(msgDate);
-                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                            int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = DateTimeUtil.date8().format(msgDate);
-                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                            messages.add(new MessageInfo(msg, author, scopeKey));
-                        });
-                if (!oldestInstant.isAfter(beginInstant)) {
-                    more = false;
-                }
-            }
-        } catch (Throwable ignore) {
-            // best-effort: return what we have
-        }
-        return messages;
-    }
-    
     private List<FileGenerateUtil.Link> readExistingLinks(Path file) {
         try {
             if (Files.exists(file)) {
@@ -596,10 +538,10 @@ public class IndexGenerator {
     private List<FileGenerateUtil.Link> mergeLinksPreserveAll(List<FileGenerateUtil.Link> newlyComputed, List<FileGenerateUtil.Link> existing) {
         Map<String, FileGenerateUtil.Link> byHref = new LinkedHashMap<>();
         for (FileGenerateUtil.Link l : newlyComputed) { 
-            byHref.put(FileGenerateUtil.normalizeHref(l.getHref(), gitConfig.getRepo()), l); 
+            byHref.put(fileUtil.normalizeHref(l.getHref()), l); 
         }
         for (FileGenerateUtil.Link l : existing) {
-            String key = FileGenerateUtil.normalizeHref(l.getHref(), gitConfig.getRepo());
+            String key = fileUtil.normalizeHref(l.getHref());
             boolean allowed = key.startsWith("archives/") || key.startsWith("../");
             if (!allowed) { continue; }
             if (!byHref.containsKey(key)) { byHref.put(key, l); }
