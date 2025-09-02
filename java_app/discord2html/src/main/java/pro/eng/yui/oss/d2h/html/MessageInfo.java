@@ -300,13 +300,13 @@ public class MessageInfo {
     /** Discord内部リンクの表示形式対応 */
     protected String preprocessArchiveText(Message msg, String text) {
         if (text == null){ return ""; }
-        String processed = replaceEveryoneHereMentions(text);
-        // 1) Replace user and role mentions: <@123>, <@!123>, <@&456> -> @表示名
-        processed = replaceUserAndRoleMentions(msg, processed);
-        // 2) Replace channel mentions: <#789> -> #表示名
-        processed = replaceChannelMentions(msg, processed);
-        // 3) Replace Discord message links
+        String processed = replaceEveryoneHereMentions(text); // @here/everyone
+        // 1) Replace Discord message links
         processed = replaceDiscordMessageLinksWithPlaceholders(msg, processed);
+        // 2) Replace user and role mentions: <@123>, <@!123>, <@&456> -> @表示名
+        processed = replaceUserAndRoleMentions(msg, processed);
+        // 3) Replace channel mentions: <#789> -> #表示名
+        processed = replaceChannelMentions(msg, processed);
 
         return processed;
     }
