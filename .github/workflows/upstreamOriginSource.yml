@@ -117,9 +117,10 @@ jobs:
           TAG="${{ steps.release.outputs.tag_name }}"
           # Create a temporary directory with upstream content at the tag
           tmpdir=$(mktemp -d)
-          git archive --remote="$(git remote get-url upstream)" --format=tar --prefix=upstream/ "$TAG" | tar -x -C "$tmpdir"
-          # Rsync contents into repo excluding gh_pages directory at top-level
-          rsync -a --delete --exclude='gh_pages/' "$tmpdir/upstream" ./
+          # Checkout the specific tag into temp directory
+          git --work-tree="$tmpdir" --git-dir=.git checkout "upstream/$TAG" -- .
+          echo "Checked out upstream tag $TAG to temp directory"
+          rsync -av --delete --exclude='gh_pages/' "$tmpdir/" ./
           rm -rf "$tmpdir"
           # Ensure .github/workflows remains (rsync shouldn't delete hidden unless present in source); re-add our workflow if removed
           git checkout -- .github || true
