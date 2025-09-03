@@ -299,9 +299,9 @@ public class MessageInfo {
 
     private static String extractContentIncludingEmbeds(Message msg) {
         String content = msg.getContentRaw();
-        if (content == null || content.trim().isEmpty()) {
+        if (content.trim().isEmpty()) {
             List<MessageEmbed> embeds = msg.getEmbeds();
-            if (embeds != null && !embeds.isEmpty()) {
+            if (!embeds.isEmpty()) {
                 StringBuilder sb = new StringBuilder();
                 for (MessageEmbed e : embeds) {
                     if (e.getTitle() != null && !e.getTitle().isEmpty()) {
@@ -311,17 +311,15 @@ public class MessageInfo {
                         sb.append(e.getDescription()).append("\n");
                     }
                     List<MessageEmbed.Field> fields = e.getFields();
-                    if (fields != null) {
-                        for (MessageEmbed.Field f : fields) {
-                            if (f == null) continue;
-                            boolean hasName = f.getName() != null && !f.getName().isEmpty();
-                            boolean hasValue = f.getValue() != null && !f.getValue().isEmpty();
-                            if (hasName || hasValue) {
-                                if (hasName) sb.append(f.getName());
-                                if (hasName && hasValue) sb.append(": ");
-                                if (hasValue) sb.append(f.getValue());
-                                sb.append("\n");
-                            }
+                    for (MessageEmbed.Field f : fields) {
+                        if (f == null) continue;
+                        boolean hasName = f.getName() != null && !f.getName().isEmpty();
+                        boolean hasValue = f.getValue() != null && !f.getValue().isEmpty();
+                        if (hasName || hasValue) {
+                            if (hasName) sb.append(f.getName());
+                            if (hasName && hasValue) sb.append(": ");
+                            if (hasValue) sb.append(f.getValue());
+                            sb.append("\n");
                         }
                     }
                     if (e.getFooter() != null && e.getFooter().getText() != null && !e.getFooter().getText().isEmpty()) {
@@ -337,7 +335,6 @@ public class MessageInfo {
                 content = sb.toString().trim();
             }
         }
-        if (content == null) content = "";
         return content;
     }
 
@@ -359,7 +356,7 @@ public class MessageInfo {
         int idx = 0;
         Pattern p = Pattern.compile("(?<![\\w@.#])@(everyone|here)(?![\\w@])");
         Matcher m = p.matcher(text);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (m.find()) {
             String token = m.group(1);
             String label = "@" + token; // exactly as typed
@@ -404,7 +401,7 @@ public class MessageInfo {
         // Roles: <@&456>
         Pattern pRole = Pattern.compile("<@&([0-9]+)>");
         Matcher mRole = pRole.matcher(out);
-        StringBuffer sbRole = new StringBuffer();
+        StringBuilder sbRole = new StringBuilder();
         while (mRole.find()) {
             String id = mRole.group(1);
             String roleName = null;
@@ -554,7 +551,7 @@ public class MessageInfo {
         Pattern p = Pattern.compile("https?://(?:(?:canary|ptb)\\.)?discord(?:app)?\\.com/channels/([0-9@me]+)/([0-9]+)/([0-9]+)");
         Matcher m = p.matcher(text);
         int idx = 0;
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (m.find()) {
             String guildIdStr = m.group(1);
             String channelIdStr = m.group(2);
