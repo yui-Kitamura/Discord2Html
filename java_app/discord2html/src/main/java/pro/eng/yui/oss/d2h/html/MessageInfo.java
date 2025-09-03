@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import org.jetbrains.annotations.Contract;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
 import pro.eng.yui.oss.d2h.db.model.Users;
@@ -215,36 +216,10 @@ public class MessageInfo {
         boolean tmpForwarded = false;
         String tmpForwardedHtml = null;
         try {
-            String typeStr = null;
-            try { 
-                Object t = msg.getType();
-                typeStr = String.valueOf(t);
-            } catch (Throwable ignore) { }
-            boolean looksForward = (typeStr != null && typeStr.toUpperCase().contains("FORWARD"));
-            Message src = null;
-            if (looksForward && msg.getReferencedMessage() != null) {
-                src = msg.getReferencedMessage();
-            } else {
-                // Try reflective methods that might exist on newer JDA
-                try {
-                    var m1 = msg.getClass().getMethod("getForwardedMessage");
-                    Object r = m1.invoke(msg);
-                    if (r instanceof Message rMsg) { src = rMsg; }
-                } catch (Throwable ignore) { }
-                if (src == null) {
-                    try {
-                        var m2 = msg.getClass().getMethod("getForwardedMessages");
-                        Object r2 = m2.invoke(msg);
-                        if (r2 instanceof java.util.List<?> list && !list.isEmpty() && list.get(0) instanceof Message) {
-                            src = (Message) list.get(0);
-                        }
-                    } catch (Throwable ignore) { }
-                }
-                looksForward = (src != null);
-            }
-            if (looksForward && src != null) {
+            Message ref = msg.getReferencedMessage();
+            if (ref != null) {
                 tmpForwarded = true;
-                tmpForwardedHtml = buildForwardedBlockquoteHtml(src);
+                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref);
             }
         } catch (Throwable ignore) { }
         this.forwarded = tmpForwarded;
@@ -663,10 +638,56 @@ public class MessageInfo {
         return sb.toString();
     }
 
-    private String buildForwardedBlockquoteHtml(Message src) {
+    private String buildForwardedBlockquoteHtml(Guild current, Message forwarded) {
         try {
-            String origin = formatChannelDisplay(src.getGuildChannel(), src);
-            String bodyProcessed = preprocessArchiveText(src, extractContentIncludingEmbeds(src));
+            // Build origin displays similar to buildMsgLinkSpanFor but using snapshot APIs
+            String chDisplay = "";
+            String timeDisplay = "";
+            try {
+                MessageChannelUnion chAny = forwarded.getChannel();
+                boolean sameGuild = true;
+                try {
+                    Guild g2 = forwarded.getGuild();
+                    sameGuild = (current.getIdLong() == g2.getIdLong());
+                } catch (Throwable ignore) { }
+                String threadSuffix = null;
+                try {
+                    if (chAny.getType().isThread()) {
+                        ThreadChannel tc = (ThreadChannel) chAny;
+                        String parentName = tc.getParentChannel().getName();
+                        if (parentName.isBlank()) { parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                        String threadName = (chAny.getName().isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chAny.getName();
+                        threadSuffix = parentName + ">" + threadName;
+                    }
+                } catch (Throwable ignore) { }
+                if (!sameGuild) {
+                    String guildName = null;
+                    try { guildName = forwarded.getGuild().getName(); } catch (Throwable ignore) { }
+                    if (guildName == null || guildName.isBlank()) {
+                        guildName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; 
+                    }
+                    String body = (threadSuffix != null) ? threadSuffix : (chAny != null ? chAny.getName() : (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED));
+                    if (body.isBlank()) { body = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                    chDisplay = guildName + ">" + body;
+                } else {
+                    if (threadSuffix != null) {
+                        chDisplay = threadSuffix;
+                    } else {
+                        String name = null;
+                        try { name = chAny != null ? chAny.getName() : null; } catch (Throwable ignore) { }
+                        if (name == null || name.isBlank()) { name = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                        chDisplay = name;
+                    }
+                }
+                try {
+                    Date d = Date.from(forwarded.getTimeCreated().toInstant());
+                    String full = DateTimeUtil.time().format(d);
+                    timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
+                } catch (Throwable ignore) { }
+            } catch (Throwable ignore) { }
+            String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
+            String contentRaw = forwarded.getContentRaw();
+            String bodyProcessed = preprocessArchiveText(forwarded, contentRaw);
             String bodyHtml = toHtmlWithLinks(bodyProcessed);
             return "<blockquote class=\"forwarded\">"
                    + bodyHtml
