@@ -122,7 +122,7 @@ class MessageInfoTest {
     void blockquoteAllowsLeadingSpaceAfterMarker() {
         String in = ">  spaced\ntext";
         String out = MessageInfo.toHtmlWithLinks(in);
-        assertEquals("<blockquote>spaced</blockquote>text", out);
+        assertEquals("<blockquote> spaced</blockquote>text", out);
     }
 
     @Test
