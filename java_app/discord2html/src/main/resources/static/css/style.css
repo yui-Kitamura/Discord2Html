@@ -143,7 +143,7 @@ section {
     margin-top: 6px;
 }
 
-blockquote.forwarded {
+blockquote {
   border-left: 3px solid #4b4f56;
   padding-left: .6em;
   margin: .2em 0 .6em;
@@ -151,7 +151,7 @@ blockquote.forwarded {
   background: #2b2f33;
   border-radius: 4px;
 }
-blockquote.forwarded cite {
+blockquote cite {
   display: block;
   margin-top: .4em;
   font-size: .85em;
