@@ -217,11 +217,12 @@ public class MessageInfo {
         String tmpForwardedHtml = null;
         try {
             Message ref = msg.getReferencedMessage();
-            if (ref != null) {
-                tmpForwarded = true;
+            MessageReference msgRef = msg.getMessageReference();
+            if (ref != null && msgRef != null) {
+                tmpForwarded = (msgRef.getType() == MessageReference.MessageReferenceType.FORWARD);
                 tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref);
             }
-        } catch (Throwable ignore) { }
+        } catch (NullPointerException ignore) { }
         this.forwarded = tmpForwarded;
         this.forwardedHtml = tmpForwardedHtml;
     }
