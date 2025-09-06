@@ -250,7 +250,35 @@ public class MessageInfo {
             m.appendTail(sb);
             escaped = sb.toString();
         }
-        // 4) Convert newline characters to <br> so original message line breaks render on HTML
+        // 4) Blockquote: lines starting with '>' become <blockquote>...</blockquote> and consecutive lines are grouped
+        {
+            String[] lines = escaped.replace("\r\n", "\n").replace("\r", "\n").split("\n", -1);
+            StringBuilder out = new StringBuilder();
+            boolean inQuote = false;
+            StringBuilder quoteBuf = new StringBuilder();
+            for (int i = 0; i < lines.length; i++) {
+                String line = lines[i];
+                if (line.startsWith("&gt;")) { // original '>' escaped to &gt;
+                    String body = line.substring(4); // remove '&gt;'
+                    if (body.startsWith(" ")) { body = body.substring(1); }
+                    if (!inQuote) { inQuote = true; quoteBuf.setLength(0); }
+                    if (!quoteBuf.isEmpty()) { quoteBuf.append("<br>"); }
+                    quoteBuf.append(body.isEmpty() ? "&nbsp;" : body);
+                } else {
+                    if (inQuote) {
+                        out.append("<blockquote>").append(quoteBuf).append("</blockquote>");
+                        inQuote = false;
+                    }
+                    out.append(line);
+                    if (i < lines.length - 1) { out.append("\n"); }
+                }
+            }
+            if (inQuote) {
+                out.append("<blockquote>").append(quoteBuf).append("</blockquote>");
+            }
+            escaped = out.toString();
+        }
+        // 5) Convert remaining newline characters to <br> so original message line breaks render on HTML
         escaped = escaped.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>");
         return escaped;
     }
