@@ -216,10 +216,10 @@ public class MessageInfo {
         boolean tmpForwarded = false;
         String tmpForwardedHtml = null;
         try {
-            Message ref = msg.getReferencedMessage();
-            if (ref != null && ref.getMessageReference() != null) {
-                tmpForwarded = (ref.getMessageReference().getType() == MessageReference.MessageReferenceType.FORWARD);
-                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref);
+            MessageReference ref = msg.getMessageReference();
+            if (ref != null) {
+                tmpForwarded = (ref.getType() == MessageReference.MessageReferenceType.FORWARD);
+                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref.getMessage());
             }
         } catch (NullPointerException ignore) { }
         this.forwarded = tmpForwarded;
