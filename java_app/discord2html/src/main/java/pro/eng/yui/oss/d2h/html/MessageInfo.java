@@ -11,7 +11,9 @@ import pro.eng.yui.oss.d2h.db.field.AbstName;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -93,6 +95,13 @@ public class MessageInfo {
     }
     public String getUsername() {
         return this.messageUserInfo.getUsername();
+    }
+
+    // Hex color string like #RRGGBB for the display name, derived from the member's highest-colored role.
+    // Null if no colored role or not resolvable (e.g., webhook/external).
+    private final String nameColor;
+    public String getNameColor() {
+        return this.nameColor;
     }
     
     private final String createdTimestamp;
@@ -199,6 +208,17 @@ public class MessageInfo {
         this.contentProcessed = preprocessArchiveText(msg, this.contentRaw);
         this.attachments = msg.getAttachments();
         this.reactions = msg.getReactions();
+        String colorHex = null;
+        try {
+            Member m = msg.getMember();
+            if (m != null) {
+                Color c = m.getColor();
+                if (c != null) {
+                    colorHex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+                }
+            }
+        } catch (Throwable ignore) { /* fallback leaves null */ }
+        this.nameColor = colorHex;
         if(msg.getReferencedMessage() == null) {
             this.refOriginMessageContent = null;
         }else{
