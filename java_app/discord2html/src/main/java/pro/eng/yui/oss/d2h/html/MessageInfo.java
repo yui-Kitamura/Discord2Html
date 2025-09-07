@@ -392,7 +392,21 @@ public class MessageInfo {
                 roleName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
             }
             String placeholder = D2H_INLINE_R_PREFIX + placeholderNonce + "_" + (idx++) + "}}";
-            String html = "<span class=\"mention-role\">" + htmlEscape("@" + roleName) + "</span>";
+            String html;
+            try {
+                Role role = msg.getGuild().getRoleById(id);
+                if (role != null && role.getColor() != null) {
+                    Color rc = role.getColor();
+                    String fg = "#" + String.format("%02x%02x%02x", rc.getRed(), rc.getGreen(), rc.getBlue());
+                    // Compute background with alpha over dark base to keep contrast. Use 0.24 opacity similar to Discord.
+                    String bg = "rgba(" + rc.getRed() + "," + rc.getGreen() + "," + rc.getBlue() + ",0.24)";
+                    html = "<span class=\"mention-role\" style=\"color:" + fg + ";background:" + bg + ";\">" + htmlEscape("@" + roleName) + "</span>";
+                } else {
+                    html = "<span class=\"mention-role\">" + htmlEscape("@" + roleName) + "</span>";
+                }
+            } catch (Throwable t) {
+                html = "<span class=\"mention-role\">" + htmlEscape("@" + roleName) + "</span>";
+            }
             inlineHtmlMap.put(placeholder, html);
             mRole.appendReplacement(sbRole, Matcher.quoteReplacement(placeholder));
         }
