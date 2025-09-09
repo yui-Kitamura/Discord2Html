@@ -52,7 +52,8 @@ public class MessageInfo {
         public int getCount() { return count; }
     }
 
-    
+
+    private static final Gson GSON = new Gson();
     private final String contentRaw;
     private final String contentProcessed;
     private final Map<String, String> msgLinkHtmlMap;
@@ -204,9 +205,14 @@ public class MessageInfo {
     
     /** コンストラクタ */
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
-        Gson gson = new Gson();
-        System.out.println(gson.toJson(msg));
-        
+        if (msg != null) {
+            try {
+                System.out.println(GSON.toJson(msg));
+            } catch (Exception e) {
+                System.err.println("Failed to serialize message: " + e.getMessage());
+            }
+        }
+
         this.msgLinkHtmlMap = new HashMap<>();
         this.inlineHtmlMap = new HashMap<>();
         this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
