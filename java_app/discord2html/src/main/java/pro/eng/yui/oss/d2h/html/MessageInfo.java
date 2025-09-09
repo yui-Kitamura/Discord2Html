@@ -52,8 +52,6 @@ public class MessageInfo {
         public int getCount() { return count; }
     }
 
-
-    private static final Gson GSON = new Gson();
     private final String contentRaw;
     private final String contentProcessed;
     private final Map<String, String> msgLinkHtmlMap;
@@ -206,11 +204,7 @@ public class MessageInfo {
     /** コンストラクタ */
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
         if (msg != null) {
-            try {
-                System.out.println(GSON.toJson(msg));
-            } catch (Exception e) {
-                System.err.println("Failed to serialize message: " + e.getMessage());
-            }
+            System.out.println(formatLinkAuditLine(msg));            
         }
 
         this.msgLinkHtmlMap = new HashMap<>();
@@ -370,6 +364,120 @@ public class MessageInfo {
         }
         return content;
     }
+
+    /**
+     * forward/reply連携を重視した1行監視ログを生成します。
+     * 固定項目は前方、可変のテキストは末尾（PREVIEW）に配置されます。
+     * 例:
+     * TYPE=REPLY | G=123 | C=456 | M=789 | REF_TYPE=REPLY | REF_G=123 | REF_C=456 | REF_M=111 | WEBHOOK=0 | BOT=0 | ATT=1 | EMB=0 | REAC=2 | TS=2025-09-06T12:34:56Z | PREVIEW="Hello world ..."
+     */
+    public static String formatLinkAuditLine(Message msg) {
+        String type = "NORMAL";
+        String refType = "NONE";
+        String guildId = "-";
+        String channelId = "-";
+        String messageId = "-";
+        String refGuildId = "-";
+        String refChannelId = "-";
+        String refMessageId = "-";
+        String ts = "-";
+        int att = 0, emb = 0, reac = 0;
+        int webhook = 0, bot = 0;
+        String preview = "";
+
+        try {
+            messageId = safeStr(() -> msg.getId());
+            ts = safeStr(() -> String.valueOf(msg.getTimeCreated()));
+
+            try {
+                guildId = safeStr(() -> msg.getGuild().getId());
+            } catch (Throwable ignore) { /* DMsなど */ }
+
+            try {
+                channelId = safeStr(() -> msg.getChannel().getId());
+            } catch (Throwable ignore) { }
+
+            try {
+                type = (msg.getMessageReference() != null)
+                        ? ((msg.getMessageReference().getType() == MessageReference.MessageReferenceType.FORWARD) ? "FWD" : "REPLY")
+                        : "NORMAL";
+            } catch (Throwable ignore) { }
+
+            try {
+                MessageReference ref = msg.getMessageReference();
+                if (ref != null) {
+                    try { refType = String.valueOf(ref.getType()); } catch (Throwable ignore) { refType = "UNKNOWN"; }
+                    try { refMessageId = safeStr(ref::getMessageId); } catch (Throwable ignore) { }
+                    try { refChannelId = safeStr(ref::getChannelId); } catch (Throwable ignore) { }
+                    try { refGuildId = safeStr(ref::getGuildId); } catch (Throwable ignore) { }
+                }
+            } catch (Throwable ignore) { }
+
+            try { webhook = bool01(() -> msg.isWebhookMessage()); } catch (Throwable ignore) { }
+            try { bot = bool01(() -> msg.getAuthor() != null && msg.getAuthor().isBot()); } catch (Throwable ignore) { }
+
+            try { att = sizeSafe(msg.getAttachments()); } catch (Throwable ignore) { }
+            try { emb = sizeSafe(msg.getEmbeds()); } catch (Throwable ignore) { }
+            try { reac = sizeSafe(msg.getReactions()); } catch (Throwable ignore) { }
+
+            try { preview = abbreviate(cleanOneLine(extractContentIncludingEmbeds(msg)), 120); } catch (Throwable ignore) { }
+        } catch (Throwable ignore) {
+            // 取り得る最小情報のみ
+        }
+
+        // フィールドは固定順序で前方に、PREVIEWは末尾
+        StringBuilder sb = new StringBuilder(256);
+        sb.append("TYPE=").append(type)
+                .append(" | G=").append(guildId)
+                .append(" | C=").append(channelId)
+                .append(" | M=").append(messageId)
+                .append(" | REF_TYPE=").append(refType)
+                .append(" | REF_G=").append(refGuildId)
+                .append(" | REF_C=").append(refChannelId)
+                .append(" | REF_M=").append(refMessageId)
+                .append(" | WEBHOOK=").append(webhook)
+                .append(" | BOT=").append(bot)
+                .append(" | ATT=").append(att)
+                .append(" | EMB=").append(emb)
+                .append(" | REAC=").append(reac)
+                .append(" | TS=").append(ts)
+                .append(" | PREVIEW=\"").append(escapeForField(preview)).append('"');
+        return sb.toString();
+    }
+
+    // --- 以下は小さな補助 ---
+    private static int sizeSafe(Collection<?> c) { return (c == null) ? 0 : c.size(); }
+
+    private static int bool01(Supplier0<Boolean> s) {
+        try { return Boolean.TRUE.equals(s.get()) ? 1 : 0; } catch (Throwable t) { return 0; }
+    }
+
+    private static String abbreviate(String s, int maxLen) {
+        if (s == null) return "";
+        if (s.length() <= maxLen) return s;
+        return s.substring(0, Math.max(0, maxLen - 3)) + "...";
+    }
+
+    private static String cleanOneLine(String s) {
+        if (s == null) return "";
+        // 改行やタブはスペースに、連続空白は1つへ
+        String x = s.replace("\r", " ").replace("\n", " ").replace("\t", " ");
+        x = x.replaceAll("\\s{2,}", " ").trim();
+        return x;
+    }
+
+    private static String escapeForField(String s) {
+        if (s == null) return "";
+        // 区切り「|」とダブルクォートを視認性の高い別文字に置換
+        return s.replace("|", "¦").replace("\"", "”");
+    }
+
+    private static String safeStr(Supplier0<String> s) {
+        try { return s.get(); } catch (Throwable t) { return "-"; }
+    }
+
+    @FunctionalInterface
+    private interface Supplier0<T> { T get(); }
 
     /** Discord内部リンクの表示形式対応 */
     protected String preprocessArchiveText(Message msg, String text) {
