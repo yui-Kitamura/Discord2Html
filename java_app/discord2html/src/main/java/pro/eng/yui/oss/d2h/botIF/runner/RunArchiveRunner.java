@@ -364,8 +364,6 @@ public class RunArchiveRunner implements IRunner {
         }
         
         ChannelInfo chInfo = new ChannelInfo(channel);
-        System.out.println(chInfo.toString());
-        
         Path generatedFile = fileGenerator.generate(chInfo, messages, beginForOutput, endForOutput, 1);
         generatedFiles.add(generatedFile);
         
