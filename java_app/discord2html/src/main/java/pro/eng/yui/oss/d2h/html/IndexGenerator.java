@@ -144,6 +144,7 @@ public class IndexGenerator {
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
         ctx.setVariable("threadIndexHref", fileUtil.repoBaseWithPrefix() + "/" + threadIndexNorm);
+        ctx.setVariable("backToTopHref", fileUtil.repoBaseWithPrefix() + "/index.html");
         ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", false);
@@ -307,6 +308,7 @@ public class IndexGenerator {
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
         ctx.setVariable("threadIndexHref", fileUtil.repoBaseWithPrefix() + "/archives/" + channelId + "/threads/index.html");
+        ctx.setVariable("backToTopHref", fileUtil.repoBaseWithPrefix() + "/index.html");
         ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", false);
@@ -394,6 +396,7 @@ public class IndexGenerator {
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", true);
         ctx.setVariable("backToTopHref", fileUtil.repoBaseWithPrefix() + "/index.html");
+        ctx.setVariable("backToChannelArchivesHref", fileUtil.repoBaseWithPrefix() + "/archives/" + parentChannelId + ".html");
         ctx.setVariable("isThread", false);
         String page = templateEngine.process("list", ctx);
         fileUtil.writeIfChanged(index, page);
