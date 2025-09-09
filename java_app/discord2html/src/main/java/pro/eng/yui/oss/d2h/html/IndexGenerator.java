@@ -118,17 +118,16 @@ public class IndexGenerator {
             GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, channelId.getValue());
             if (gc != null && !gc.getName().isEmpty()) { displayName = gc.getName(); }
         } catch (Throwable ignore) {}
-        String displayTs;
+        String displayTs = date8;
         try {
+            displayTs = DateTimeUtil.dateOnly().format(DateTimeUtil.folder().parse(date8 + DateTimeUtil.endOfDay));
+            
             String today8 = DateTimeUtil.date8().format(Calendar.getInstance().getTime());
             Path file = archivesRoot.resolve(date8).resolve(channelId.toString() + ".html");
             if (today8.equals(date8) && Files.exists(file)) {
                 displayTs = DateTimeUtil.time().format(new Date(Files.getLastModifiedTime(file).toMillis()));
-            } else {
-                Date endOfDay = DateTimeUtil.folder().parse(date8 + DateTimeUtil.endOfDay);
-                displayTs = DateTimeUtil.dateOnly().format(endOfDay);
             }
-        } catch (Exception e) { displayTs = date8; }
+        } catch (Exception ignore) { }
         List<FileGenerateUtil.Link> items = new ArrayList<>();
         items.add(new FileGenerateUtil.Link(href, displayTs, "d-"+date8));
         Path channelArchive = archivesRoot.resolve(channelId.toString() + ".html");
