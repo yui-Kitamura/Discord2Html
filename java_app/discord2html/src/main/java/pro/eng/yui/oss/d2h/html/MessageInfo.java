@@ -1,5 +1,6 @@
 package pro.eng.yui.oss.d2h.html;
 
+import com.google.gson.Gson;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
@@ -203,6 +204,9 @@ public class MessageInfo {
     
     /** コンストラクタ */
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
+        Gson gson = new Gson();
+        System.out.println(gson.toJson(msg));
+        
         this.msgLinkHtmlMap = new HashMap<>();
         this.inlineHtmlMap = new HashMap<>();
         this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
