@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import org.jetbrains.annotations.Contract;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
 import pro.eng.yui.oss.d2h.db.model.Users;
@@ -193,6 +194,12 @@ public class MessageInfo {
     public String getRefOriginMessageContent(){
         return this.refOriginMessageContent;
     }
+
+    // Forwarded message support
+    private final boolean forwarded;
+    private final String forwardedHtml; // prebuilt HTML block for a forwarded source (blockquote)
+    public boolean isForwarded() { return this.forwarded; }
+    public String getForwardedHtml() { return this.forwardedHtml; }
     
     /** コンストラクタ */
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
@@ -225,6 +232,18 @@ public class MessageInfo {
             String content = extractContentIncludingEmbeds(msg.getReferencedMessage());
             this.refOriginMessageContent = content.length() > 30 ? content.substring(0, 30) : content;
         }
+        // Determine forwarded status and build forwarded HTML
+        boolean tmpForwarded = false;
+        String tmpForwardedHtml = null;
+        try {
+            MessageReference ref = msg.getMessageReference();
+            if (ref != null) {
+                tmpForwarded = (ref.getType() == MessageReference.MessageReferenceType.FORWARD);
+                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref.getMessage());
+            }
+        } catch (NullPointerException ignore) { }
+        this.forwarded = tmpForwarded;
+        this.forwardedHtml = tmpForwardedHtml;
     }
     
     @Contract("_ -> new")
@@ -251,7 +270,35 @@ public class MessageInfo {
             m.appendTail(sb);
             escaped = sb.toString();
         }
-        // 4) Convert newline characters to <br> so original message line breaks render on HTML
+        // 4) Blockquote: lines starting with '>' become <blockquote>...</blockquote> and consecutive lines are grouped
+        {
+            String[] lines = escaped.replace("\r\n", "\n").replace("\r", "\n").split("\n", -1);
+            StringBuilder out = new StringBuilder();
+            boolean inQuote = false;
+            StringBuilder quoteBuf = new StringBuilder();
+            for (int i = 0; i < lines.length; i++) {
+                String line = lines[i];
+                if (line.startsWith("&gt;")) { // original '>' escaped to &gt;
+                    String body = line.substring(4); // remove '&gt;'
+                    if (body.startsWith(" ")) { body = body.substring(1); }
+                    if (!inQuote) { inQuote = true; quoteBuf.setLength(0); }
+                    if (!quoteBuf.isEmpty()) { quoteBuf.append("<br>"); }
+                    quoteBuf.append(body.isEmpty() ? "&nbsp;" : body);
+                } else {
+                    if (inQuote) {
+                        out.append("<blockquote>").append(quoteBuf).append("</blockquote>");
+                        inQuote = false;
+                    }
+                    out.append(line);
+                    if (i < lines.length - 1) { out.append("\n"); }
+                }
+            }
+            if (inQuote) {
+                out.append("<blockquote>").append(quoteBuf).append("</blockquote>");
+            }
+            escaped = out.toString();
+        }
+        // 5) Convert remaining newline characters to <br> so original message line breaks render on HTML
         escaped = escaped.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>");
         return escaped;
     }
@@ -275,9 +322,9 @@ public class MessageInfo {
 
     private static String extractContentIncludingEmbeds(Message msg) {
         String content = msg.getContentRaw();
-        if (content == null || content.trim().isEmpty()) {
+        if (content.trim().isEmpty()) {
             List<MessageEmbed> embeds = msg.getEmbeds();
-            if (embeds != null && !embeds.isEmpty()) {
+            if (!embeds.isEmpty()) {
                 StringBuilder sb = new StringBuilder();
                 for (MessageEmbed e : embeds) {
                     if (e.getTitle() != null && !e.getTitle().isEmpty()) {
@@ -287,17 +334,15 @@ public class MessageInfo {
                         sb.append(e.getDescription()).append("\n");
                     }
                     List<MessageEmbed.Field> fields = e.getFields();
-                    if (fields != null) {
-                        for (MessageEmbed.Field f : fields) {
-                            if (f == null) continue;
-                            boolean hasName = f.getName() != null && !f.getName().isEmpty();
-                            boolean hasValue = f.getValue() != null && !f.getValue().isEmpty();
-                            if (hasName || hasValue) {
-                                if (hasName) sb.append(f.getName());
-                                if (hasName && hasValue) sb.append(": ");
-                                if (hasValue) sb.append(f.getValue());
-                                sb.append("\n");
-                            }
+                    for (MessageEmbed.Field f : fields) {
+                        if (f == null) continue;
+                        boolean hasName = f.getName() != null && !f.getName().isEmpty();
+                        boolean hasValue = f.getValue() != null && !f.getValue().isEmpty();
+                        if (hasName || hasValue) {
+                            if (hasName) sb.append(f.getName());
+                            if (hasName && hasValue) sb.append(": ");
+                            if (hasValue) sb.append(f.getValue());
+                            sb.append("\n");
                         }
                     }
                     if (e.getFooter() != null && e.getFooter().getText() != null && !e.getFooter().getText().isEmpty()) {
@@ -313,7 +358,6 @@ public class MessageInfo {
                 content = sb.toString().trim();
             }
         }
-        if (content == null) content = "";
         return content;
     }
 
@@ -335,7 +379,7 @@ public class MessageInfo {
         int idx = 0;
         Pattern p = Pattern.compile("(?<![\\w@.#])@(everyone|here)(?![\\w@])");
         Matcher m = p.matcher(text);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (m.find()) {
             String token = m.group(1);
             String label = "@" + token; // exactly as typed
@@ -380,7 +424,7 @@ public class MessageInfo {
         // Roles: <@&456>
         Pattern pRole = Pattern.compile("<@&([0-9]+)>");
         Matcher mRole = pRole.matcher(out);
-        StringBuffer sbRole = new StringBuffer();
+        StringBuilder sbRole = new StringBuilder();
         while (mRole.find()) {
             String id = mRole.group(1);
             String roleName = null;
@@ -504,16 +548,18 @@ public class MessageInfo {
     private String formatChannelDisplay(GuildChannel chAny, Message msg) {
         // Builds display including leading '#', handling threads and cross-guild.
         try {
-            boolean sameGuild = chAny.getGuild() != null && msg.getGuild() != null && chAny.getGuild().getIdLong() == msg.getGuild().getIdLong();
+            boolean sameGuild = chAny.getGuild().getIdLong() == msg.getGuild().getIdLong();
             String chName = null;
             try { chName = chAny.getName(); } catch (Throwable ignore) { }
             String threadSuffix = null;
             try {
-                if (chAny.getType() != null && chAny.getType().isThread()) {
-                    net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel tc = (net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel) chAny;
+                if (chAny.getType().isThread()) {
+                    ThreadChannel tc = (ThreadChannel) chAny;
                     String parentName = null;
-                    try { parentName = tc.getParentChannel() != null ? tc.getParentChannel().getName() : null; } catch (Throwable ignore) { }
-                    if (parentName == null || parentName.isBlank()) { parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                    try { parentName = tc.getParentChannel().getName(); } catch (Throwable ignore) { }
+                    if (parentName == null || parentName.isBlank()) { 
+                        parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; 
+                    }
                     String threadName = (chName == null || chName.isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chName;
                     threadSuffix = parentName + ">" + threadName;
                 }
@@ -542,7 +588,7 @@ public class MessageInfo {
         Pattern p = Pattern.compile("https?://(?:(?:canary|ptb)\\.)?discord(?:app)?\\.com/channels/([0-9@me]+)/([0-9]+)/([0-9]+)");
         Matcher m = p.matcher(text);
         int idx = 0;
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (m.find()) {
             String guildIdStr = m.group(1);
             String channelIdStr = m.group(2);
@@ -652,5 +698,65 @@ public class MessageInfo {
         }
         m.appendTail(sb);
         return sb.toString();
+    }
+
+    private String buildForwardedBlockquoteHtml(Guild current, Message forwarded) {
+        try {
+            // Build origin displays similar to buildMsgLinkSpanFor but using snapshot APIs
+            String chDisplay = "";
+            String timeDisplay = "";
+            try {
+                MessageChannelUnion chAny = forwarded.getChannel();
+                boolean sameGuild = true;
+                try {
+                    Guild g2 = forwarded.getGuild();
+                    sameGuild = (current.getIdLong() == g2.getIdLong());
+                } catch (Throwable ignore) { }
+                String threadSuffix = null;
+                try {
+                    if (chAny.getType().isThread()) {
+                        ThreadChannel tc = (ThreadChannel) chAny;
+                        String parentName = tc.getParentChannel().getName();
+                        if (parentName.isBlank()) { parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                        String threadName = (chAny.getName().isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chAny.getName();
+                        threadSuffix = parentName + ">" + threadName;
+                    }
+                } catch (Throwable ignore) { }
+                if (!sameGuild) {
+                    String guildName = null;
+                    try { guildName = forwarded.getGuild().getName(); } catch (Throwable ignore) { }
+                    if (guildName == null || guildName.isBlank()) {
+                        guildName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; 
+                    }
+                    String body = (threadSuffix != null) ? threadSuffix : (chAny != null ? chAny.getName() : (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED));
+                    if (body.isBlank()) { body = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                    chDisplay = guildName + ">" + body;
+                } else {
+                    if (threadSuffix != null) {
+                        chDisplay = threadSuffix;
+                    } else {
+                        String name = null;
+                        try { name = chAny != null ? chAny.getName() : null; } catch (Throwable ignore) { }
+                        if (name == null || name.isBlank()) { name = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                        chDisplay = name;
+                    }
+                }
+                try {
+                    Date d = Date.from(forwarded.getTimeCreated().toInstant());
+                    String full = DateTimeUtil.time().format(d);
+                    timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
+                } catch (Throwable ignore) { }
+            } catch (Throwable ignore) { }
+            String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
+            String contentRaw = forwarded.getContentRaw();
+            String bodyProcessed = preprocessArchiveText(forwarded, contentRaw);
+            String bodyHtml = toHtmlWithLinks(bodyProcessed);
+            return "<blockquote class=\"forwarded\">"
+                   + bodyHtml
+                   + "<cite>" + origin + "</cite>"
+                   + "</blockquote>";
+        } catch (Throwable t) {
+            return null;
+        }
     }
 }

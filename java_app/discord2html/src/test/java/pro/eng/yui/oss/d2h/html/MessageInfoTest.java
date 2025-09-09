@@ -110,4 +110,25 @@ class MessageInfoTest {
         String out = MessageInfo.toHtmlWithLinks(in);
         assertEquals("See <a href=\"https://example.com/path#id\">https://example.com/path#id</a>(lbl)", out);
     }
+    
+    @Test
+    void blockquoteSimpleAndGrouping() {
+        String in = "> quote line 1\n> quote line 2\nnormal";
+        String out = MessageInfo.toHtmlWithLinks(in);
+        assertEquals("<blockquote>quote line 1<br>quote line 2</blockquote>normal", out);
+    }
+
+    @Test
+    void blockquoteAllowsLeadingSpaceAfterMarker() {
+        String in = ">  spaced\ntext";
+        String out = MessageInfo.toHtmlWithLinks(in);
+        assertEquals("<blockquote> spaced</blockquote>text", out);
+    }
+
+    @Test
+    void blockquoteMixedQuotedNormalQuoted() {
+        String in = "> quoted message line\nnormal line\n> another quote";
+        String out = MessageInfo.toHtmlWithLinks(in);
+        assertEquals("<blockquote>quoted message line</blockquote>normal line<br><blockquote>another quote</blockquote>", out);
+    }
 }

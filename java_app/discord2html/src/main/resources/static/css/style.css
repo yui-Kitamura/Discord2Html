@@ -143,6 +143,21 @@ section {
     margin-top: 6px;
 }
 
+blockquote {
+  border-left: 3px solid #4b4f56;
+  padding-left: .6em;
+  margin: .2em 0 .6em;
+  color: var(--text);
+  background: #2b2f33;
+  border-radius: 4px;
+}
+blockquote cite {
+  display: block;
+  margin-top: .4em;
+  font-size: .85em;
+  color: var(--muted);
+}
+
 /* Reactions */
 .reactions {
     margin-top: 6px;

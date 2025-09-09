@@ -39,6 +39,7 @@
         <span class="author" th:text="${msg.getUsername()}" th:style="${msg.nameColor} != null ? 'color:' + msg.nameColor : null">ユーザー名</span>
         <span class="timestamp" th:text="${msg.getCreatedTimestamp()}">日付</span>
       </div>
+      <div th:if="${msg.isForwarded()}" th:utext="${msg.getForwardedHtml()}"></div>
       <div class="content" th:utext="${msg.getContentHtml()}">メッセージ</div>
       <div class="attachments" th:if="${msg.getAttachments() != null and !#lists.isEmpty(msg.getAttachments())}">
         <div th:each="att : ${msg.getAttachments()}">
