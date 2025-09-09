@@ -874,6 +874,7 @@ public class MessageInfo {
                    + "<cite>" + origin + "</cite>"
                    + "</blockquote>";
         } catch (Throwable t) {
+            t.printStackTrace();
             return null;
         }
     }
