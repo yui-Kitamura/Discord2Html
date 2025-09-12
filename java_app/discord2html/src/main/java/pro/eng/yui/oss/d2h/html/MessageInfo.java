@@ -819,6 +819,16 @@ public class MessageInfo {
     }
 
     private String buildForwardedBlockquoteHtml(Guild current, MessageReference forwarded) {
+        Message refMessage = null;
+        try {
+            MessageChannelUnion channel = forwarded.getChannel();
+            if (channel != null) {
+                refMessage = channel.retrieveMessageById(forwarded.getMessageId()).complete();
+            }
+        } catch (Throwable t) {
+            t.printStackTrace();
+            return null;
+        }
         try {
             // Build origin displays similar to buildMsgLinkSpanFor but using snapshot APIs
             String chDisplay = "";
@@ -860,14 +870,14 @@ public class MessageInfo {
                     }
                 }
                 try {
-                    Date d = Date.from(forwarded.getMessage().getTimeCreated().toInstant());
+                    Date d = refMessage != null ? Date.from(refMessage.getTimeCreated().toInstant()) : new Date();
                     String full = DateTimeUtil.time().format(d);
                     timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
                 } catch (Throwable ignore) { }
             } catch (Throwable ignore) { }
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
-            String contentRaw = forwarded.getMessage().getContentRaw();
-            String bodyProcessed = preprocessArchiveText(forwarded.getMessage(), contentRaw);
+            String contentRaw = refMessage != null ? refMessage.getContentRaw() : null;
+            String bodyProcessed = preprocessArchiveText(refMessage, contentRaw);
             String bodyHtml = toHtmlWithLinks(bodyProcessed);
             return "<blockquote class=\"forwarded\">"
                    + bodyHtml
