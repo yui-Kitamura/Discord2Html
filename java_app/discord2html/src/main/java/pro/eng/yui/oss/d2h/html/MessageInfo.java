@@ -243,7 +243,7 @@ public class MessageInfo {
             MessageReference ref = msg.getMessageReference();
             if (ref != null) {
                 tmpForwarded = (ref.getType() == MessageReference.MessageReferenceType.FORWARD);
-                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref.getMessage());
+                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), msg);
             }
         } catch (NullPointerException ignore) { }
         this.forwarded = tmpForwarded;
