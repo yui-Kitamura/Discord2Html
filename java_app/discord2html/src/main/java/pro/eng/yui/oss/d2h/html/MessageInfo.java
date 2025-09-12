@@ -203,10 +203,6 @@ public class MessageInfo {
     
     /** コンストラクタ */
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
-        if (msg != null) {
-            System.out.println(formatLinkAuditLine(msg));            
-        }
-
         this.msgLinkHtmlMap = new HashMap<>();
         this.inlineHtmlMap = new HashMap<>();
         this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
@@ -820,15 +816,16 @@ public class MessageInfo {
 
     private String buildForwardedBlockquoteHtml(Guild current, MessageReference forwarded) {
         Message refMessage = null;
-        try {
-            MessageChannelUnion channel = forwarded.getChannel();
-            if (channel != null) {
-                refMessage = channel.retrieveMessageById(forwarded.getMessageId()).complete();
-            }
-        } catch (Throwable t) {
-            t.printStackTrace();
-            return null;
+        MessageChannelUnion channel = forwarded.getChannel();
+        if (channel != null) {
+            refMessage = channel.retrieveMessageById(forwarded.getMessageId()).complete();
         }
+
+        //debug
+        if (refMessage != null) {
+            System.out.println(formatLinkAuditLine(refMessage));
+        }
+        
         try {
             // Build origin displays similar to buildMsgLinkSpanFor but using snapshot APIs
             String chDisplay = "";
