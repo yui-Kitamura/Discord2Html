@@ -243,7 +243,7 @@ public class MessageInfo {
             MessageReference ref = msg.getMessageReference();
             if (ref != null) {
                 tmpForwarded = (ref.getType() == MessageReference.MessageReferenceType.FORWARD);
-                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), msg);
+                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref);
             }
         } catch (NullPointerException ignore) { }
         this.forwarded = tmpForwarded;
@@ -818,7 +818,7 @@ public class MessageInfo {
         return sb.toString();
     }
 
-    private String buildForwardedBlockquoteHtml(Guild current, Message forwarded) {
+    private String buildForwardedBlockquoteHtml(Guild current, MessageReference forwarded) {
         try {
             // Build origin displays similar to buildMsgLinkSpanFor but using snapshot APIs
             String chDisplay = "";
@@ -860,14 +860,14 @@ public class MessageInfo {
                     }
                 }
                 try {
-                    Date d = Date.from(forwarded.getTimeCreated().toInstant());
+                    Date d = Date.from(forwarded.getMessage().getTimeCreated().toInstant());
                     String full = DateTimeUtil.time().format(d);
                     timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
                 } catch (Throwable ignore) { }
             } catch (Throwable ignore) { }
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
-            String contentRaw = forwarded.getContentRaw();
-            String bodyProcessed = preprocessArchiveText(forwarded, contentRaw);
+            String contentRaw = forwarded.getMessage().getContentRaw();
+            String bodyProcessed = preprocessArchiveText(forwarded.getMessage(), contentRaw);
             String bodyHtml = toHtmlWithLinks(bodyProcessed);
             return "<blockquote class=\"forwarded\">"
                    + bodyHtml
