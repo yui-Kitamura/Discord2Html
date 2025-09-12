@@ -1,6 +1,5 @@
 package pro.eng.yui.oss.d2h.html;
 
-import com.google.gson.Gson;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
@@ -241,7 +240,7 @@ public class MessageInfo {
                 tmpForwarded = (ref.getType() == MessageReference.MessageReferenceType.FORWARD);
                 tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref);
             }
-        } catch (NullPointerException ignore) { }
+        } catch (NullPointerException npe) { npe.printStackTrace(); }
         this.forwarded = tmpForwarded;
         this.forwardedHtml = tmpForwardedHtml;
     }
