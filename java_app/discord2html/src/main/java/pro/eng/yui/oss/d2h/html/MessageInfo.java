@@ -2,7 +2,9 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.StandardGuildChannel;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
+import net.dv8tion.jda.api.entities.messages.MessageSnapshot;
 import org.jetbrains.annotations.Contract;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
 import pro.eng.yui.oss.d2h.db.model.Users;
@@ -51,7 +53,6 @@ public class MessageInfo {
         public int getCount() { return count; }
     }
 
-    
     private final String contentRaw;
     private final String contentProcessed;
     private final Map<String, String> msgLinkHtmlMap;
@@ -237,11 +238,11 @@ public class MessageInfo {
         String tmpForwardedHtml = null;
         try {
             MessageReference ref = msg.getMessageReference();
-            if (ref != null) {
-                tmpForwarded = (ref.getType() == MessageReference.MessageReferenceType.FORWARD);
-                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref.getMessage());
+            if (ref != null && ref.getType() == MessageReference.MessageReferenceType.FORWARD) {
+                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), msg);
+                tmpForwarded = true;
             }
-        } catch (NullPointerException ignore) { }
+        } catch (Throwable t) { t.printStackTrace(); }
         this.forwarded = tmpForwarded;
         this.forwardedHtml = tmpForwardedHtml;
     }
@@ -700,63 +701,92 @@ public class MessageInfo {
         return sb.toString();
     }
 
-    private String buildForwardedBlockquoteHtml(Guild current, Message forwarded) {
+    private String buildForwardedMessageHtml(Guild current, Message forwarded, MessageSnapshot snapshot) {
+        if (snapshot == null) {
+            return null;
+        }
+
         try {
-            // Build origin displays similar to buildMsgLinkSpanFor but using snapshot APIs
-            String chDisplay = "";
+            Message refMessage = null;
+            try {
+                refMessage = forwarded.getReferencedMessage();
+            } catch (Throwable ignore) {
+            }
+
+            String chDisplay;
             String timeDisplay = "";
             try {
                 MessageChannelUnion chAny = forwarded.getChannel();
                 boolean sameGuild = true;
                 try {
                     Guild g2 = forwarded.getGuild();
-                    sameGuild = (current.getIdLong() == g2.getIdLong());
+                    sameGuild = (current != null && (current.getIdLong() == g2.getIdLong()));
                 } catch (Throwable ignore) { }
                 String threadSuffix = null;
                 try {
                     if (chAny.getType().isThread()) {
                         ThreadChannel tc = (ThreadChannel) chAny;
                         String parentName = tc.getParentChannel().getName();
-                        if (parentName.isBlank()) { parentName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
-                        String threadName = (chAny.getName().isBlank()) ? (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED) : chAny.getName();
+                        if (parentName.isBlank()) { parentName = AbstName.UNKNOWN; }
+                        String threadName = (chAny.getName().isBlank()) ? AbstName.UNKNOWN : chAny.getName();
                         threadSuffix = parentName + ">" + threadName;
                     }
                 } catch (Throwable ignore) { }
                 if (!sameGuild) {
-                    String guildName = null;
-                    try { guildName = forwarded.getGuild().getName(); } catch (Throwable ignore) { }
-                    if (guildName == null || guildName.isBlank()) {
-                        guildName = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; 
-                    }
-                    String body = (threadSuffix != null) ? threadSuffix : (chAny != null ? chAny.getName() : (AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED));
-                    if (body.isBlank()) { body = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
-                    chDisplay = guildName + ">" + body;
+                    String guildName = "";
+                    try {
+                        guildName = forwarded.getGuild().getName();
+                    } catch (Throwable ignore) { }
+                    if (guildName.isBlank()) { guildName = AbstName.UNKNOWN; }
+                    String chName = (threadSuffix != null) ? threadSuffix : chAny.getName();
+                    if (chName.isBlank()) { chName = AbstName.UNKNOWN; }
+                    chDisplay = guildName + ">" + chName;
                 } else {
                     if (threadSuffix != null) {
                         chDisplay = threadSuffix;
                     } else {
-                        String name = null;
-                        try { name = chAny != null ? chAny.getName() : null; } catch (Throwable ignore) { }
-                        if (name == null || name.isBlank()) { name = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED; }
+                        String name = "";
+                        try { name = chAny.getName(); } catch (Throwable ignore) { }
+                        if (name.isBlank()) { name = AbstName.UNKNOWN; }
                         chDisplay = name;
                     }
                 }
                 try {
-                    Date d = Date.from(forwarded.getTimeCreated().toInstant());
+                    Date d = Date.from(refMessage.getTimeCreated().toInstant());
                     String full = DateTimeUtil.time().format(d);
                     timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
-                } catch (Throwable ignore) { }
-            } catch (Throwable ignore) { }
+                } catch (NullPointerException ignore) { }
+            } catch (Throwable ignore) { chDisplay = ChannelName.UNKNOWN; }
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
-            String contentRaw = forwarded.getContentRaw();
-            String bodyProcessed = preprocessArchiveText(forwarded, contentRaw);
-            String bodyHtml = toHtmlWithLinks(bodyProcessed);
+
+            String bodyHtml = toHtmlWithLinks(preprocessArchiveText(refMessage, snapshot.getContentRaw()));
+
+            System.out.println(bodyHtml);
+            System.out.println(origin);
+            
             return "<blockquote class=\"forwarded\">"
-                   + bodyHtml
-                   + "<cite>" + origin + "</cite>"
-                   + "</blockquote>";
+                    + bodyHtml
+                    + "<cite>" + origin + "</cite>"
+                    + "</blockquote>";
         } catch (Throwable t) {
+            t.printStackTrace();
             return null;
         }
+    }
+
+    private String buildForwardedBlockquoteHtml(Guild current, Message message) {
+        List<MessageSnapshot> forwarded = message.getMessageSnapshots();
+        if (forwarded.isEmpty()) {
+            return null;
+        }
+
+        StringBuilder html = new StringBuilder();
+        for (MessageSnapshot snapshot : forwarded) {
+            String messageHtml = buildForwardedMessageHtml(current, message, snapshot);
+            if (messageHtml != null) {
+                html.append(messageHtml);
+            }
+        }
+        return (html.isEmpty() == false) ? html.toString() : null;
     }
 }
