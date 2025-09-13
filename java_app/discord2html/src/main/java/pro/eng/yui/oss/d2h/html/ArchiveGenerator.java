@@ -20,7 +20,7 @@ import java.util.*;
  */
 @Component
 public class ArchiveGenerator {
-    private static final String TEMPLATE_NAME = "message";
+    private static final String TEMPLATE_NAME = "daily";
     private static final String THREAD_TEMPLATE_NAME = "thread_message";
 
     private final ApplicationConfig appConfig;
