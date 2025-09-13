@@ -705,10 +705,7 @@ public class MessageInfo {
         }
         Message refMessage = null;
         try {
-            MessageChannelUnion channel = forwarded.getChannel();
-            if (channel != null) {
-                refMessage = channel.retrieveMessageById(forwarded.getMessageId()).complete();
-            }
+            refMessage = forwarded.getMessage();
         } catch (Throwable ignore) { }
 
         try {
