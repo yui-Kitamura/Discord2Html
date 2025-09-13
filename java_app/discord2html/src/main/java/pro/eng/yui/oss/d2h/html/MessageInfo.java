@@ -242,7 +242,7 @@ public class MessageInfo {
                 tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), msg);
                 tmpForwarded = true;
             }
-        } catch (Throwable ignore) { ignore.printStackTrace(); }
+        } catch (Throwable t) { t.printStackTrace(); }
         this.forwarded = tmpForwarded;
         this.forwardedHtml = tmpForwardedHtml;
     }
