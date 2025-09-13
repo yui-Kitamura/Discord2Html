@@ -240,7 +240,7 @@ public class MessageInfo {
                 tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), ref);
                 tmpForwarded = true;
             }
-        } catch (Throwable ignore) { }
+        } catch (Throwable ignore) { ignore.printStackTrace(); }
         this.forwarded = tmpForwarded;
         this.forwardedHtml = tmpForwardedHtml;
     }
@@ -754,6 +754,10 @@ public class MessageInfo {
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
             String bodyProcessed = preprocessArchiveText(refMessage, extractContentIncludingEmbeds(refMessage));
             String bodyHtml = toHtmlWithLinks(bodyProcessed);
+            
+            System.out.println(bodyHtml);
+            System.out.println(origin);
+            
             return "<blockquote class=\"forwarded\">"
                    + bodyHtml
                    + "<cite>" + origin + "</cite>"
