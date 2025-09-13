@@ -24,7 +24,7 @@
     <span> 〜 </span>
     <span th:text="${end}">end</span>
   </div>
-  <div th:if="${activeThreads != null and !#lists.isEmpty(activeThreads)}" class="active-threads">
+  <div th:if="${activeThreads} != null and !${#lists.isEmpty(activeThreads)}" class="active-threads">
     <h2>アクティブなスレッド</h2>
     <ul>
       <li th:each="t : ${activeThreads}"><a th:href="${t.href}" th:text="${t.label}">thread</a></li>
@@ -38,12 +38,12 @@
     <img class="avatar" th:src="${msg.getAvatarUrl()}" alt="avatar"/>
     <div>
       <div class="meta">
-        <span class="author" th:text="${msg.getUsername()}" th:style="${msg.getNameColor() != null ? 'color:' + msg.getNameColor() : null}">ユーザー名</span>
+        <span class="author" th:text="${msg.getUsername()}" th:style="${msg.getNameColor()} != null ? 'color:' + ${msg.getNameColor()} : null">ユーザー名</span>
         <span class="timestamp" th:text="${msg.getCreatedTimestamp()}">日付</span>
       </div>
       <div th:if="${msg.isForwarded()}" th:utext="${msg.getForwardedHtml()}"></div>
       <div class="content" th:utext="${msg.getContentHtml()}">メッセージ</div>
-      <div class="attachments" th:if="${msg.getAttachments() != null and !#lists.isEmpty(msg.getAttachments())}">
+      <div class="attachments" th:if="${msg.getAttachments()} != null and !${#lists.isEmpty(msg.getAttachments())}">
         <div th:each="att : ${msg.getAttachments()}">
           <div th:if="${att.isImage()}">
             <a th:href="${att.getUrl()}" target="_blank" rel="noopener">
