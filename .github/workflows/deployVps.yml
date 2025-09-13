@@ -61,13 +61,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           script: |
             cd /home/ubuntu/java_app/discord2html/target
-            # 最新JARを特定（更新日時降順の先頭）
-            LATEST_JAR="$(ls -t1 discord2html-*.jar | head -n 1)"
-            # 一時名に配置してから原子的に置換
-            sudo rm -f discord2html-latest.jar.new
-            sudo cp -f "$LATEST_JAR" discord2html-latest.jar.new
-            sudo chmod 0644 discord2html-latest.jar.new
-            sudo mv -f discord2html-latest.jar.new discord2html-latest.jar
-            # 再起動
+            sudo rm -f discord2html-latest.jar
+            sudo ln -sf $(ls -1 discord2html-*.jar | sort | tail -n 1) discord2html-latest.jar
             sudo systemctl restart discord2html
           
