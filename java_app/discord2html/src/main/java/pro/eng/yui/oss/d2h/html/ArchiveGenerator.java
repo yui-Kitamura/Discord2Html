@@ -8,7 +8,6 @@ import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
-import pro.eng.yui.oss.d2h.github.GitConfig;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -24,19 +23,17 @@ public class ArchiveGenerator {
     private static final String THREAD_TEMPLATE_NAME = "thread_message";
 
     private final ApplicationConfig appConfig;
-    private final GitConfig gitConfig;
     private final TemplateEngine templateEngine;
     private final DiscordJdaProvider jdaProvider;
     private final FileGenerateUtil fileUtil;
     private final IndexGenerator indexGenerator;
     private final String botVersion;
 
-    public ArchiveGenerator(ApplicationConfig appConfig, Secrets secrets, GitConfig gitConfig,
+    public ArchiveGenerator(ApplicationConfig appConfig, Secrets secrets,
                             TemplateEngine templateEngine,
                             DiscordJdaProvider jdaProvider, FileGenerateUtil fileUtil,
                             IndexGenerator indexGenerator) {
         this.appConfig = appConfig;
-        this.gitConfig = gitConfig;
         this.templateEngine = templateEngine;
         this.jdaProvider = jdaProvider;
         this.fileUtil = fileUtil;
