@@ -38,14 +38,12 @@ public class ChannelInfo {
         this.name = ch.getName();
         this.guildId = ch.getGuild().getIdLong();
         this.channelId = new ChannelId(ch);
-        this.thread = ch.getType() != null && ch.getType().isThread();
+        this.thread = ch.getType().isThread();
         if (this.thread) {
             try {
                 ThreadChannel tc = (ThreadChannel) ch;
-                if (tc.getParentChannel() != null) {
-                    this.parentChannelName = tc.getParentChannel().getName();
-                    this.parentChannelId = new ChannelId(tc.getParentChannel());
-                }
+                this.parentChannelName = tc.getParentChannel().getName();
+                this.parentChannelId = new ChannelId(tc.getParentChannel());
             } catch (ClassCastException ignore) {
                 // fallback: leave parent fields null
             }
