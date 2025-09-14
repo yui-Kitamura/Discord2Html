@@ -225,7 +225,7 @@ public class MessageInfo {
                     colorHex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
                 }
             }
-        } catch (Throwable ignore) { /* fallback leaves null */ }
+        } catch (Throwable ignore) { ignore.printStackTrace(); }
         this.nameColor = colorHex;
         if(msg.getReferencedMessage() == null) {
             this.refOriginMessageContent = null;
