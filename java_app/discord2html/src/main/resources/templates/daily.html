@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title th:text="${channel.name} + ' のアーカイブ'">アーカイブ</title>
+  <title th:text="${channelName} + ' のアーカイブ'">アーカイブ</title>
   <link rel="stylesheet" href="/Discord2Html/css/style.css" />
   <link rel="icon" th:if="${guildIconUrl}" th:href="${guildIconUrl}" />
   <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
@@ -16,7 +16,7 @@
   </nav>
   <div class="guild-header">
     <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="${guildName} + ' アイコン'" />
-    <h1 th:text="${humanDate + ' ' + channel.name + ' のアーカイブ'}">Daily Archive</h1>
+    <h1 th:text="${humanDate + ' ' + channelName + ' のアーカイブ'}">Daily Archive</h1>
   </div>
   <div class="meta">
     <span>期間: </span>
