@@ -16,7 +16,7 @@
   </nav>
   <div class="guild-header">
     <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="${guildName} + ' アイコン'" />
-    <h1 th:text="${humanDate} + ' '+ ${channel.name} + ' のアーカイブ'">Daily Archive</h1>
+    <h1 th:text="${humanDate + ' ' + channel.name + ' のアーカイブ'}">Daily Archive</h1>
   </div>
   <div class="meta">
     <span>期間: </span>
