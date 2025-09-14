@@ -19,7 +19,6 @@ import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.Secrets;
-import pro.eng.yui.oss.d2h.github.GitConfig;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -40,14 +39,12 @@ public class IndexGenerator {
     private final ChannelsDAO channelsDao;
     private final DiscordJdaProvider jdaProvider;
     private final String botVersion;
-    private final GitConfig gitConfig;
     private final FileGenerateUtil fileUtil;
 
-    public IndexGenerator(ApplicationConfig config, Secrets secrets, GitConfig gitConfig, TemplateEngine templateEngine,
+    public IndexGenerator(ApplicationConfig config, Secrets secrets, TemplateEngine templateEngine,
                           GuildsDAO guildsDao, ChannelsDAO channelsDao,
                           DiscordJdaProvider jdaProvider, FileGenerateUtil fileUtil) {
         this.appConfig = config;
-        this.gitConfig = gitConfig;
         this.templateEngine = templateEngine;
         this.guildsDao = guildsDao;
         this.channelsDao = channelsDao;
