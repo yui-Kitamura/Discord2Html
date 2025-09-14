@@ -137,22 +137,6 @@ public class ArchiveGenerator {
             // best-effort: do not block generation
         }
 
-        // Update per-day (date8) index for all affected dates
-        try {
-            for (String d8 : affectedDate8) {
-                // Use a calendar set to the date for regenerateDailyIndex
-                Calendar any = Calendar.getInstance(DateTimeUtil.JST);
-                any.set(Integer.parseInt(d8.substring(0,4)),
-                        Integer.parseInt(d8.substring(4,6)) - 1,
-                        Integer.parseInt(d8.substring(6,8)),
-                        0,0,0);
-                any.set(Calendar.MILLISECOND, 0);
-                indexGenerator.regenerateDailyIndex(guildId, channel.getChannelId(), any);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to regenerate daily index page(s)", e);
-        }
-
         // After generating archive page(s), update listing pages by prepending new links without scanning directories
         try {
             // Prepend per-channel archive links for each affected date
@@ -208,7 +192,7 @@ public class ArchiveGenerator {
             if (channel.getParentChannelId() != null) {
                 indexGenerator.regenerateThreadIndex(guildId, channel.getParentChannelId());
                 // Also ensure the parent channel's archive list page exists/updated
-                indexGenerator.regenerateChannelArchives(guildId, channel.getParentChannelId());
+                indexGenerator.regenerateChannelIndex(guildId, channel.getParentChannelId());
             }
         } catch (IOException ioe) {
             throw new RuntimeException("Failed to regenerate thread index", ioe);
