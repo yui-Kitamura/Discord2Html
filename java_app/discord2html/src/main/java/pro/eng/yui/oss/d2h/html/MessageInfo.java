@@ -69,13 +69,21 @@ public class MessageInfo {
     public String getContentHtml() {
         String base = (this.contentProcessed != null) ? this.contentProcessed : this.contentRaw;
         String html = toHtmlWithLinks(base);
-        // Inject prepared HTML for Discord message links (placeholders)
-        if (!msgLinkHtmlMap.isEmpty() && html.isEmpty() == false) {
+        return applyInlineAndMsgLinkReplacements(html);
+    }
+
+    /**
+     * Apply replacements for prepared placeholders from both link maps to the given html/text.
+     * This method MUST be used wherever we convert message text to HTML so that no {{D2H_* placeholders leak.
+     */
+    private String applyInlineAndMsgLinkReplacements(String html) {
+        if (html == null || html.isEmpty()) { return ""; }
+        if (!msgLinkHtmlMap.isEmpty()) {
             for (Map.Entry<String, String> e : msgLinkHtmlMap.entrySet()) {
                 html = html.replace(e.getKey(), e.getValue());
             }
         }
-        if (!inlineHtmlMap.isEmpty() && html.isEmpty() == false) {
+        if (!inlineHtmlMap.isEmpty()) {
             for (Map.Entry<String, String> e : inlineHtmlMap.entrySet()) {
                 html = html.replace(e.getKey(), e.getValue());
             }
@@ -760,6 +768,7 @@ public class MessageInfo {
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
 
             String bodyHtml = toHtmlWithLinks(preprocessArchiveText(refMessage, snapshot.getContentRaw()));
+            bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
 
             System.out.println(bodyHtml);
             System.out.println(origin);
