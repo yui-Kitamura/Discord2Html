@@ -740,16 +740,7 @@ public class MessageInfo {
                         threadSuffix = parentName + ">" + threadName;
                     }
                 } catch (Throwable ignore) { }
-                if (!sameGuild) {
-                    String guildName = "";
-                    try {
-                        guildName = forwarded.getGuild().getName();
-                    } catch (Throwable ignore) { }
-                    if (guildName.isBlank()) { guildName = AbstName.UNKNOWN; }
-                    String chName = (threadSuffix != null) ? threadSuffix : chAny.getName();
-                    if (chName.isBlank()) { chName = AbstName.UNKNOWN; }
-                    chDisplay = guildName + ">" + chName;
-                } else {
+                if (sameGuild) {
                     if (threadSuffix != null) {
                         chDisplay = threadSuffix;
                     } else {
@@ -758,6 +749,15 @@ public class MessageInfo {
                         if (name.isBlank()) { name = AbstName.UNKNOWN; }
                         chDisplay = name;
                     }
+                } else {
+                    String guildName = "";
+                    try {
+                        guildName = forwarded.getGuild().getName();
+                    } catch (Throwable ignore) { }
+                    if (guildName.isBlank()) { guildName = AbstName.UNKNOWN; }
+                    String chName = (threadSuffix != null) ? threadSuffix : chAny.getName();
+                    if (chName.isBlank()) { chName = AbstName.UNKNOWN; }
+                    chDisplay = guildName + ">" + chName;
                 }
                 try {
                     Date d = Date.from(refMessage.getTimeCreated().toInstant());
