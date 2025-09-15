@@ -718,13 +718,12 @@ public class MessageInfo {
             Message refMessage = null;
             try {
                 refMessage = forwarded.getReferencedMessage();
-            } catch (Throwable ignore) {
-            }
+            } catch (Throwable ignore) { }
 
             String chDisplay;
             String timeDisplay = "";
             try {
-                MessageChannelUnion chAny = forwarded.getChannel();
+                MessageChannelUnion chAny = refMessage.getChannel(); // if null then catch and to be UNKNOWN
                 boolean sameGuild = true;
                 try {
                     Guild g2 = forwarded.getGuild();
