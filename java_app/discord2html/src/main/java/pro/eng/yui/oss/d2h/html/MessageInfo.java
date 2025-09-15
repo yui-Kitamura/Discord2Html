@@ -760,7 +760,7 @@ public class MessageInfo {
                 chDisplay = ChannelName.UNKNOWN;
             }
             try {
-                Date d = Date.from(msgRef.getMessage().getTimeCreated().toInstant());
+                Date d = Date.from(snapshot.getTimeEdited().toInstant());
                 String full = DateTimeUtil.time().format(d);
                 timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
             } catch (NullPointerException ignore) { }
