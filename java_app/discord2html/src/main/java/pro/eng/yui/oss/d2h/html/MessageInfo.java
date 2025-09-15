@@ -69,13 +69,21 @@ public class MessageInfo {
     public String getContentHtml() {
         String base = (this.contentProcessed != null) ? this.contentProcessed : this.contentRaw;
         String html = toHtmlWithLinks(base);
-        // Inject prepared HTML for Discord message links (placeholders)
-        if (!msgLinkHtmlMap.isEmpty() && html.isEmpty() == false) {
+        return applyInlineAndMsgLinkReplacements(html);
+    }
+
+    /**
+     * Apply replacements for prepared placeholders from both link maps to the given html/text.
+     * This method MUST be used wherever we convert message text to HTML so that no {{D2H_* placeholders leak.
+     */
+    private String applyInlineAndMsgLinkReplacements(String html) {
+        if (html == null || html.isEmpty()) { return ""; }
+        if (!msgLinkHtmlMap.isEmpty()) {
             for (Map.Entry<String, String> e : msgLinkHtmlMap.entrySet()) {
                 html = html.replace(e.getKey(), e.getValue());
             }
         }
-        if (!inlineHtmlMap.isEmpty() && html.isEmpty() == false) {
+        if (!inlineHtmlMap.isEmpty()) {
             for (Map.Entry<String, String> e : inlineHtmlMap.entrySet()) {
                 html = html.replace(e.getKey(), e.getValue());
             }
@@ -225,7 +233,7 @@ public class MessageInfo {
                     colorHex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
                 }
             }
-        } catch (Throwable ignore) { /* fallback leaves null */ }
+        } catch (Throwable ignore) { ignore.printStackTrace(); }
         this.nameColor = colorHex;
         if(msg.getReferencedMessage() == null) {
             this.refOriginMessageContent = null;
@@ -710,13 +718,12 @@ public class MessageInfo {
             Message refMessage = null;
             try {
                 refMessage = forwarded.getReferencedMessage();
-            } catch (Throwable ignore) {
-            }
+            } catch (Throwable ignore) { }
 
             String chDisplay;
             String timeDisplay = "";
             try {
-                MessageChannelUnion chAny = forwarded.getChannel();
+                MessageChannelUnion chAny = refMessage.getChannel(); // if null then catch and to be UNKNOWN
                 boolean sameGuild = true;
                 try {
                     Guild g2 = forwarded.getGuild();
@@ -732,16 +739,7 @@ public class MessageInfo {
                         threadSuffix = parentName + ">" + threadName;
                     }
                 } catch (Throwable ignore) { }
-                if (!sameGuild) {
-                    String guildName = "";
-                    try {
-                        guildName = forwarded.getGuild().getName();
-                    } catch (Throwable ignore) { }
-                    if (guildName.isBlank()) { guildName = AbstName.UNKNOWN; }
-                    String chName = (threadSuffix != null) ? threadSuffix : chAny.getName();
-                    if (chName.isBlank()) { chName = AbstName.UNKNOWN; }
-                    chDisplay = guildName + ">" + chName;
-                } else {
+                if (sameGuild) {
                     if (threadSuffix != null) {
                         chDisplay = threadSuffix;
                     } else {
@@ -750,6 +748,15 @@ public class MessageInfo {
                         if (name.isBlank()) { name = AbstName.UNKNOWN; }
                         chDisplay = name;
                     }
+                } else {
+                    String guildName = "";
+                    try {
+                        guildName = forwarded.getGuild().getName();
+                    } catch (Throwable ignore) { }
+                    if (guildName.isBlank()) { guildName = AbstName.UNKNOWN; }
+                    String chName = (threadSuffix != null) ? threadSuffix : chAny.getName();
+                    if (chName.isBlank()) { chName = AbstName.UNKNOWN; }
+                    chDisplay = guildName + ">" + chName;
                 }
                 try {
                     Date d = Date.from(refMessage.getTimeCreated().toInstant());
@@ -760,9 +767,7 @@ public class MessageInfo {
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
 
             String bodyHtml = toHtmlWithLinks(preprocessArchiveText(refMessage, snapshot.getContentRaw()));
-
-            System.out.println(bodyHtml);
-            System.out.println(origin);
+            bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
             
             return "<blockquote class=\"forwarded\">"
                     + bodyHtml

@@ -6,7 +6,6 @@ import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
-import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -25,7 +24,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -62,7 +60,7 @@ public class IndexGenerator {
         Set<String> channelIds = discoverArchivedChannelIds();
         for (String id : channelIds) {
             try { 
-                regenerateChannelArchives(targetGuild, new ChannelId(Long.parseLong(id)));
+                regenerateChannelIndex(targetGuild, new ChannelId(Long.parseLong(id)));
             } catch (Throwable ignore) { /* run next channel */ }
         }
         List<FileGenerateUtil.Link> items = new ArrayList<>(channelIds.stream()
@@ -151,109 +149,7 @@ public class IndexGenerator {
         try { regenerateThreadIndex(guildId, channelId); } catch (IOException ignore) { }
     }
 
-    public void regenerateDailyIndex(GuildId guildId, ChannelId channelId, Calendar end) throws IOException {
-        Path base = appConfig.getOutputPath();
-        if (!Files.exists(base)) {
-            base.toFile().mkdirs();
-        }
-        String date8 = DateTimeUtil.date8().format(end.getTime());
-
-        // Compute begin/end range for the day in Asia/Tokyo
-        Calendar now = Calendar.getInstance(DateTimeUtil.JST);
-        String today8 = DateTimeUtil.date8().format(now.getTime());
-
-        Calendar beginCal = (Calendar) end.clone();
-        Calendar endCal = (Calendar) end.clone();
-
-        // Initialize begin to 00:00:00.000 of the target day
-        beginCal.set(Calendar.HOUR_OF_DAY, 0);
-        beginCal.set(Calendar.MINUTE, 0);
-        beginCal.set(Calendar.SECOND, 0);
-        beginCal.set(Calendar.MILLISECOND, 0);
-
-        // Determine proper endCal according to spec
-        if (today8.equals(date8)) {
-            // Today: up to the execution timing (now JST)
-            endCal = (Calendar) now.clone();
-        } else {
-            // Past day: full to end of day 23:59:59.999
-            endCal.set(Calendar.HOUR_OF_DAY, 23);
-            endCal.set(Calendar.MINUTE, 59);
-            endCal.set(Calendar.SECOND, 59);
-            endCal.set(Calendar.MILLISECOND, 999);
-        }
-
-        // Resolve channel from JDA using channel ID
-        List<MessageInfo> messages = new ArrayList<>();
-        String displayChannelName = channelId.toString();
-        try {
-            GuildMessageChannel target = jdaProvider.getJda().getChannelById(GuildMessageChannel.class, channelId.getValue());
-            if (target != null) {
-                if (!target.getName().isEmpty()) {
-                    displayChannelName = target.getName();
-                }
-                messages = fileUtil.fetchMessagesForDaily(target, beginCal, endCal);
-            }
-        } catch (Throwable ignore) {
-            // Fall through with empty messages on errors
-        }
-
-        // Sort chronologically just in case
-        messages.sort(Comparator.comparing(MessageInfo::getCreatedTimestamp));
-
-        // Prepare output path
-        Path archiveBase = base.resolve("archives").resolve(date8);
-        Files.createDirectories(archiveBase);
-        Path dailyCombined = archiveBase.resolve(channelId.toString() + ".html");
-
-        // Template variables
-        String yyyy = date8.substring(0, 4);
-        String mm = date8.substring(4, 6);
-        String dd = date8.substring(6, 8);
-        String humanDate = yyyy + "/" + mm + "/" + dd;
-
-        String endText;
-        if (today8.equals(date8)) {
-            SimpleDateFormat hm = new SimpleDateFormat("HH:mm:ss");
-            hm.setTimeZone(DateTimeUtil.JST);
-            endText = humanDate + " " + hm.format(endCal.getTime());
-        } else {
-            // 0時実行のフルアーカイブ（前日）
-            endText = humanDate + " 23:59:59";
-        }
-
-        Context ctx = new Context();
-        final String basePrefix = fileUtil.repoBaseWithPrefix();
-        ctx.setVariable("channelName", displayChannelName);
-        ctx.setVariable("humanDate", humanDate);
-        ctx.setVariable("endText", endText);
-        ctx.setVariable("messages", messages);
-        ctx.setVariable("backToTopHref", basePrefix + "/index.html");
-        ctx.setVariable("backToChannelHref", basePrefix + "/archives/" + channelId + ".html#d-" + date8);
-        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
-        ctx.setVariable("botVersion", botVersion);
-        ctx.setVariable("basePrefix", basePrefix);
-        // Add navigation links for previous/next day (mechanically computed)
-        try {
-            Calendar prevCal = (Calendar) end.clone();
-            prevCal.add(Calendar.DAY_OF_MONTH, -1);
-            String prevDate8 = DateTimeUtil.date8().format(prevCal.getTime());
-            String prevHref = basePrefix + "/archives/" + prevDate8 + "/" + channelId + ".html";
-            ctx.setVariable("prevHref", prevHref);
-        } catch (Exception ignore) { /* best-effort */ }
-        try {
-            Calendar nextCal = (Calendar) end.clone();
-            nextCal.add(Calendar.DAY_OF_MONTH, 1);
-            String nextDate8 = DateTimeUtil.date8().format(nextCal.getTime());
-            String nextHref = basePrefix + "/archives/" + nextDate8 + "/" + channelId + ".html";
-            ctx.setVariable("nextHref", nextHref);
-        } catch (Exception ignore) { /* best-effort */ }
-
-        String rendered = templateEngine.process("daily", ctx);
-        fileUtil.writeIfChanged(dailyCombined, rendered);
-    }
-
-    public void regenerateChannelArchives(GuildId guildId, ChannelId channelId) throws IOException {
+    public void regenerateChannelIndex(GuildId guildId, ChannelId channelId) throws IOException {
         Path base = appConfig.getOutputPath();
         if (!Files.exists(base)) { return; }
         Path archivesRoot = base.resolve("archives");

@@ -1,5 +1,6 @@
 package pro.eng.yui.oss.d2h.html;
 
+import com.google.gson.Gson;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
@@ -48,5 +49,11 @@ public class ChannelInfo {
                 // fallback: leave parent fields null
             }
         }
+    }
+    
+    @Override
+    public String toString(){
+        Gson gson = new Gson();
+        return gson.toJson(this);
     }
 }

@@ -3,17 +3,16 @@ package pro.eng.yui.oss.d2h.html;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
-import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
-import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.github.GitUtil;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
@@ -27,25 +26,26 @@ public class FileGenerateService {
     private final TemplateEngine templateEngine;
     private final FileGenerateUtil fileUtil;
     private final GitUtil gitUtil;
-    private final DiscordJdaProvider jdaProvider;
     private final ArchiveGenerator archiveGenerator;
+    private final IndexGenerator indexGenerator;
     private final String botVersion;
 
     public FileGenerateService(ApplicationConfig config, Secrets secrets,
                                FileGenerateUtil fileUtil, GitUtil gitUtil,
-                               DiscordJdaProvider jdaProvider, TemplateEngine templateEngine, 
-                               ArchiveGenerator archiveGenerator) {
+                               TemplateEngine templateEngine, 
+                               ArchiveGenerator archiveGenerator, IndexGenerator indexGenerator) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
         this.fileUtil = fileUtil;
         this.gitUtil = gitUtil;
-        this.jdaProvider = jdaProvider;
         this.archiveGenerator = archiveGenerator;
+        this.indexGenerator = indexGenerator;
         this.botVersion = secrets.getBotVersion();
     }
 
-    public Path generate(ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end, int seq) {
+    public List<Path> generate(ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end, int seq) {
         AnonymizationUtil.clearCache();
+        List<Path> outs = new ArrayList<>();
 
         // Sync local repo to the latest before reading/writing outputs
         try {
@@ -72,8 +72,20 @@ public class FileGenerateService {
             System.out.println("[EmojiArchive] failed: " + ioe.getMessage());
         }
 
-        // Delegate the core archive generation
-        return archiveGenerator.generate(new GuildId(channel), channel, messages, begin, end, seq);
+        // Delegate the core archive generation and also generate related indexes.
+        Path mainOut = archiveGenerator.generate(new GuildId(channel), channel, messages, begin, end, seq);
+        if (mainOut != null){ outs.add(mainOut); }
+        try {
+            // Generate indices that Runner previously handled directly
+            GuildId gid = new GuildId(channel);
+            indexGenerator.regenerateTopIndex(gid);
+            Path top = appConfig.getOutputPath().resolve("index.html");
+            if (!outs.contains(top) && Files.exists(top)){ outs.add(top); }
+        } catch (IOException ignore) { }
+        
+        System.out.println(channel.getName() + ":" + mainOut + ":" + outs.size());
+        
+        return outs;
     }
 
     public void regenerateHelpPage(GuildId guildId) throws IOException {

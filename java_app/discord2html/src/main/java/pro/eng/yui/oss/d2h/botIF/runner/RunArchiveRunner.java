@@ -25,11 +25,9 @@ import pro.eng.yui.oss.d2h.github.GitHubService;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.html.ChannelInfo;
 import pro.eng.yui.oss.d2h.html.FileGenerateService;
-import pro.eng.yui.oss.d2h.html.IndexGenerator;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
 
-import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -39,6 +37,7 @@ import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.io.IOException;
 
 @Component
 public class RunArchiveRunner implements IRunner {
@@ -54,15 +53,14 @@ public class RunArchiveRunner implements IRunner {
     private final GitHubService gitHubService;
     private final GitConfig gitConfig;
     private final List<Path> generatedFiles = new ArrayList<>();
-    private final IndexGenerator indexGenerator;
+    // private final IndexGenerator indexGenerator;
 
     @Autowired
     public RunArchiveRunner(
             ApplicationConfig c,
             GuildsDAO g, ChannelsDAO ch,
             DiscordJdaProvider j, FileGenerateService fileGenerator, FileGenerateUtil fileUtil,
-            GitHubService gitHubService, GitConfig gitConfig,
-            IndexGenerator indexGenerator){
+            GitHubService gitHubService, GitConfig gitConfig){
         this.config = c;
         this.guildDao = g;
         this.channelDao = ch;
@@ -71,7 +69,6 @@ public class RunArchiveRunner implements IRunner {
         this.fileUtil = fileUtil;
         this.gitHubService = gitHubService;
         this.gitConfig = gitConfig;
-        this.indexGenerator = indexGenerator;
     }
     
     public void run(GuildId target, List<OptionMapping> options){
@@ -161,6 +158,15 @@ public class RunArchiveRunner implements IRunner {
                 }
             }
 
+            // Generate help page only once per run
+            try {
+                fileGenerator.regenerateHelpPage(target);
+                Path help = config.getOutputPath().resolve("help.html");
+                if (!generatedFiles.contains(help) && Files.exists(help)) {
+                    generatedFiles.add(help);
+                }
+            } catch (IOException ignore) { }
+
             // Push all generated daily files
             if (config.getPushToGitHub() && !generatedFiles.isEmpty()) {
                 try {
@@ -228,6 +234,15 @@ public class RunArchiveRunner implements IRunner {
                             }
                         }
                     }
+                    
+                    // Generate help page once per scheduled guild run
+                    try {
+                        fileGenerator.regenerateHelpPage(guilds.getGuildId());
+                        Path help = config.getOutputPath().resolve("help.html");
+                        if (!generatedFiles.contains(help) && Files.exists(help)) {
+                            generatedFiles.add(help);
+                        }
+                    } catch (IOException ignore) { }
                     
                     // Push all generated files for this guild at once
                     if (config.getPushToGitHub() && !generatedFiles.isEmpty()) {
@@ -364,23 +379,12 @@ public class RunArchiveRunner implements IRunner {
         }
         
         ChannelInfo chInfo = new ChannelInfo(channel);
-        Path generatedFile = fileGenerator.generate(chInfo, messages, beginForOutput, endForOutput, 1);
-        generatedFiles.add(generatedFile);
-        
-        try {
-            indexGenerator.regenerateTopIndex(new GuildId(chInfo));
-            Path indexPath = config.getOutputPath().resolve("index.html");
-            if (!generatedFiles.contains(indexPath)) {
-                generatedFiles.add(indexPath);
+        List<Path> outs = fileGenerator.generate(chInfo, messages, beginForOutput, endForOutput, 1);
+        for (Path p : outs) {
+            if (!generatedFiles.contains(p)) {
+                generatedFiles.add(p);
             }
-        }catch(IOException e){ e.printStackTrace(); }
-        try {
-            fileGenerator.regenerateHelpPage(new GuildId(chInfo));
-            Path helpPath = config.getOutputPath().resolve("help.html");
-            if (!generatedFiles.contains(helpPath)) {
-                generatedFiles.add(helpPath);
-            }
-        }catch (IOException e){ e.printStackTrace(); }
+        }
 
         if (!isThread) {
             Path channelArchivePath = config.getOutputPath()

@@ -73,6 +73,7 @@ public class ArchiveGenerator {
             if (segmentEnd.after(until)) {
                 segmentEnd = (Calendar) until.clone();
             }
+            final String date8 = DateTimeUtil.formatDate8(segmentEnd);
 
             // Filter messages for [cur, segmentEnd]
             List<MessageInfo> segmentMessages = filterMessagesByRange(messages, cur, segmentEnd);
@@ -80,36 +81,41 @@ public class ArchiveGenerator {
             // Always render the template, even if segmentMessages is empty.
             final String basePrefix = fileUtil.repoBaseWithPrefix();
             Context context = new Context();
-            context.setVariable("channel", channel);
+            context.setVariable("channelName", channel.getName());
+            context.setVariable("humanDate", DateTimeUtil.dateOnly().format(cur.getTime()));
+            context.setVariable("endText", DateTimeUtil.time().format(segmentEnd.getTime()));
             context.setVariable("messages", segmentMessages);
-            context.setVariable("begin", DateTimeUtil.time().format(cur.getTime()));
-            context.setVariable("end", DateTimeUtil.time().format(segmentEnd.getTime()));
-            context.setVariable("sequence", seq);
-            context.setVariable("backToChannelHref", basePrefix+ "/archives/" + channel.getChannelId().toString() + ".html");
             context.setVariable("backToTopHref", basePrefix + "/index.html");
+            context.setVariable("backToChannelHref", basePrefix+ "/archives/" + channel.getChannelId().toString() + ".html#d-" + date8);
             context.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
             context.setVariable("botVersion", botVersion);
             context.setVariable("basePrefix", basePrefix);
-            // Add active thread links for this channel at the top
+            // Add navigation links for previous/next day (mechanically computed)
             try {
-                List<FileGenerateUtil.Link> activeThreadLinks = getActiveThreadLinks(channel);
-                if (activeThreadLinks.size() > 0) {
-                    context.setVariable("activeThreads", activeThreadLinks);
-                }
-            } catch (Exception ignore) {
-                // best-effort; ignore failures
-            }
+                Calendar prevCal = (Calendar) end.clone();
+                prevCal.add(Calendar.DAY_OF_MONTH, -1);
+                String prevDate8 = DateTimeUtil.date8().format(prevCal.getTime());
+                String prevHref = basePrefix + "/archives/" + prevDate8 + "/" + channel.getChannelId().toString() + ".html";
+                context.setVariable("prevHref", prevHref);
+            } catch (Exception ignore) { /* best-effort */ }
+            try {
+                Calendar nextCal = (Calendar) end.clone();
+                nextCal.add(Calendar.DAY_OF_MONTH, 1);
+                String nextDate8 = DateTimeUtil.date8().format(nextCal.getTime());
+                String nextHref = basePrefix + "/archives/" + nextDate8 + "/" + channel.getChannelId().toString() + ".html";
+                context.setVariable("nextHref", nextHref);
+            } catch (Exception ignore) { /* best-effort */ }
 
             String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
-            Path output = appConfig.getOutputPath().resolve(runTimestamp).resolve(channel.getChannelId().toString() + ".html");
+            Path output = appConfig.getOutputPath().resolve("archives").resolve(date8).resolve(channel.getChannelId().toString() + ".html");
             fileUtil.writeIfChanged(output, htmlContent);
 
             lastOutput = output;
 
             // Mark affected date8 for indices only when there were messages
             if (!segmentMessages.isEmpty()) {
-                affectedDate8.add(DateTimeUtil.date8().format(segmentEnd.getTime()));
+                affectedDate8.add(date8);
             }
 
             // Advance to the start of the next day to avoid infinite loop
@@ -135,22 +141,6 @@ public class ArchiveGenerator {
             }
         } catch (Exception ignore) {
             // best-effort: do not block generation
-        }
-
-        // Update per-day (date8) index for all affected dates
-        try {
-            for (String d8 : affectedDate8) {
-                // Use a calendar set to the date for regenerateDailyIndex
-                Calendar any = Calendar.getInstance(DateTimeUtil.JST);
-                any.set(Integer.parseInt(d8.substring(0,4)),
-                        Integer.parseInt(d8.substring(4,6)) - 1,
-                        Integer.parseInt(d8.substring(6,8)),
-                        0,0,0);
-                any.set(Calendar.MILLISECOND, 0);
-                indexGenerator.regenerateDailyIndex(guildId, channel.getChannelId(), any);
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to regenerate daily index page(s)", e);
         }
 
         // After generating archive page(s), update listing pages by prepending new links without scanning directories
@@ -208,7 +198,7 @@ public class ArchiveGenerator {
             if (channel.getParentChannelId() != null) {
                 indexGenerator.regenerateThreadIndex(guildId, channel.getParentChannelId());
                 // Also ensure the parent channel's archive list page exists/updated
-                indexGenerator.regenerateChannelArchives(guildId, channel.getParentChannelId());
+                indexGenerator.regenerateChannelIndex(guildId, channel.getParentChannelId());
             }
         } catch (IOException ioe) {
             throw new RuntimeException("Failed to regenerate thread index", ioe);
