@@ -108,7 +108,7 @@ public class ArchiveGenerator {
 
             String htmlContent = templateEngine.process(TEMPLATE_NAME, context);
 
-            Path output = appConfig.getOutputPath().resolve(runTimestamp).resolve(channel.getChannelId().toString() + ".html");
+            Path output = appConfig.getOutputPath().resolve("archives").resolve(date8).resolve(channel.getChannelId().toString() + ".html");
             fileUtil.writeIfChanged(output, htmlContent);
 
             lastOutput = output;
