@@ -715,15 +715,15 @@ public class MessageInfo {
         }
 
         try {
-            Message refMessage = null;
+            MessageReference msgRef = null;
             try {
-                refMessage = forwarded.getMessageReference().getMessage();
+                msgRef = forwarded.getMessageReference();
             } catch (Throwable ignore) { }
 
             String chDisplay;
             String timeDisplay = "";
             try {
-                MessageChannelUnion chAny = refMessage.getChannel(); // if null then catch and to be UNKNOWN
+                MessageChannelUnion chAny = msgRef.getChannel(); // if null then catch and to be UNKNOWN
                 boolean sameGuild = true;
                 try {
                     Guild g2 = forwarded.getGuild();
@@ -759,7 +759,7 @@ public class MessageInfo {
                     chDisplay = guildName + ">" + chName;
                 }
                 try {
-                    Date d = Date.from(refMessage.getTimeCreated().toInstant());
+                    Date d = Date.from(msgRef.getMessage().getTimeCreated().toInstant());
                     String full = DateTimeUtil.time().format(d);
                     timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
                 } catch (NullPointerException ignore) { }
@@ -769,7 +769,7 @@ public class MessageInfo {
             }
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
 
-            String bodyHtml = toHtmlWithLinks(preprocessArchiveText(refMessage, snapshot.getContentRaw()));
+            String bodyHtml = toHtmlWithLinks(preprocessArchiveText(msgRef.getMessage(), snapshot.getContentRaw()));
             bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
             
             return "<blockquote class=\"forwarded\">"
