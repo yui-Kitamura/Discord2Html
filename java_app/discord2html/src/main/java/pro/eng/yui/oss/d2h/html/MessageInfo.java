@@ -716,6 +716,8 @@ public class MessageInfo {
 
         try {
             MessageReference msgRef = forwarded.getMessageReference();
+            Message sourceMsg = forwarded.getJDA().getChannelById(GuildMessageChannel.class, msgRef.getChannelIdLong())
+                    .retrieveMessageById(msgRef.getMessageIdLong()).complete();
 
             String chDisplay;
             String timeDisplay = "";
@@ -723,7 +725,7 @@ public class MessageInfo {
                 MessageChannelUnion chAny = msgRef.getChannel(); // if null then catch and to be UNKNOWN
                 boolean sameGuild = true;
                 try {
-                    Guild g2 = forwarded.getGuild();
+                    Guild g2 = sourceMsg.getGuild();
                     sameGuild = (current != null && (current.getIdLong() == g2.getIdLong()));
                 } catch (Throwable ignore) { }
                 String threadSuffix = null;
@@ -760,14 +762,14 @@ public class MessageInfo {
                 chDisplay = ChannelName.UNKNOWN;
             }
             try {
-                Date d = Date.from(snapshot.getTimeEdited().toInstant());
+                Date d = Date.from(sourceMsg.getTimeCreated().toInstant());
                 String full = DateTimeUtil.time().format(d);
                 timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
             } catch (NullPointerException ignore) { }
 
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
 
-            String bodyHtml = toHtmlWithLinks(preprocessArchiveText(msgRef.getMessage(), snapshot.getContentRaw()));
+            String bodyHtml = toHtmlWithLinks(preprocessArchiveText(sourceMsg, snapshot.getContentRaw()));
             bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
             
             return "<blockquote class=\"forwarded\">"
