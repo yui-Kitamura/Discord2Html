@@ -82,6 +82,9 @@ public class FileGenerateService {
             Path top = appConfig.getOutputPath().resolve("index.html");
             if (!outs.contains(top) && Files.exists(top)){ outs.add(top); }
         } catch (IOException ignore) { }
+        
+        System.out.println(channel.getName() + ":" + mainOut + ":" + outs.size());
+        
         return outs;
     }
 
