@@ -716,8 +716,11 @@ public class MessageInfo {
 
         try {
             MessageReference msgRef = forwarded.getMessageReference();
-            Message sourceMsg = forwarded.getJDA().getChannelById(GuildMessageChannel.class, msgRef.getChannelIdLong())
-                    .retrieveMessageById(msgRef.getMessageIdLong()).complete();
+            Message sourceMsg = null;
+            try {
+                sourceMsg = forwarded.getJDA().getChannelById(GuildMessageChannel.class, msgRef.getChannelIdLong())
+                        .retrieveMessageById(msgRef.getMessageIdLong()).complete();
+            }catch(NullPointerException ignore){ }
 
             String chDisplay;
             String timeDisplay = "";
