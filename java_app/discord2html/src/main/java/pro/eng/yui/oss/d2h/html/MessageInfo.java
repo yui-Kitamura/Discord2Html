@@ -715,10 +715,7 @@ public class MessageInfo {
         }
 
         try {
-            MessageReference msgRef = null;
-            try {
-                msgRef = forwarded.getMessageReference();
-            } catch (Throwable ignore) { }
+            MessageReference msgRef = forwarded.getMessageReference();
 
             String chDisplay;
             String timeDisplay = "";
@@ -758,15 +755,16 @@ public class MessageInfo {
                     if (chName.isBlank()) { chName = AbstName.UNKNOWN; }
                     chDisplay = guildName + ">" + chName;
                 }
-                try {
-                    Date d = Date.from(msgRef.getMessage().getTimeCreated().toInstant());
-                    String full = DateTimeUtil.time().format(d);
-                    timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
-                } catch (NullPointerException ignore) { }
-            } catch (Throwable e) { 
+            } catch (Throwable e) {
                 e.printStackTrace();
-                chDisplay = ChannelName.UNKNOWN; 
+                chDisplay = ChannelName.UNKNOWN;
             }
+            try {
+                Date d = Date.from(msgRef.getMessage().getTimeCreated().toInstant());
+                String full = DateTimeUtil.time().format(d);
+                timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
+            } catch (NullPointerException ignore) { }
+
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
 
             String bodyHtml = toHtmlWithLinks(preprocessArchiveText(msgRef.getMessage(), snapshot.getContentRaw()));
