@@ -768,9 +768,6 @@ public class MessageInfo {
 
             String bodyHtml = toHtmlWithLinks(preprocessArchiveText(refMessage, snapshot.getContentRaw()));
             bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
-
-            System.out.println(bodyHtml);
-            System.out.println(origin);
             
             return "<blockquote class=\"forwarded\">"
                     + bodyHtml
