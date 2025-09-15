@@ -47,9 +47,6 @@ public class GitHubService {
         
         // Validate all files exist
         for (Path path : htmlFilePaths) {
-            
-            System.out.println("git target file path = "+ path);
-            
             if (!Files.exists(path)) {
                 throw new IOException("HTML file does not exist: " + path);
             }
