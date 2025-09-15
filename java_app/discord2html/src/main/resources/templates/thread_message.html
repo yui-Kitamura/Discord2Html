@@ -36,7 +36,7 @@
     <img class="avatar" th:src="${msg.avatarUrl}" alt="avatar"/>
     <div>
       <div class="meta">
-        <span class="author" th:text="${msg.username}" th:style="${msg.nameColor != null} ? 'color:' + msg.nameColor : null">ユーザー名</span>
+        <span class="author" th:text="${msg.username}" th:style="${msg.nameColor != null ? 'color:' + msg.nameColor : null}">ユーザー名</span>
         <span class="timestamp" th:text="${msg.createdTimestamp}">日付</span>
       </div>
       <div th:if="${msg.forwarded}" th:utext="${msg.forwardedHtml}"></div>
