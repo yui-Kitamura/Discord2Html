@@ -45,6 +45,7 @@ public class FileGenerateService {
 
     public List<Path> generate(ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end, int seq) {
         AnonymizationUtil.clearCache();
+        List<Path> outs = new ArrayList<>();
 
         // Sync local repo to the latest before reading/writing outputs
         try {
@@ -73,10 +74,9 @@ public class FileGenerateService {
 
         // Delegate the core archive generation and also generate related indexes.
         Path mainOut = archiveGenerator.generate(new GuildId(channel), channel, messages, begin, end, seq);
-        List<Path> outs = new ArrayList<>();
-        if (mainOut != null) outs.add(mainOut);
-        // Generate indices that Runner previously handled directly
+        if (mainOut != null){ outs.add(mainOut); }
         try {
+            // Generate indices that Runner previously handled directly
             GuildId gid = new GuildId(channel);
             indexGenerator.regenerateTopIndex(gid);
             Path top = appConfig.getOutputPath().resolve("index.html");
