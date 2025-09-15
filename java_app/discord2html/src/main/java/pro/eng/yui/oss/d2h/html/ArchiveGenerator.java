@@ -82,7 +82,7 @@ public class ArchiveGenerator {
             final String basePrefix = fileUtil.repoBaseWithPrefix();
             Context context = new Context();
             context.setVariable("channelName", channel.getName());
-            context.setVariable("humanDate", DateTimeUtil.time().format(cur.getTime()));
+            context.setVariable("humanDate", DateTimeUtil.dateOnly().format(cur.getTime()));
             context.setVariable("endText", DateTimeUtil.time().format(segmentEnd.getTime()));
             context.setVariable("messages", segmentMessages);
             context.setVariable("backToTopHref", basePrefix + "/index.html");
