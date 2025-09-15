@@ -717,7 +717,7 @@ public class MessageInfo {
         try {
             Message refMessage = null;
             try {
-                refMessage = forwarded.getReferencedMessage();
+                refMessage = forwarded.getMessageReference().getMessage();
             } catch (Throwable ignore) { }
 
             String chDisplay;
@@ -763,7 +763,10 @@ public class MessageInfo {
                     String full = DateTimeUtil.time().format(d);
                     timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
                 } catch (NullPointerException ignore) { }
-            } catch (Throwable ignore) { chDisplay = ChannelName.UNKNOWN; }
+            } catch (Throwable e) { 
+                e.printStackTrace();
+                chDisplay = ChannelName.UNKNOWN; 
+            }
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
 
             String bodyHtml = toHtmlWithLinks(preprocessArchiveText(refMessage, snapshot.getContentRaw()));
