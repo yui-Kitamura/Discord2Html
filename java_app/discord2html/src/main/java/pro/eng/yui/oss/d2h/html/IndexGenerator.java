@@ -57,23 +57,22 @@ public class IndexGenerator {
         if (!Files.exists(base)) { return; }
         Path archivesRoot = base.resolve("archives");
         if (!Files.exists(archivesRoot) || !Files.isDirectory(archivesRoot)) { return; }
-        Set<String> channelIds = discoverArchivedChannelIds();
-        for (String id : channelIds) {
+        Set<ChannelId> channelIds = discoverArchivedChannelIds();
+        for (ChannelId id : channelIds) {
             try { 
-                regenerateChannelIndex(targetGuild, new ChannelId(Long.parseLong(id)));
+                regenerateChannelIndex(targetGuild, id);
             } catch (Throwable ignore) { /* run next channel */ }
         }
         List<FileGenerateUtil.Link> items = new ArrayList<>(channelIds.stream()
-                .sorted()
+                .sorted(Comparator.comparing(ChannelId::toString))
                 .map(id -> {
-                    String label = id;
+                    String label = id.toString();
                     String href = "archives/" + id + ".html";
                     try {
-                        GuildChannel gc = jdaProvider.getJda().getGuildChannelById(id);
+                        GuildChannel gc = jdaProvider.getJda().getChannelById(GuildChannel.class, id.getValue());
                         if (gc != null && !gc.getName().isEmpty()) { label = gc.getName(); }
-                        ForumChannel fc = jdaProvider.getJda().getForumChannelById(id);
-                        if (fc != null) { href = "archives/" + id + "/threads/index.html"; }
                     } catch (Throwable ignore) { }
+                    if (isForumLike(id)) { href = "archives/" + id + "/threads/index.html"; }
                     return new FileGenerateUtil.Link(href, label);
                 }).toList());
         Path index = base.resolve("index.html");
@@ -313,8 +312,21 @@ public class IndexGenerator {
         return List.of();
     }
 
-    private Set<String> discoverArchivedChannelIds() {
-        Set<String> ids = new HashSet<>();
+    private boolean isForumLike(ChannelId id) {
+        try {
+            ForumChannel fc = jdaProvider.getJda().getForumChannelById(id.getValue());
+            if (fc != null) { return true; }
+        } catch (Throwable ignore) { }
+        try {
+            Path base = appConfig.getOutputPath();
+            Path threads = base.resolve("archives").resolve(id.toString()).resolve("threads");
+            if (Files.exists(threads) && Files.isDirectory(threads)) { return true; }
+        } catch (Throwable ignore) { }
+        return false;
+    }
+
+    private Set<ChannelId> discoverArchivedChannelIds() {
+        Set<ChannelId> ids = new HashSet<>();
         try {
             Path base = appConfig.getOutputPath();
             if (!Files.exists(base)) { return ids; }
@@ -327,7 +339,8 @@ public class IndexGenerator {
                     try (DirectoryStream<Path> htmls = Files.newDirectoryStream(dayDir, "*.html")) {
                         for (Path p : htmls) {
                             String fileName = p.getFileName().toString();
-                            ids.add(fileName.substring(0, fileName.length() - 5));
+                            String idStr = fileName.substring(0, fileName.length() - 5);
+                            try { ids.add(new ChannelId(Long.parseLong(idStr))); } catch (Throwable ignore) { }
                         }
                     } catch (IOException ignore) { }
                 }
@@ -335,7 +348,10 @@ public class IndexGenerator {
             try (DirectoryStream<Path> rootHtmls = Files.newDirectoryStream(archivesRoot, "*.html")) {
                 for (Path p : rootHtmls) {
                     String fileName = p.getFileName().toString();
-                    if (fileName.matches("\\d+\\.html")) { ids.add(fileName.substring(0, fileName.length() - 5)); }
+                    if (fileName.matches("\\d+\\.html")) { 
+                        String idStr = fileName.substring(0, fileName.length() - 5);
+                        try { ids.add(new ChannelId(Long.parseLong(idStr))); } catch (Throwable ignore) { }
+                    }
                 }
             } catch (IOException ignore) { }
             try (DirectoryStream<Path> dirs = Files.newDirectoryStream(archivesRoot)) {
@@ -343,7 +359,9 @@ public class IndexGenerator {
                     if (!Files.isDirectory(dir)) { continue; }
                     String name = dir.getFileName().toString();
                     Path threads = dir.resolve("threads");
-                    if (Files.exists(threads) && Files.isDirectory(threads)) { ids.add(name); }
+                    if (Files.exists(threads) && Files.isDirectory(threads)) { 
+                        try { ids.add(new ChannelId(Long.parseLong(name))); } catch (Throwable ignore) { }
+                    }
                 }
             } catch (IOException ignore) { }
         } catch (IOException ignore) { }
@@ -371,12 +389,12 @@ public class IndexGenerator {
         try {
             Guild guild = jdaProvider.getJda().getGuildById(guildId.getValue());
             List<Channels> dbChannels = channelsDao.selectAllInGuild(guildId);
-            Set<String> archivedIds = discoverArchivedChannelIds();
+            Set<ChannelId> archivedIds = discoverArchivedChannelIds();
             Map<CategoryId, FileGenerateUtil.CategoryGroup> map = new LinkedHashMap<>();
             List<CategoryId> liveOrder = new ArrayList<>();
             if (guild != null) { guild.getCategories().forEach(cat -> liveOrder.add(new CategoryId(cat))); }
             for (Channels ch : dbChannels) {
-                String chId = ch.getChannelId().toString();
+                ChannelId chId = ch.getChannelId();
                 if (!archivedIds.contains(chId)) { continue; }
                 CategoryId catId = ch.getCategoryId() == null ? CategoryId.NO_CATEGORY : ch.getCategoryId();
                 CategoryName catName = ch.getCategoryName() == null ? CategoryName.EMPTY : ch.getCategoryName();
@@ -397,7 +415,7 @@ public class IndexGenerator {
                 FileGenerateUtil.CategoryGroup group = map.get(catId);
                 String label = ch.getChannelName().getValue();
                 if (group.isDeleted()) { label += (" " + CategoryName.SUFFIX_DELETED); }
-                String href = "archives/" + chId + ".html";
+                String href = isForumLike(chId) ? ("archives/" + chId + "/threads/index.html") : ("archives/" + chId + ".html");
                 group.getChannels().add(new FileGenerateUtil.Link(href, label));
             }
             List<FileGenerateUtil.CategoryGroup> groups = new ArrayList<>();
