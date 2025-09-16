@@ -4,14 +4,21 @@ import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.config.Secrets;
 
 @Component
 public class HelpRunner implements IRunner {
     
-    public HelpRunner(){
-        // nothing to do
+    private final Secrets secrets;
+    
+    private String lastAfterRunMessage = "bot sent you help guid to DM";
+    private boolean lastShouldDeferEphemeral = true;
+    
+    public HelpRunner(Secrets secrets){
+        this.secrets = secrets;
     }
     
+    /** default behavior: DM help to user */
     public void run(@NotNull Member member, boolean isAdmin){
         final User user = member.getUser();
         final String helpText = buildHelpText();
@@ -19,6 +26,18 @@ public class HelpRunner implements IRunner {
                 ch -> ch.sendMessage(helpText).queue(),
                 err -> { /* nothing to do */ }
         );
+        this.lastAfterRunMessage = "bot sent you help guid to DM";
+        this.lastShouldDeferEphemeral = true;
+    }
+    
+    /** Overload for /d2h help with options */
+    public void run(@NotNull Member member, boolean isAdmin, boolean showVersion){
+        if (showVersion) {
+            String ver = secrets.getBotVersion();
+            this.lastAfterRunMessage = "bot version: " + ver;
+            this.lastShouldDeferEphemeral = true;
+            return;
+        }
     }
 
     private String buildHelpText(){
@@ -72,11 +91,11 @@ public class HelpRunner implements IRunner {
 
     @Override
     public String afterRunMessage() {
-        return "bot sent you help guid to DM";
+        return lastAfterRunMessage;
     }
     
     @Override
     public boolean shouldDeferEphemeral() {
-        return true;
+        return lastShouldDeferEphemeral;
     }
 }

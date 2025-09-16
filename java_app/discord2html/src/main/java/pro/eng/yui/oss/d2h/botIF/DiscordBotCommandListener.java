@@ -75,6 +75,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     .addOption(OptionType.INTEGER, "cycle", "execute every N hours (1-23), starting at 0:00, if 0 then only midnight", false)
             ,
             new SubcommandData("help", "send you about this bots command help")
+                    .addOption(OptionType.BOOLEAN, "version", "show bot version", false)
     );
 
     private final DiscordBotUtils bot;
@@ -225,7 +226,10 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     
     private void runHelp(SlashCommandInteractionEvent event){
         // do not need to check admin for help
-        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()));
+        var opt = event.getOption("version");
+        boolean showVersion = (opt != null) && opt.getAsBoolean();
+        // delegate main processing to HelpRunner
+        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()), showVersion);
         event.getHook()
                 .sendMessage(helpRunner.afterRunMessage())
                 .setEphemeral(helpRunner.shouldDeferEphemeral())
