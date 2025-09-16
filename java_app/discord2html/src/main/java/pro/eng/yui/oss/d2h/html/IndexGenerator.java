@@ -288,7 +288,9 @@ public class IndexGenerator {
         ctx.setVariable("botVersion", botVersion);
         ctx.setVariable("hideDateSearch", true);
         ctx.setVariable("backToTopHref", fileUtil.repoBaseWithPrefix() + "/index.html");
-        ctx.setVariable("backToChannelArchivesHref", fileUtil.repoBaseWithPrefix() + "/archives/" + parentChannelId + ".html");
+        if (!isForumLike(parentChannelId)) {
+            ctx.setVariable("backToChannelArchivesHref", fileUtil.repoBaseWithPrefix() + "/archives/" + parentChannelId + ".html");
+        }
         ctx.setVariable("isThread", false);
         String page = templateEngine.process("list", ctx);
         fileUtil.writeIfChanged(index, page);
