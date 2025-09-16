@@ -71,7 +71,8 @@ public class IndexGenerator {
                     try {
                         GuildChannel gc = jdaProvider.getJda().getGuildChannelById(id);
                         if (gc != null && !gc.getName().isEmpty()) { label = gc.getName(); }
-                        if (gc instanceof ForumChannel) { href = "archives/" + id + "/threads/index.html"; }
+                        ForumChannel fc = jdaProvider.getJda().getForumChannelById(id);
+                        if (fc != null) { href = "archives/" + id + "/threads/index.html"; }
                     } catch (Throwable ignore) { }
                     return new FileGenerateUtil.Link(href, label);
                 }).toList());
