@@ -319,11 +319,6 @@ public class IndexGenerator {
             ForumChannel fc = jdaProvider.getJda().getForumChannelById(id.getValue());
             if (fc != null) { return true; }
         } catch (Throwable ignore) { }
-        try {
-            Path base = appConfig.getOutputPath();
-            Path threads = base.resolve("archives").resolve(id.toString()).resolve("threads");
-            if (Files.exists(threads) && Files.isDirectory(threads)) { return true; }
-        } catch (Throwable ignore) { }
         return false;
     }
 
