@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title th:text="${title}">ピン留めメッセージ</title>
+  <link rel="stylesheet" href="/Discord2Html/css/style.css" />
+  <link rel="icon" th:if="${guildIconUrl}" th:href="${guildIconUrl}" />
+  <script src="https://cdn.jsdelivr.net/npm/@twemoji/api@latest/dist/twemoji.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+<body>
+<div class="container">
+  <nav class="nav">
+    <a th:if="${backToTopHref}" th:href="${backToTopHref}">トップ</a><span class="sep" th:if="${backToTopHref}">|</span>
+    <a th:if="${backToChannelArchivesHref}" th:href="${backToChannelArchivesHref}">チャンネルのアーカイブ一覧</a>
+    <span class="sep" th:if="${backToChannelArchivesHref}">|</span>
+    <a th:if="${backToParentThreadsHref}" th:href="${backToParentThreadsHref}">スレッド一覧</a>
+    <span class="sep" th:if="${backToThreadHref}">|</span>
+    <a th:if="${backToThreadHref}" th:href="${backToThreadHref}">スレッド本体</a>
+    
+  </nav>
+  <div class="guild-header">
+    <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="'ギルド アイコン'" />
+    <h1 th:text="${title != null ? title : 'ピン留めされたメッセージ'}">ピン留めされたメッセージ</h1>
+  </div>
+
+  <div class="meta" style="margin: 6px 0;">
+    <span>最終更新日: </span>
+    <span th:text="${lastUpdated}">yyyy/MM/dd HH:mm:ss</span>
+  </div>
+
+  <div th:if="${#lists.isEmpty(messages)}">
+    ピン留めされたメッセージはありません。
+  </div>
+  <div th:each="msg : ${messages}" class="message">
+    <img class="avatar" th:src="${msg.avatarUrl}" alt="avatar"/>
+    <div>
+      <div class="meta">
+        <span class="author" th:text="${msg.username}" th:style="${msg.nameColor != null ? 'color:' + msg.nameColor : null}">ユーザー名</span>
+        <span class="timestamp" th:text="${msg.createdTimestamp}">日付</span>
+      </div>
+      <blockquote class="forwarded" th:if="${msg.forwarded}" th:utext="${msg.forwardedHtml}"></blockquote>
+      <div class="content" th:utext="${msg.contentHtml}">メッセージ</div>
+      <div class="attachments" th:if="${msg.attachments != null and !#lists.isEmpty(msg.attachments)}">
+        <div th:each="att : ${msg.attachments}">
+          <div th:if="${att.image}">
+            <a th:href="${att.url}" target="_blank" rel="noopener">
+              <img th:src="${att.url}" th:alt="${att.fileName}" />
+            </a>
+          </div>
+          <div th:if="${!att.image}">
+            <a class="attachment-link" th:href="${att.url}" th:text="${att.fileName}" target="_blank" rel="noopener"></a>
+            <span th:if="${att.size > 0}" th:text="' (' + att.size + ' bytes)'"> サイズ </span>
+          </div>
+        </div>
+      </div>
+      <div class="reactions" th:if="${msg.reactionViews != null and !#lists.isEmpty(msg.reactionViews)}">
+        <span class="reaction" th:each="rv : ${msg.reactionViews}">
+          <img th:if="${rv.custom}" class="emoji" th:src="${basePrefix + '/' + rv.emojiLocalPath}" th:alt="${rv.alt}" />
+          <span th:if="${!rv.custom}" class="emoji" th:text="${rv.emojiText}">😀</span>
+          <span class="count" th:text="${rv.count}">1</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>
+  <p class="footer">
+    <span th:text="'bot ver' + ${botVersion}">bot ver</span>
+  </p>
+</footer>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.twemoji) {
+            try { twemoji.parse(document.body, { folder: 'svg', ext: '.svg' }); } catch (e) { /* noop */ }
+        }
+    });
+</script>
+</body>
+</html>
