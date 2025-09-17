@@ -5,16 +5,19 @@ import net.dv8tion.jda.api.entities.User;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.config.Secrets;
+import pro.eng.yui.oss.d2h.github.GitConfig;
 
 @Component
 public class HelpRunner implements IRunner {
     
+    private final GitConfig gitConfig;
     private final Secrets secrets;
     
     private String lastAfterRunMessage = "bot sent you help guid to DM";
     private boolean lastShouldDeferEphemeral = true;
     
-    public HelpRunner(Secrets secrets){
+    public HelpRunner(GitConfig gitConfig, Secrets secrets){
+        this.gitConfig = gitConfig;
         this.secrets = secrets;
     }
     
@@ -34,7 +37,9 @@ public class HelpRunner implements IRunner {
     public void run(@NotNull Member member, boolean isAdmin, boolean showVersion){
         if (showVersion) {
             String ver = secrets.getBotVersion();
-            this.lastAfterRunMessage = "bot version: " + ver;
+            this.lastAfterRunMessage = 
+                    "bot version: " + ver + "\n" +
+                    "GitHub: " + gitConfig.getRepo().getUrl();
             this.lastShouldDeferEphemeral = true;
             return;
         }
@@ -86,6 +91,9 @@ public class HelpRunner implements IRunner {
         sb.append("- ボット参加時に「D2H-admin」ロールが自動作成され、全チャンネルで同権限が「拒否」に初期化されます。\n");
         sb.append("- 運用者が「管理タグ」を付けたいチャンネルでは、該当チャンネルの権限設定で「D2H-admin」ロールに「メッセージ履歴」権限を「許可」に変更してください。\n");
         sb.append("- 上記が「許可」になっているチャンネルのみがコマンド実行可能な「管理タグ付きチャンネル」として扱われます（カテゴリーは対象外）。\n");
+        sb.append("\n");
+        sb.append("[GitHub]\n");
+        sb.append("リポジトリ: https://github.com/yui-Kitamura/Discord2Html\n");
         return sb.toString();
     }
 
