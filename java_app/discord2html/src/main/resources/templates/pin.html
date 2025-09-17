@@ -13,7 +13,7 @@
   <nav class="nav">
     <a th:if="${backToTopHref}" th:href="${backToTopHref}">トップ</a><span class="sep" th:if="${backToTopHref}">|</span>
     <a th:if="${backToChannelArchivesHref}" th:href="${backToChannelArchivesHref}">チャンネルのアーカイブ一覧</a>
-    <span class="sep" th:if="${backToChannelArchivesHref}">|</span>
+    <span class="sep" th:if="${backToParentThreadsHref}">|</span>
     <a th:if="${backToParentThreadsHref}" th:href="${backToParentThreadsHref}">スレッド一覧</a>
     <span class="sep" th:if="${backToThreadHref}">|</span>
     <a th:if="${backToThreadHref}" th:href="${backToThreadHref}">スレッド本体</a>
