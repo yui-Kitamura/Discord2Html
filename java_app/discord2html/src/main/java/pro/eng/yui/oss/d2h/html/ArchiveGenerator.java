@@ -259,6 +259,8 @@ public class ArchiveGenerator {
         ctx.setVariable("isThread", true);
         if (channel.getParentChannelId() != null) {
             ctx.setVariable("threadIndexHref", String.format(basePrefix+ "/archives/%s/threads/index.html", channel.getParentChannelId().toString()));
+            // Link to this thread's pin list page
+            ctx.setVariable("threadPinListHref", String.format(basePrefix + "/archives/%s/threads/t-%s/pin.html", channel.getParentChannelId().toString(), channel.getChannelId().toString()));
         }
         String html = templateEngine.process(THREAD_TEMPLATE_NAME, ctx);
         Path outPath = appConfig.getOutputPath()

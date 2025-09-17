@@ -138,6 +138,7 @@ public class IndexGenerator {
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
         ctx.setVariable("threadIndexHref", fileUtil.repoBaseWithPrefix() + "/" + threadIndexNorm);
+        ctx.setVariable("pinListHref", fileUtil.repoBaseWithPrefix() + "/archives/" + channelId + "/pin.html");
         ctx.setVariable("backToTopHref", fileUtil.repoBaseWithPrefix() + "/index.html");
         ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
@@ -200,6 +201,7 @@ public class IndexGenerator {
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
         ctx.setVariable("threadIndexHref", fileUtil.repoBaseWithPrefix() + "/archives/" + channelId + "/threads/index.html");
+        ctx.setVariable("pinListHref", fileUtil.repoBaseWithPrefix() + "/archives/" + channelId + "/pin.html");
         ctx.setVariable("backToTopHref", fileUtil.repoBaseWithPrefix() + "/index.html");
         ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
