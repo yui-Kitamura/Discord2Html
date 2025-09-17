@@ -1,5 +1,9 @@
 package pro.eng.yui.oss.d2h.html;
 
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
+import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.requests.RestAction;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -49,7 +53,9 @@ public class ArchiveGenerator {
                          Calendar begin, Calendar end, int seq) {
         // If target is a Thread, generate a single archive file (no daily split)
         if (channel.isThread()) {
-            return generateThreadArchive(guildId, channel, messages, begin, end, seq);
+            Path p = generateThreadArchive(guildId, channel, messages, begin, end, seq);
+            try { generateThreadPinnedPage(guildId, channel, messages); } catch (IOException ignore) {}
+            return p;
         }
 
         // Normalize copies of begin/end to avoid mutating caller's calendars
@@ -154,7 +160,74 @@ public class ArchiveGenerator {
             throw new RuntimeException("Failed to regenerate archives/index pages", e);
         }
 
+        // Generate/refresh pinned messages page for this channel
+        try { generateChannelPinnedPage(guildId, channel); } catch (IOException ignore) { }
+
         return lastOutput;
+    }
+
+    private void generateChannelPinnedPage(GuildId guildId, ChannelInfo channel) throws IOException {
+        List<Message> pinnedMessages = jdaProvider.getJda()
+                .getChannelById(GuildMessageChannel.class, channel.getChannelId().getValue())
+                .retrievePinnedMessages().complete();
+
+        List<MessageInfo> pins = new ArrayList<>();
+        for (Message msg : pinnedMessages) {
+            try {
+                pins.add(new MessageInfo(msg));
+            } catch (Throwable ignore) { }
+        }
+        final String basePrefix = fileUtil.repoBaseWithPrefix();
+        Context ctx = new Context();
+        ctx.setVariable("title", channel.getName() + " のピン留め");
+        ctx.setVariable("messages", pins);
+        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
+        ctx.setVariable("botVersion", botVersion);
+        ctx.setVariable("basePrefix", basePrefix);
+        ctx.setVariable("backToTopHref", basePrefix + "/index.html");
+        ctx.setVariable("backToChannelArchivesHref", basePrefix + "/archives/" + channel.getChannelId().toString() + ".html");
+        ctx.setVariable("lastUpdated", DateTimeUtil.time().format(Calendar.getInstance(DateTimeUtil.JST).getTime()));
+        String html = templateEngine.process("pin", ctx);
+        Path outDir = appConfig.getOutputPath().resolve("archives").resolve(channel.getChannelId().toString());
+        java.nio.file.Files.createDirectories(outDir);
+        Path out = outDir.resolve("pin.html");
+        fileUtil.writeIfChanged(out, html);
+    }
+
+    private void generateThreadPinnedPage(GuildId guildId, ChannelInfo channel, List<MessageInfo> messages) throws IOException {
+        // Retrieve pinned messages from the thread using the same approach as channels
+        List<Message> pinnedMessages = jdaProvider.getJda()
+                .getThreadChannelById(channel.getChannelId().getValue())
+                .retrievePinnedMessages().complete();
+        
+        List<MessageInfo> pins = new ArrayList<>();
+        for (Message msg : pinnedMessages) {
+            try { 
+                pins.add(new MessageInfo(msg));
+            } catch (Throwable ignore) { }
+        }
+        final String basePrefix = fileUtil.repoBaseWithPrefix();
+        Context ctx = new Context();
+        ctx.setVariable("title", (channel.getParentChannelName() != null ? (channel.getParentChannelName() + " / ") : "") + channel.getName() + " のピン留め");
+        ctx.setVariable("messages", pins);
+        ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
+        ctx.setVariable("botVersion", botVersion);
+        ctx.setVariable("basePrefix", basePrefix);
+        ctx.setVariable("backToTopHref", basePrefix + "/index.html");
+        if (channel.getParentChannelId() != null) {
+            ctx.setVariable("backToParentThreadsHref", String.format(basePrefix + "/archives/%s/threads/index.html", channel.getParentChannelId().toString()));
+            ctx.setVariable("backToChannelArchivesHref", String.format(basePrefix + "/archives/%s.html", channel.getParentChannelId().toString()));
+            ctx.setVariable("backToThreadHref", String.format(basePrefix + "/archives/%s/threads/t-%s.html", channel.getParentChannelId().toString(), channel.getChannelId().toString()));
+        }
+        ctx.setVariable("lastUpdated", DateTimeUtil.time().format(Calendar.getInstance(DateTimeUtil.JST).getTime()));
+        String html = templateEngine.process("pin", ctx);
+        Path outDir = appConfig.getOutputPath().resolve("archives")
+                .resolve(channel.getParentChannelId() == null ? "unknown" : channel.getParentChannelId().toString())
+                .resolve("threads")
+                .resolve("t-" + channel.getChannelId().toString());
+        java.nio.file.Files.createDirectories(outDir);
+        Path out = outDir.resolve("pin.html");
+        fileUtil.writeIfChanged(out, html);
     }
 
     private Path generateThreadArchive(GuildId guildId, ChannelInfo channel, List<MessageInfo> messages, Calendar begin, Calendar end, int seq) {
@@ -186,6 +259,8 @@ public class ArchiveGenerator {
         ctx.setVariable("isThread", true);
         if (channel.getParentChannelId() != null) {
             ctx.setVariable("threadIndexHref", String.format(basePrefix+ "/archives/%s/threads/index.html", channel.getParentChannelId().toString()));
+            // Link to this thread's pin list page
+            ctx.setVariable("threadPinListHref", String.format(basePrefix + "/archives/%s/threads/t-%s/pin.html", channel.getParentChannelId().toString(), channel.getChannelId().toString()));
         }
         String html = templateEngine.process(THREAD_TEMPLATE_NAME, ctx);
         Path outPath = appConfig.getOutputPath()

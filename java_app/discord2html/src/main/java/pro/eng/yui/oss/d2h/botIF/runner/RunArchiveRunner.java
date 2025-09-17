@@ -392,6 +392,14 @@ public class RunArchiveRunner implements IRunner {
             if (Files.exists(channelArchivePath) && !generatedFiles.contains(channelArchivePath)) {
                 generatedFiles.add(channelArchivePath);
             }
+            // Include channel pinned list page archives/<channelId>/pin.html
+            try {
+                Path channelPinPath = config.getOutputPath()
+                        .resolve("archives").resolve(channel.getId()).resolve("pin.html");
+                if (Files.exists(channelPinPath) && !generatedFiles.contains(channelPinPath)) {
+                    generatedFiles.add(channelPinPath);
+                }
+            } catch (Exception ignore) { /* best-effort */ }
             // Also include daily combined files for all affected dates between begin and end
             try {
                 Calendar dayIter = (Calendar) beginDate.clone();
@@ -418,11 +426,25 @@ public class RunArchiveRunner implements IRunner {
             Path threadsDir = config.getOutputPath()
                     .resolve("archives").resolve(channel.getId()).resolve("threads");
             if (Files.exists(threadsDir) && Files.isDirectory(threadsDir)) {
+                // Include direct thread HTML files (t-<id>.html, index.html)
                 try (DirectoryStream<Path> stream = Files.newDirectoryStream(threadsDir, "*.html")) {
                     for (Path p : stream) {
                         if (!generatedFiles.contains(p)) {
                             generatedFiles.add(p);
                         }
+                    }
+                }
+                // Explicitly include pin.html under each thread subdirectory: threads/t-<id>/pin.html
+                try (DirectoryStream<Path> subdirs = Files.newDirectoryStream(threadsDir)) {
+                    for (Path sub : subdirs) {
+                        try {
+                            if (Files.isDirectory(sub) && sub.getFileName().toString().startsWith("t-")) {
+                                Path pin = sub.resolve("pin.html");
+                                if (Files.exists(pin) && !generatedFiles.contains(pin)) {
+                                    generatedFiles.add(pin);
+                                }
+                            }
+                        } catch (Exception ignoreOne) { /* best-effort per entry */ }
                     }
                 }
             }
@@ -433,15 +455,23 @@ public class RunArchiveRunner implements IRunner {
             if (Files.exists(threadIndex) && !generatedFiles.contains(threadIndex)) {
                 generatedFiles.add(threadIndex);
             }
-            // If the current channel is a thread, also ensure the parent thread index is included
+            // If the current channel is a thread, also ensure the parent thread index and this thread's pin.html are included
             try {
                 if (channel.getType().isThread() && channel instanceof ThreadChannel tc) {
                     String parentId = tc.getParentChannel().getId();
+                    // parent thread index
                     Path parentIndex = config.getOutputPath()
                             .resolve("archives").resolve(parentId).resolve("threads")
                             .resolve("index.html");
                     if (Files.exists(parentIndex) && !generatedFiles.contains(parentIndex)) {
                         generatedFiles.add(parentIndex);
+                    }
+                    // this thread's pin.html at archives/<parentId>/threads/t-<threadId>/pin.html
+                    Path thisThreadPin = config.getOutputPath()
+                            .resolve("archives").resolve(parentId).resolve("threads")
+                            .resolve("t-" + tc.getId()).resolve("pin.html");
+                    if (Files.exists(thisThreadPin) && !generatedFiles.contains(thisThreadPin)) {
+                        generatedFiles.add(thisThreadPin);
                     }
                 }
             } catch (Throwable ignore2) { /* ignore */ }

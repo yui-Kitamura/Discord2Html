@@ -20,7 +20,12 @@
     <h1 th:text="${title}">Title</h1>
   </header>
   <p th:if="${description}" th:text="${description}">Description</p>
-  <p th:if="${threadIndexHref}"><a th:href="${threadIndexHref}">このチャンネルのスレッド一覧を見る</a></p>
+  <p th:if="${threadIndexHref}">
+    <a th:href="${threadIndexHref}">このチャンネルのスレッド一覧を見る</a>
+  </p>
+  <p th:if="${pinListHref}">
+    <a th:if="${pinListHref}" th:href="${pinListHref}">最新のピン止め一覧を見る</a>
+  </p>
 
   <!-- アーカイブ日付セレクタ（スレッド一覧では非表示） -->
   <div class="archive-date-search" th:if="${hideDateSearch} != true">

@@ -138,6 +138,7 @@ public class IndexGenerator {
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
         ctx.setVariable("threadIndexHref", fileUtil.repoBaseWithPrefix() + "/" + threadIndexNorm);
+        ctx.setVariable("pinListHref", fileUtil.repoBaseWithPrefix() + "/archives/" + channelId + "/pin.html");
         ctx.setVariable("backToTopHref", fileUtil.repoBaseWithPrefix() + "/index.html");
         ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
@@ -200,6 +201,7 @@ public class IndexGenerator {
         ctx.setVariable("description", "以下のアーカイブから選択してください:");
         ctx.setVariable("items", merged);
         ctx.setVariable("threadIndexHref", fileUtil.repoBaseWithPrefix() + "/archives/" + channelId + "/threads/index.html");
+        ctx.setVariable("pinListHref", fileUtil.repoBaseWithPrefix() + "/archives/" + channelId + "/pin.html");
         ctx.setVariable("backToTopHref", fileUtil.repoBaseWithPrefix() + "/index.html");
         ctx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(guildId));
         ctx.setVariable("botVersion", botVersion);
@@ -318,11 +320,6 @@ public class IndexGenerator {
         try {
             ForumChannel fc = jdaProvider.getJda().getForumChannelById(id.getValue());
             if (fc != null) { return true; }
-        } catch (Throwable ignore) { }
-        try {
-            Path base = appConfig.getOutputPath();
-            Path threads = base.resolve("archives").resolve(id.toString()).resolve("threads");
-            if (Files.exists(threads) && Files.isDirectory(threads)) { return true; }
         } catch (Throwable ignore) { }
         return false;
     }

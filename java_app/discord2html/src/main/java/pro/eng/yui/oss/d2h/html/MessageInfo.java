@@ -209,8 +209,16 @@ public class MessageInfo {
     private final String forwardedHtml; // prebuilt HTML block for a forwarded source (blockquote)
     public boolean isForwarded() { return this.forwarded; }
     public String getForwardedHtml() { return this.forwardedHtml; }
+
+    // Pinned flag
+    private final boolean pinned;
+    public boolean isPinned() { return this.pinned; }
     
     /** コンストラクタ */
+    public MessageInfo(Message msg) {
+        this(msg, new Users(msg.getAuthor(), msg.getGuild()), null);
+    }
+    
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
         this.msgLinkHtmlMap = new HashMap<>();
         this.inlineHtmlMap = new HashMap<>();
@@ -224,6 +232,7 @@ public class MessageInfo {
         this.contentProcessed = preprocessArchiveText(msg, this.contentRaw);
         this.attachments = msg.getAttachments();
         this.reactions = msg.getReactions();
+        this.pinned = msg.isPinned();
         String colorHex = null;
         try {
             Member m = msg.getMember();
