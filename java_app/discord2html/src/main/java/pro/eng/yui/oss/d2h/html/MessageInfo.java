@@ -4,6 +4,9 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.StandardGuildChannel;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
+import net.dv8tion.jda.api.entities.emoji.CustomEmoji;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
 import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.entities.messages.MessageSnapshot;
 import org.jetbrains.annotations.Contract;
@@ -142,48 +145,20 @@ public class MessageInfo {
         if (reactions == null) return views;
         for (MessageReaction r : reactions) {
             try {
-                Object emoji = r.getEmoji();
-                String name = (String) emoji.getClass().getMethod("getName").invoke(emoji);
+                EmojiUnion emoji = r.getEmoji();
+                String name = emoji.getName();
                 int count = r.getCount();
-                // Try detect custom via presence of asCustom and id
-                String typeName = null;
-                try {
-                    Object type = emoji.getClass().getMethod("getType").invoke(emoji);
-                    typeName = String.valueOf(type);
-                } catch (Throwable ignore) { /* JDA API compatibility */ }
                 boolean isCustom = false;
-                boolean isAnimated = false;
-                String id = null;
-                if (typeName != null && typeName.toUpperCase().contains("CUSTOM")) {
+                String id;
+                if (emoji.getType() == Emoji.Type.CUSTOM) {
                     isCustom = true;
-                } else {
-                    // Fallback: try asCustom() reflectively
-                    try {
-                        Object custom = emoji.getClass().getMethod("asCustom").invoke(emoji);
-                        if (custom != null) {
-                            isCustom = true;
-                            emoji = custom;
-                        }
-                    } catch (Throwable ignore) { /* not custom */ }
                 }
                 if (isCustom) {
-                    try {
-                        Object animated = emoji.getClass().getMethod("isAnimated").invoke(emoji);
-                        isAnimated = (animated instanceof Boolean) ? (Boolean)animated : false;
-                    } catch (Throwable ignore) { }
-                    try {
-                        Object idObj = null;
-                        try { idObj = emoji.getClass().getMethod("getId").invoke(emoji); } catch (Throwable ignore) { }
-                        if (idObj == null) {
-                            Object idLong = emoji.getClass().getMethod("getIdLong").invoke(emoji);
-                            id = String.valueOf(idLong);
-                        } else {
-                            id = String.valueOf(idObj);
-                        }
-                    } catch (Throwable ignore) { }
-                    String ext = isAnimated ? "gif" : "png";
-                    String url = (id != null) ? ("https://cdn.discordapp.com/emojis/" + id + "." + ext) : null;
-                    String localPath = (id != null) ? ("archives/emoji/emoji_" + id + "_" + DateTimeUtil.date8().format(new Date()) + "." + ext) : null;
+                    CustomEmoji customEmoji = emoji.asCustom();
+                    id = customEmoji.getId();
+                    String ext = customEmoji.isAnimated() ? "gif" : "png";
+                    String url = ("https://cdn.discordapp.com/emojis/" + id + "." + ext);
+                    String localPath = ("archives/emoji/emoji_" + id + "_" + DateTimeUtil.date8().format(new Date()) + "." + ext);
                     views.add(new ReactionView(true, null, url, localPath, name, count));
                 } else {
                     views.add(new ReactionView(false, name, null, null, name, count));
