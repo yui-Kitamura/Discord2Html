@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.StandardGuildChannel;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
+import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.entities.messages.MessageSnapshot;
 import org.jetbrains.annotations.Contract;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
@@ -19,6 +20,7 @@ import java.util.*;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 public class MessageInfo {
 
@@ -213,6 +215,12 @@ public class MessageInfo {
     // Pinned flag
     private final boolean pinned;
     public boolean isPinned() { return this.pinned; }
+
+    // Poll (投票)
+    private final String pollQuestion; // display text for question (escaped)
+    private final String pollAnswersHtml; // concatenated <li>...</li> items (already HTML)
+    public String getPollQuestion() { return this.pollQuestion; }
+    public String getPollAnswersHtml() { return this.pollAnswersHtml; }
     
     /** コンストラクタ */
     public MessageInfo(Message msg) {
@@ -262,6 +270,19 @@ public class MessageInfo {
         } catch (Throwable t) { t.printStackTrace(); }
         this.forwarded = tmpForwarded;
         this.forwardedHtml = tmpForwardedHtml;
+
+        // Build poll parts if present
+        String tmpQuestion = null;
+        String tmpAnswers = null;
+        try {
+            PollParts pp = buildPollParts(msg);
+            if (pp != null) {
+                tmpQuestion = pp.question;
+                tmpAnswers = pp.answersHtml;
+            }
+        } catch (Throwable ignore) { }
+        this.pollQuestion = (tmpQuestion != null && !tmpQuestion.isBlank()) ? tmpQuestion : null;
+        this.pollAnswersHtml = (tmpAnswers != null && !tmpAnswers.isBlank()) ? tmpAnswers : null;
     }
     
     @Contract("_ -> new")
@@ -716,6 +737,72 @@ public class MessageInfo {
         }
         m.appendTail(sb);
         return sb.toString();
+    }
+
+    private static class PollParts {
+        /** HTMLエスケープ済み 質問テキスト */
+        final String question;
+        /** <code>&lt;li&gt;</code>エレメント群 */
+        final String answersHtml;
+        PollParts(String question, String answersHtml) {
+            this.question = question;
+            this.answersHtml = answersHtml;
+        }
+    }
+
+    private PollParts buildPollParts(Message msg) {
+        try {
+            MessagePoll poll = msg.getPoll();
+            if (poll == null){ return null; }
+
+            // Question text
+            String question = null;
+            try {
+                MessagePoll.Question q = poll.getQuestion();
+                question = q.getText();
+            } catch (Throwable ignore) { }
+            if (question == null){ question = ""; }
+            final String escapedQuestion = htmlEscape(question);
+
+            // Answers
+            List<MessagePoll.Answer> answers = poll.getAnswers();
+            if (answers.isEmpty()){ return null; }
+
+            // Determine if finalized and collect votes
+            boolean finalized =  poll.isFinalizedVotes();
+
+            int totalVotes = 0;
+            for(MessagePoll.Answer ans : poll.getAnswers()) {
+                totalVotes += ans.getVotes();
+            }
+            
+            StringBuilder li = new StringBuilder();
+            for (int i = 0; i < answers.size(); i++) {
+                MessagePoll.Answer ans = answers.get(i);
+                final String answerText = ans.getText();
+                li.append("<li class=\"poll-item\">");
+                if (finalized) {
+                    int v = ans.getVotes();
+                    double pct = (totalVotes > 0) ? Math.round(v * 10000.0 / totalVotes) / 100.0 : 0.0;
+                    li.append("<div class=\"poll-result\" style=\"display:flex;gap:8px;align-items:center;\">");
+                    li.append("<span class=\"poll-label\" style=\"min-width:0;flex:1;\">")
+                            .append(htmlEscape(answerText))
+                            .append("</span>");
+                    li.append("<span class=\"poll-bar\" style=\"display:inline-block;height:10px;background:#7289da33;border-radius:4px;overflow:hidden;width:40%;\">" +
+                                    "<span style=\"display:block;height:100%;background:#7289da; width:").append(pct).append("%\">")
+                            .append("</span></span>");
+                    li.append("<span class=\"poll-val\">").append(v).append("票(").append(String.format("%.2f", pct)).append("%)</span>");
+                    li.append("</div>");
+                    
+                } else {
+                    li.append("<span class=\"poll-label\">").append(htmlEscape(answerText)).append("</span>");
+                }
+                li.append("</li>");
+            }
+            return new PollParts(escapedQuestion, li.toString());
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     private String buildForwardedMessageHtml(Guild current, Message forwarded, MessageSnapshot snapshot) {
