@@ -159,12 +159,20 @@ blockquote cite {
   color: var(--muted);
 }
 
+div.poll {
+    border: 1px solid silver;
+    border-radius: 6px;
+    padding: 3px;
+}
 ul.poll-list {
    list-style: none; 
 }
 ul.poll-list span.poll-label,
 ul.poll-list span.poll-val {
     white-space: nowrap;
+}
+div.poll-times {
+    font-size: small;
 }
 
 /* Reactions */
