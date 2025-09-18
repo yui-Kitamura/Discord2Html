@@ -817,7 +817,7 @@ public class MessageInfo {
                     double pct = (totalVotes > 0) ? Math.round(v * 10000f / totalVotes) / 100f : 0f;
                     li.append("<div class=\"poll-result\" style=\"display:flex;gap:8px;align-items:center;\">");
                     li.append("<span class=\"poll-label\" style=\"min-width:0;flex:1;\">")
-                            .append(htmlEscape(answerText))
+                            .append(toHtmlWithLinks(answerText))
                             .append("</span>");
                     li.append("<span class=\"poll-bar\" style=\"display:inline-block;height:10px;background:#7289da33;border-radius:4px;overflow:hidden;width:40%;\">" +
                                     "<span style=\"display:block;height:100%;background:#7289da; width:").append(pct).append("%\">")
@@ -826,7 +826,7 @@ public class MessageInfo {
                     li.append("</div>");
                     
                 } else {
-                    li.append("<span class=\"poll-label\">").append(htmlEscape(answerText)).append("</span>");
+                    li.append("<span class=\"poll-label\">").append(toHtmlWithLinks(answerText)).append("</span>");
                 }
                 li.append("</li>");
             }
