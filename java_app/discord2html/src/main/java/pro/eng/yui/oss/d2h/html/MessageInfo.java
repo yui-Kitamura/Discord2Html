@@ -785,7 +785,8 @@ public class MessageInfo {
             
             StringBuilder li = new StringBuilder();
             for (MessagePoll.Answer ans : answers) {
-                final String answerText = ans.getEmoji().getFormatted() + ans.getText();
+                String emojiStr = ans.getEmoji() != null ? ans.getEmoji().getFormatted() : ""; 
+                final String answerText = emojiStr + ans.getText();
                 li.append("<li class=\"poll-item\">");
                 if (finalized) {
                     int v = ans.getVotes();
