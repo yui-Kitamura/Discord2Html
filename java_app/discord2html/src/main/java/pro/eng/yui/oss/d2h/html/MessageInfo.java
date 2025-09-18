@@ -370,6 +370,9 @@ public class MessageInfo {
     }
 
     private static String extractContentIncludingEmbeds(Message msg) {
+        if(msg.getType() == MessageType.POLL_RESULT) {
+            return null;
+        }
         String content = msg.getContentRaw();
         if (content.trim().isEmpty()) {
             List<MessageEmbed> embeds = msg.getEmbeds();
