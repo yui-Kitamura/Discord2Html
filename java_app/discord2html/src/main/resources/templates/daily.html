@@ -44,9 +44,9 @@
       </div>
       <blockquote class="forwarded" th:if="${msg.forwarded}" th:utext="${msg.forwardedHtml}"></blockquote>
       <div class="content" th:utext="${msg.contentHtml}">メッセージ</div>
-      <div class="poll" th:if="${msg.pollAnswers != null}">
+      <div class="poll" th:if="${msg.pollAnswersHtml != null}">
         <div class="poll-q" th:text="${msg.pollQuestion}"></div>
-        <ul class="poll-list" th:utext="${msg.pollAnswers}"></ul>
+        <ul class="poll-list" th:utext="${msg.pollAnswersHtml}"></ul>
       </div>
       <div class="attachments" th:if="${msg.attachments != null and !#lists.isEmpty(msg.attachments)}">
         <div th:each="att : ${msg.attachments}">
