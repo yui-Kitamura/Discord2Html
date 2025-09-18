@@ -158,6 +158,14 @@ blockquote cite {
   color: var(--muted);
 }
 
+ul.poll-list {
+   list-style: none; 
+}
+ul.poll-list span.poll-label,
+ul.poll-list span.poll-val {
+    white-space: nowrap;
+}
+
 /* Reactions */
 .reactions {
     margin-top: 6px;
