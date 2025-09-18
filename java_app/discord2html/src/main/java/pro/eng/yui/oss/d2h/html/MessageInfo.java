@@ -791,14 +791,14 @@ public class MessageInfo {
                 if (finalized) {
                     int v = ans.getVotes();
                     double pct = (totalVotes > 0) ? Math.round(v * 10000f / totalVotes) / 100f : 0f;
-                    li.append("<div class=\"poll-result\" style=\"display:flex;gap:8px;align-items:center;\">");
-                    li.append("<span class=\"poll-label\" style=\"min-width:0;flex:1;\">")
+                    li.append("<div class=\"poll-result\" style=\"display:flex;gap:8px;align-items:center;width:100%;\">");
+                    li.append("<span class=\"poll-label\" style=\"min-width:0;flex:1;max-width:50%;\">")
                             .append(toHtmlWithLinks(answerText))
                             .append("</span>");
-                    li.append("<span class=\"poll-bar\" style=\"display:inline-block;height:10px;background:#7289da33;border-radius:4px;overflow:hidden;width:40%;\">" +
-                                    "<span style=\"display:block;height:100%;background:#7289da; width:").append(pct).append("%\">")
+                    li.append("<span class=\"poll-bar\" style=\"flex:0 0 200px;height:10px;background:#7289da33;border-radius:4px;overflow:hidden;\">" +
+                                    "<span style=\"display:block;height:100%;background:#7289da;width:").append(pct).append("%\">")
                             .append("</span></span>");
-                    li.append("<span class=\"poll-val\">").append(v).append("票(").append(String.format("%.2f", pct)).append("%)</span>");
+                    li.append("<span class=\"poll-val\" style=\"flex:0 0 100px;\">").append(v).append("票(").append(String.format("%.2f", pct)).append("%)</span>");
                     li.append("</div>");
                     
                 } else {
