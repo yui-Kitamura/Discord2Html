@@ -806,13 +806,12 @@ public class MessageInfo {
             }
             
             StringBuilder li = new StringBuilder();
-            for (int i = 0; i < answers.size(); i++) {
-                MessagePoll.Answer ans = answers.get(i);
+            for (MessagePoll.Answer ans : answers) {
                 final String answerText = ans.getEmoji().getFormatted() + ans.getText();
                 li.append("<li class=\"poll-item\">");
                 if (finalized) {
                     int v = ans.getVotes();
-                    double pct = (totalVotes > 0) ? Math.round(v * 10000.0 / totalVotes) / 100.0 : 0.0;
+                    double pct = (totalVotes > 0) ? Math.round(v * 10000f / totalVotes) / 100f : 0f;
                     li.append("<div class=\"poll-result\" style=\"display:flex;gap:8px;align-items:center;\">");
                     li.append("<span class=\"poll-label\" style=\"min-width:0;flex:1;\">")
                             .append(htmlEscape(answerText))
