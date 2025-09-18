@@ -219,8 +219,12 @@ public class MessageInfo {
     // Poll (投票)
     private final String pollQuestion; // display text for question (escaped)
     private final String pollAnswersHtml; // concatenated <li>...</li> items (already HTML)
+    private final String pollStartTimeText; // e.g., "yyyy/MM/dd HH:mm:ss 投票開始：" (only for result messages)
+    private final String pollEndTimeText;   // e.g., "yyyy/MM/dd HH:mm:ss 投票締切："
     public String getPollQuestion() { return this.pollQuestion; }
     public String getPollAnswersHtml() { return this.pollAnswersHtml; }
+    public String getPollStartTimeText() { return this.pollStartTimeText; }
+    public String getPollEndTimeText() { return this.pollEndTimeText; }
     
     /** コンストラクタ */
     public MessageInfo(Message msg) {
@@ -274,15 +278,21 @@ public class MessageInfo {
         // Build poll parts if present
         String tmpQuestion = null;
         String tmpAnswers = null;
+        String tmpStart = null;
+        String tmpEnd = null;
         try {
             PollParts pp = buildPollParts(msg);
             if (pp != null) {
                 tmpQuestion = pp.question;
                 tmpAnswers = pp.answersHtml;
+                tmpStart = pp.startTimeText;
+                tmpEnd = pp.endTimeText;
             }
         } catch (Throwable ignore) { }
         this.pollQuestion = (tmpQuestion != null && !tmpQuestion.isBlank()) ? tmpQuestion : null;
         this.pollAnswersHtml = (tmpAnswers != null && !tmpAnswers.isBlank()) ? tmpAnswers : null;
+        this.pollStartTimeText = tmpStart;
+        this.pollEndTimeText = tmpEnd;
     }
     
     @Contract("_ -> new")
@@ -745,25 +755,32 @@ public class MessageInfo {
         final String question;
         /** <code>&lt;li&gt;</code>エレメント群 */
         final String answersHtml;
-        PollParts(String question, String answersHtml) {
+        /** yyyy/MM/dd HH:mm:ss 投票開始： (結果メッセージ時のみ) */
+        final String startTimeText;
+        /** yyyy/MM/dd HH:mm:ss 投票締切： */
+        final String endTimeText;
+        PollParts(String question, String answersHtml, String startTimeText, String endTimeText) {
             this.question = question;
             this.answersHtml = answersHtml;
+            this.startTimeText = startTimeText;
+            this.endTimeText = endTimeText;
         }
     }
 
     private PollParts buildPollParts(Message msg) {
         try {
-            MessagePoll poll = msg.getPoll();
             if(msg.getType() == MessageType.POLL_RESULT) {
                 try {
                     MessageReference ref = msg.getMessageReference();
                     Message original = msg.getJDA().getChannelById(GuildMessageChannel.class, ref.getChannelIdLong())
                             .retrieveMessageById(ref.getMessageIdLong()).complete();
                     if (original != null) {
-                        poll = original.getPoll(); //元メッセージの参照
+                        msg = original; //元メッセージの参照
                     }
                 } catch (Exception ignore) { }
             }
+
+            MessagePoll poll = msg.getPoll();
             if (poll == null){ return null; }
 
             // Question text
@@ -810,7 +827,17 @@ public class MessageInfo {
                 }
                 li.append("</li>");
             }
-            return new PollParts(escapedQuestion, li.toString());
+            
+            String startText = "投票開始：";
+            try {
+                startText += DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
+            }catch(Throwable ignore){ }
+            String endText = "投票締切：";
+            try {
+                endText += DateTimeUtil.time().format(Date.from(poll.getTimeExpiresAt().toInstant()));
+            }catch(Throwable ignore){ }
+
+            return new PollParts(escapedQuestion, li.toString(), startText, endText);
         } catch (Throwable t) {
             return null;
         }
