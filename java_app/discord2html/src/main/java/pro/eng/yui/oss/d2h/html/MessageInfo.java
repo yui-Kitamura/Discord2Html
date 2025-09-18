@@ -768,8 +768,9 @@ public class MessageInfo {
     }
 
     private PollParts buildPollParts(Message msg) {
+        final boolean isResult = (msg.getType() == MessageType.POLL_RESULT);
         try {
-            if(msg.getType() == MessageType.POLL_RESULT) {
+            if(isResult) {
                 try {
                     MessageReference ref = msg.getMessageReference();
                     Message original = msg.getJDA().getChannelById(GuildMessageChannel.class, ref.getChannelIdLong())
@@ -830,7 +831,11 @@ public class MessageInfo {
             
             String startText = "投票開始：";
             try {
-                startText += DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
+                if(isResult) {
+                    startText += DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
+                }else {
+                    startText = null;
+                }
             }catch(Throwable ignore){ }
             String endText = "投票締切：";
             try {
