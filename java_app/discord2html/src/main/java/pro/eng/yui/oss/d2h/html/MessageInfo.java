@@ -740,6 +740,7 @@ public class MessageInfo {
     }
 
     private static class PollParts {
+        private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PollParts.class);
         /** HTMLエスケープ済み 質問テキスト */
         final String question;
         /** <code>&lt;li&gt;</code>エレメント群 */
@@ -753,6 +754,16 @@ public class MessageInfo {
     private PollParts buildPollParts(Message msg) {
         try {
             MessagePoll poll = msg.getPoll();
+            if(msg.getType() == MessageType.POLL_RESULT) {
+                try {
+                    MessageReference ref = msg.getMessageReference();
+                    Message original = msg.getJDA().getChannelById(GuildMessageChannel.class, ref.getChannelIdLong())
+                            .retrieveMessageById(ref.getMessageIdLong()).complete();
+                    if (original != null) {
+                        poll = original.getPoll(); //元メッセージの参照
+                    }
+                } catch (Exception ignore) { }
+            }
             if (poll == null){ return null; }
 
             // Question text
