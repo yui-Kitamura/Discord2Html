@@ -25,6 +25,7 @@ img.emoji { /* Twemoji */
     height: 1em;
     width: 1em;
     margin: 0 .05em 0 .1em;
+    object-fit: contain;
     vertical-align: -0.1em;
 }
 .container {
@@ -156,6 +157,57 @@ blockquote cite {
   margin-top: .4em;
   font-size: .85em;
   color: var(--muted);
+}
+
+div.poll {
+    border: 1px solid silver;
+    border-radius: 6px;
+    padding: 3px;
+}
+ul.poll-list {
+   list-style: none; 
+}
+ul.poll-list span.poll-label,
+ul.poll-list span.poll-val {
+    white-space: nowrap;
+}
+.poll-result {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+}
+.poll-label {
+    min-width: 0;
+    flex: 1;
+    max-width: 50%;
+}
+.poll-bar {
+    flex: 0 0 200px;
+    height: 10px;
+    background: #7289da33;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.poll-bar > span {
+    display: block;
+    height: 100%;
+    background: #7289da;
+}
+.poll-count, .poll-percent {
+    white-space: nowrap;
+    display: flex;
+    justify-content: flex-end; /* right align numbers and unit */
+    align-items: baseline;
+    gap: 4px;
+}
+/* Fixed widths so that the unit columns align vertically */
+.poll-count { flex: 0 0 90px; }
+.poll-percent { flex: 0 0 80px; }
+.poll-count .num, .poll-percent .num { text-align: right; min-width: 0; }
+.poll-count .unit, .poll-percent .unit { color: var(--muted); }
+div.poll-times {
+    font-size: small;
 }
 
 /* Reactions */

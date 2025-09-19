@@ -42,6 +42,14 @@
       </div>
       <blockquote class="forwarded" th:if="${msg.forwarded}" th:utext="${msg.forwardedHtml}"></blockquote>
       <div class="content" th:utext="${msg.contentHtml}">メッセージ</div>
+      <div class="poll" th:if="${msg.pollAnswersHtml != null}">
+        <div class="poll-q" th:text="${msg.pollQuestion}"></div>
+        <ul class="poll-list" th:utext="${msg.pollAnswersHtml}"></ul>
+        <div class="poll-times">
+          <div class="poll-start" th:if="${msg.pollStartTimeText != null}" th:text="${msg.pollStartTimeText}">2025/01/01 00:00:00 投票開始：</div>
+          <div class="poll-end" th:if="${msg.pollEndTimeText != null}" th:text="${msg.pollEndTimeText}">2025/01/02 00:00:00 投票締切：</div>
+        </div>
+      </div>
       <div class="attachments" th:if="${msg.attachments != null and !#lists.isEmpty(msg.attachments)}">
         <div th:each="att : ${msg.attachments}">
           <div th:if="${att.image}">

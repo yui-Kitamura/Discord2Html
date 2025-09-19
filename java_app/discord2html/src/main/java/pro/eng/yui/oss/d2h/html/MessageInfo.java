@@ -2,8 +2,11 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
-import net.dv8tion.jda.api.entities.channel.middleman.StandardGuildChannel;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
+import net.dv8tion.jda.api.entities.emoji.CustomEmoji;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
+import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
+import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.entities.messages.MessageSnapshot;
 import org.jetbrains.annotations.Contract;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
@@ -140,48 +143,20 @@ public class MessageInfo {
         if (reactions == null) return views;
         for (MessageReaction r : reactions) {
             try {
-                Object emoji = r.getEmoji();
-                String name = (String) emoji.getClass().getMethod("getName").invoke(emoji);
+                EmojiUnion emoji = r.getEmoji();
+                String name = emoji.getName();
                 int count = r.getCount();
-                // Try detect custom via presence of asCustom and id
-                String typeName = null;
-                try {
-                    Object type = emoji.getClass().getMethod("getType").invoke(emoji);
-                    typeName = String.valueOf(type);
-                } catch (Throwable ignore) { /* JDA API compatibility */ }
                 boolean isCustom = false;
-                boolean isAnimated = false;
-                String id = null;
-                if (typeName != null && typeName.toUpperCase().contains("CUSTOM")) {
+                String id;
+                if (emoji.getType() == Emoji.Type.CUSTOM) {
                     isCustom = true;
-                } else {
-                    // Fallback: try asCustom() reflectively
-                    try {
-                        Object custom = emoji.getClass().getMethod("asCustom").invoke(emoji);
-                        if (custom != null) {
-                            isCustom = true;
-                            emoji = custom;
-                        }
-                    } catch (Throwable ignore) { /* not custom */ }
                 }
                 if (isCustom) {
-                    try {
-                        Object animated = emoji.getClass().getMethod("isAnimated").invoke(emoji);
-                        isAnimated = (animated instanceof Boolean) ? (Boolean)animated : false;
-                    } catch (Throwable ignore) { }
-                    try {
-                        Object idObj = null;
-                        try { idObj = emoji.getClass().getMethod("getId").invoke(emoji); } catch (Throwable ignore) { }
-                        if (idObj == null) {
-                            Object idLong = emoji.getClass().getMethod("getIdLong").invoke(emoji);
-                            id = String.valueOf(idLong);
-                        } else {
-                            id = String.valueOf(idObj);
-                        }
-                    } catch (Throwable ignore) { }
-                    String ext = isAnimated ? "gif" : "png";
-                    String url = (id != null) ? ("https://cdn.discordapp.com/emojis/" + id + "." + ext) : null;
-                    String localPath = (id != null) ? ("archives/emoji/emoji_" + id + "_" + DateTimeUtil.date8().format(new Date()) + "." + ext) : null;
+                    CustomEmoji customEmoji = emoji.asCustom();
+                    id = customEmoji.getId();
+                    String ext = customEmoji.isAnimated() ? "gif" : "png";
+                    String url = ("https://cdn.discordapp.com/emojis/" + id + "." + ext);
+                    String localPath = ("archives/emoji/emoji_" + id + "_" + DateTimeUtil.date8().format(new Date()) + "." + ext);
                     views.add(new ReactionView(true, null, url, localPath, name, count));
                 } else {
                     views.add(new ReactionView(false, name, null, null, name, count));
@@ -213,7 +188,37 @@ public class MessageInfo {
     // Pinned flag
     private final boolean pinned;
     public boolean isPinned() { return this.pinned; }
-    
+
+    // Poll (投票)
+    private final String pollQuestion; // display text for question (escaped)
+    private final String pollAnswersHtml; // concatenated <li>...</li> items (already HTML)
+    private final String pollStartTimeText; // e.g., "yyyy/MM/dd HH:mm:ss 投票開始：" (only for result messages)
+    private final String pollEndTimeText;   // e.g., "yyyy/MM/dd HH:mm:ss 投票締切："
+    private final List<EmojiInfo> pollEmojis; // custom emojis used in poll options
+    public String getPollQuestion() { return this.pollQuestion; }
+    public String getPollAnswersHtml() { return this.pollAnswersHtml; }
+    public String getPollStartTimeText() { return this.pollStartTimeText; }
+    public String getPollEndTimeText() { return this.pollEndTimeText; }
+    public List<EmojiInfo> getPollEmojis() { return this.pollEmojis == null ? List.of() : this.pollEmojis; }
+
+    public static class EmojiInfo {
+        private final String id;
+        private final String name;
+        private final boolean animated;
+
+        public static final String EXT_GIF = "gif";
+        public static final String EXT_PNG = "png";
+        
+        public EmojiInfo(String id, String name, boolean animated) {
+            this.id = id;
+            this.name = name;
+            this.animated = animated;
+        }
+        public String getId() { return id; }
+        public String getName() { return name; }
+        public boolean isAnimated() { return animated; }
+    }
+
     /** コンストラクタ */
     public MessageInfo(Message msg) {
         this(msg, new Users(msg.getAuthor(), msg.getGuild()), null);
@@ -262,6 +267,28 @@ public class MessageInfo {
         } catch (Throwable t) { t.printStackTrace(); }
         this.forwarded = tmpForwarded;
         this.forwardedHtml = tmpForwardedHtml;
+
+        // Build poll parts if present
+        String tmpQuestion = null;
+        String tmpAnswers = null;
+        String tmpStart = null;
+        String tmpEnd = null;
+        List<EmojiInfo> tmpPollEmojis = null;
+        try {
+            PollParts pp = buildPollParts(msg);
+            if (pp != null) {
+                tmpQuestion = pp.question;
+                tmpAnswers = pp.answersHtml;
+                tmpStart = pp.startTimeText;
+                tmpEnd = pp.endTimeText;
+                tmpPollEmojis = pp.emojis;
+            }
+        } catch (Throwable ignore) { }
+        this.pollQuestion = (tmpQuestion != null && !tmpQuestion.isBlank()) ? tmpQuestion : null;
+        this.pollAnswersHtml = (tmpAnswers != null && !tmpAnswers.isBlank()) ? tmpAnswers : null;
+        this.pollStartTimeText = tmpStart;
+        this.pollEndTimeText = tmpEnd;
+        this.pollEmojis = (tmpPollEmojis == null) ? List.of() : List.copyOf(tmpPollEmojis);
     }
     
     @Contract("_ -> new")
@@ -339,6 +366,9 @@ public class MessageInfo {
     }
 
     private static String extractContentIncludingEmbeds(Message msg) {
+        if(msg.getType() == MessageType.POLL_RESULT) {
+            return null;
+        }
         String content = msg.getContentRaw();
         if (content.trim().isEmpty()) {
             List<MessageEmbed> embeds = msg.getEmbeds();
@@ -716,6 +746,118 @@ public class MessageInfo {
         }
         m.appendTail(sb);
         return sb.toString();
+    }
+    
+    private static class PollParts {
+        private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PollParts.class);
+        /** HTMLエスケープ済み 質問テキスト */
+        final String question;
+        /** <code>&lt;li&gt;</code>エレメント群 */
+        final String answersHtml;
+        /** yyyy/MM/dd HH:mm:ss 投票開始： (結果メッセージ時のみ) */
+        final String startTimeText;
+        /** yyyy/MM/dd HH:mm:ss 投票締切： */
+        final String endTimeText;
+        /** Poll内で使用されているカスタム絵文字の一覧 */
+        final List<EmojiInfo> emojis;
+        PollParts(String question, String answersHtml, String startTimeText, String endTimeText, List<EmojiInfo> emojis) {
+            this.question = question;
+            this.answersHtml = answersHtml;
+            this.startTimeText = startTimeText;
+            this.endTimeText = endTimeText;
+            this.emojis = (emojis == null) ? List.of() : List.copyOf(emojis);
+        }
+    }
+
+    private PollParts buildPollParts(Message msg) {
+        final boolean isResult = (msg.getType() == MessageType.POLL_RESULT);
+        try {
+            if(isResult) {
+                try {
+                    MessageReference ref = msg.getMessageReference();
+                    Message original = msg.getJDA().getChannelById(GuildMessageChannel.class, ref.getChannelIdLong())
+                            .retrieveMessageById(ref.getMessageIdLong()).complete();
+                    if (original != null) {
+                        msg = original; //元メッセージの参照
+                    }
+                } catch (Exception ignore) { }
+            }
+
+            MessagePoll poll = msg.getPoll();
+            if (poll == null){ return null; }
+
+            // Question text
+            String question = null;
+            try {
+                MessagePoll.Question q = poll.getQuestion();
+                question = q.getText();
+            } catch (Throwable ignore) { }
+            if (question == null){ question = ""; }
+            final String escapedQuestion = htmlEscape(question);
+
+            // Answers
+            List<MessagePoll.Answer> answers = poll.getAnswers();
+            if (answers.isEmpty()){ return null; }
+
+            // Determine if finalized and collect votes
+            boolean finalized =  poll.isFinalizedVotes();
+
+            int totalVotes = 0;
+            for(MessagePoll.Answer ans : poll.getAnswers()) {
+                totalVotes += ans.getVotes();
+            }
+            
+            StringBuilder li = new StringBuilder();
+            List<EmojiInfo> emojiList = new ArrayList<>();
+            for (MessagePoll.Answer ans : answers) {
+                String emojiStr = "";
+                try {
+                    if (ans.getEmoji() != null) {
+                        EmojiUnion eu = ans.getEmoji();
+                        emojiStr = eu.getFormatted();
+                        if (eu.getType() == Emoji.Type.CUSTOM) {
+                            CustomEmoji ce = eu.asCustom();
+                            emojiList.add(new EmojiInfo(ce.getId(), ce.getName(), ce.isAnimated()));
+                        }
+                    }
+                } catch (Throwable ignore) { }
+                final String answerText = emojiStr + ans.getText();
+                li.append("<li class=\"poll-item\">");
+                if (finalized) {
+                    int v = ans.getVotes();
+                    double pct = (totalVotes > 0) ? Math.round(v * 10000f / totalVotes) / 100f : 0f;
+                    li.append("<div class=\"poll-result\">");
+                    li.append("<span class=\"poll-label\">")
+                            .append(toHtmlWithLinks(answerText))
+                            .append("</span>");
+                    li.append("<span class=\"poll-bar\"><span style=\"width:").append(pct).append("%\"></span></span>");
+                    li.append("<span class=\"poll-count\"><span class=\"num\">").append(v).append("</span><span class=\"unit\">票</span></span>");
+                    li.append("<span class=\"poll-percent\"><span class=\"num\">").append(String.format("%.2f", pct)).append("</span><span class=\"unit\">%</span></span>");
+                    li.append("</div>");
+                    
+                } else {
+                    li.append("<span class=\"poll-label\">").append(toHtmlWithLinks(answerText)).append("</span>");
+                }
+                li.append("</li>");
+            }
+            
+            String startText = "投票開始：";
+            try {
+                if(isResult) {
+                    startText += DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
+                }else {
+                    startText = null;
+                }
+            }catch(Throwable ignore){ }
+            String endText = "投票締切：";
+            try {
+                endText += DateTimeUtil.time().format(Date.from(poll.getTimeExpiresAt().toInstant()));
+            }catch(Throwable ignore){ }
+
+            return new PollParts(escapedQuestion, li.toString(), startText, endText, emojiList);
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     private String buildForwardedMessageHtml(Guild current, Message forwarded, MessageSnapshot snapshot) {
