@@ -187,7 +187,7 @@ public class FileGenerateUtil {
                     boolean animated = m.group(1) != null && !m.group(1).isEmpty();
                     String name = m.group(2);
                     String id = m.group(3);
-                    String ext = animated ? "gif" : "png";
+                    String ext = animated ? MessageInfo.EmojiInfo.EXT_GIF : MessageInfo.EmojiInfo.EXT_PNG;
                     String key = id + "." + ext;
                     if (processed.contains(key)) {
                         continue; // skip
@@ -247,6 +247,34 @@ public class FileGenerateUtil {
             } catch (Throwable ignore) {
                 // best-effort
             }
+
+            // --- 3) From poll answers (custom emojis) ---
+            try {
+                List<MessageInfo.EmojiInfo> pe = mi.getPollEmojis();
+                if (pe != null) {
+                    for (MessageInfo.EmojiInfo ei : pe) {
+                        if (ei == null) { continue; }
+                        String id = ei.getId();
+                        String name = ei.getName();
+                        String ext = ei.isAnimated() ? MessageInfo.EmojiInfo.EXT_GIF : MessageInfo.EmojiInfo.EXT_PNG;
+                        if (id == null || id.isEmpty()) { continue; }
+                        String key = id + "." + ext;
+                        if (processed.contains(key)) { continue; }
+                        processed.add(key);
+                        String url = "https://cdn.discordapp.com/emojis/" + id + "." + ext;
+                        byte[] bytes;
+                        try (var in = new URL(url).openStream()) {
+                            bytes = in.readAllBytes();
+                        } catch (IOException ioe) {
+                            // skip this emoji if fetch fails
+                            continue;
+                        }
+                        saveCustomEmoji(emojiDir, id, name, ext, today, bytes);
+                    }
+                }
+            } catch (Throwable ignore) {
+                // best-effort
+            }
         }
     }
 
@@ -293,7 +321,7 @@ public class FileGenerateUtil {
      */
     // 依存性注入がない処理のためstaticで提供
     public static String buildEmojiImgHtml(String name, String id, boolean animated) {
-        String ext = animated ? "gif" : "png";
+        String ext = animated ? MessageInfo.EmojiInfo.EXT_GIF : MessageInfo.EmojiInfo.EXT_PNG;
         String date = DateTimeUtil.date8().format(new Date());
         String safe = getSafeEmojiName(name);
         String first = "/Discord2Html/archives/emoji/emoji_" + id + "_" + safe + "_" + date + "." + ext;

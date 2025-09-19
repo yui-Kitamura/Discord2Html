@@ -2,7 +2,6 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
-import net.dv8tion.jda.api.entities.channel.middleman.StandardGuildChannel;
 import net.dv8tion.jda.api.entities.channel.unions.MessageChannelUnion;
 import net.dv8tion.jda.api.entities.emoji.CustomEmoji;
 import net.dv8tion.jda.api.entities.emoji.Emoji;
@@ -23,7 +22,6 @@ import java.util.*;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 public class MessageInfo {
 
@@ -196,11 +194,31 @@ public class MessageInfo {
     private final String pollAnswersHtml; // concatenated <li>...</li> items (already HTML)
     private final String pollStartTimeText; // e.g., "yyyy/MM/dd HH:mm:ss 投票開始：" (only for result messages)
     private final String pollEndTimeText;   // e.g., "yyyy/MM/dd HH:mm:ss 投票締切："
+    private final List<EmojiInfo> pollEmojis; // custom emojis used in poll options
     public String getPollQuestion() { return this.pollQuestion; }
     public String getPollAnswersHtml() { return this.pollAnswersHtml; }
     public String getPollStartTimeText() { return this.pollStartTimeText; }
     public String getPollEndTimeText() { return this.pollEndTimeText; }
-    
+    public List<EmojiInfo> getPollEmojis() { return this.pollEmojis == null ? List.of() : this.pollEmojis; }
+
+    public static class EmojiInfo {
+        private final String id;
+        private final String name;
+        private final boolean animated;
+
+        public static final String EXT_GIF = "gif";
+        public static final String EXT_PNG = "png";
+        
+        public EmojiInfo(String id, String name, boolean animated) {
+            this.id = id;
+            this.name = name;
+            this.animated = animated;
+        }
+        public String getId() { return id; }
+        public String getName() { return name; }
+        public boolean isAnimated() { return animated; }
+    }
+
     /** コンストラクタ */
     public MessageInfo(Message msg) {
         this(msg, new Users(msg.getAuthor(), msg.getGuild()), null);
@@ -255,6 +273,7 @@ public class MessageInfo {
         String tmpAnswers = null;
         String tmpStart = null;
         String tmpEnd = null;
+        List<EmojiInfo> tmpPollEmojis = null;
         try {
             PollParts pp = buildPollParts(msg);
             if (pp != null) {
@@ -262,12 +281,14 @@ public class MessageInfo {
                 tmpAnswers = pp.answersHtml;
                 tmpStart = pp.startTimeText;
                 tmpEnd = pp.endTimeText;
+                tmpPollEmojis = pp.emojis;
             }
         } catch (Throwable ignore) { }
         this.pollQuestion = (tmpQuestion != null && !tmpQuestion.isBlank()) ? tmpQuestion : null;
         this.pollAnswersHtml = (tmpAnswers != null && !tmpAnswers.isBlank()) ? tmpAnswers : null;
         this.pollStartTimeText = tmpStart;
         this.pollEndTimeText = tmpEnd;
+        this.pollEmojis = (tmpPollEmojis == null) ? List.of() : List.copyOf(tmpPollEmojis);
     }
     
     @Contract("_ -> new")
@@ -726,7 +747,7 @@ public class MessageInfo {
         m.appendTail(sb);
         return sb.toString();
     }
-
+    
     private static class PollParts {
         private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PollParts.class);
         /** HTMLエスケープ済み 質問テキスト */
@@ -737,11 +758,14 @@ public class MessageInfo {
         final String startTimeText;
         /** yyyy/MM/dd HH:mm:ss 投票締切： */
         final String endTimeText;
-        PollParts(String question, String answersHtml, String startTimeText, String endTimeText) {
+        /** Poll内で使用されているカスタム絵文字の一覧 */
+        final List<EmojiInfo> emojis;
+        PollParts(String question, String answersHtml, String startTimeText, String endTimeText, List<EmojiInfo> emojis) {
             this.question = question;
             this.answersHtml = answersHtml;
             this.startTimeText = startTimeText;
             this.endTimeText = endTimeText;
+            this.emojis = (emojis == null) ? List.of() : List.copyOf(emojis);
         }
     }
 
@@ -784,8 +808,19 @@ public class MessageInfo {
             }
             
             StringBuilder li = new StringBuilder();
+            List<EmojiInfo> emojiList = new ArrayList<>();
             for (MessagePoll.Answer ans : answers) {
-                String emojiStr = ans.getEmoji() != null ? ans.getEmoji().getFormatted() : ""; 
+                String emojiStr = "";
+                try {
+                    if (ans.getEmoji() != null) {
+                        EmojiUnion eu = ans.getEmoji();
+                        emojiStr = eu.getFormatted();
+                        if (eu.getType() == Emoji.Type.CUSTOM) {
+                            CustomEmoji ce = eu.asCustom();
+                            emojiList.add(new EmojiInfo(ce.getId(), ce.getName(), ce.isAnimated()));
+                        }
+                    }
+                } catch (Throwable ignore) { }
                 final String answerText = emojiStr + ans.getText();
                 li.append("<li class=\"poll-item\">");
                 if (finalized) {
@@ -819,7 +854,7 @@ public class MessageInfo {
                 endText += DateTimeUtil.time().format(Date.from(poll.getTimeExpiresAt().toInstant()));
             }catch(Throwable ignore){ }
 
-            return new PollParts(escapedQuestion, li.toString(), startText, endText);
+            return new PollParts(escapedQuestion, li.toString(), startText, endText, emojiList);
         } catch (Throwable t) {
             return null;
         }
