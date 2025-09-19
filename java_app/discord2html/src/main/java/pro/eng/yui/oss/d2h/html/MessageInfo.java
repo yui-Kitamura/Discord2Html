@@ -154,7 +154,7 @@ public class MessageInfo {
                 if (isCustom) {
                     CustomEmoji customEmoji = emoji.asCustom();
                     id = customEmoji.getId();
-                    String ext = customEmoji.isAnimated() ? "gif" : "png";
+                    String ext = customEmoji.isAnimated() ? EmojiInfo.EXT_GIF : EmojiInfo.EXT_PNG;
                     String url = ("https://cdn.discordapp.com/emojis/" + id + "." + ext);
                     String localPath = ("archives/emoji/emoji_" + id + "_" + DateTimeUtil.date8().format(new Date()) + "." + ext);
                     views.add(new ReactionView(true, null, url, localPath, name, count));
