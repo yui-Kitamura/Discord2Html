@@ -63,6 +63,7 @@ public class GitUtil {
     public String getRepoBaseWithPrefixSafe() {
         return "/" + getRepoBaseSafe();
     }
+    /** https://$repoOwner$.github.io/$repoName$ */
     public String getPagesUrlSafe() {
         String owner = getRepoOwnerSafe();
         String base = getRepoBaseSafe();
