@@ -2,7 +2,7 @@ name: deployWeb.yml
 
 on:
   push:
-    branches: ["main"]
+    branches: ["ghPage"]
     paths:
       - 'gh_pages/**'
   workflow_dispatch:
