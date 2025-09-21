@@ -75,9 +75,19 @@ public class DiscordBotListener extends ListenerAdapter {
                     "【お知らせ】このサーバーでは、投稿内容やリアクションがアーカイブとして記録・公開される場合があります。" +
                     "詳しくは、[アーカイブ運用ポリシー]("+ gitUtil.getPagesUrlSafe() +"/tos.html)をご確認ください。\n" +
                     "発言内容のアーカイブ記録に同意しない場合はコマンド `/d2h optout`をご利用ください";
-            event.getMember().getDefaultChannel().asTextChannel()
-                    .sendMessage(msg)
-                    .queue();
+            if (event.getMember().getGuild().getSystemChannel() != null) {
+                event.getMember().getGuild().getSystemChannel()
+                        .sendMessage(msg)
+                        .queue();
+            } else if (event.getMember().getDefaultChannel() != null) {
+                event.getMember().getDefaultChannel().asTextChannel()
+                        .sendMessage(msg)
+                        .queue();
+            } else if (event.getMember().getGuild().getDefaultChannel() != null) {
+                event.getMember().getGuild().getDefaultChannel().asTextChannel()
+                        .sendMessage(msg)
+                        .queue();
+            }
         }catch(Throwable e){ e.printStackTrace(); }
     }
 
