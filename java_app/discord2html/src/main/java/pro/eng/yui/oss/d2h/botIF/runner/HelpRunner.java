@@ -6,19 +6,22 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.github.GitConfig;
+import pro.eng.yui.oss.d2h.github.GitUtil;
 
 @Component
 public class HelpRunner implements IRunner {
     
     private final GitConfig gitConfig;
     private final Secrets secrets;
+    private final GitUtil gitUtil;
     
     private String lastAfterRunMessage = "bot sent you help guid to DM";
     private boolean lastShouldDeferEphemeral = true;
     
-    public HelpRunner(GitConfig gitConfig, Secrets secrets){
+    public HelpRunner(GitConfig gitConfig, Secrets secrets, GitUtil gitUtil){
         this.gitConfig = gitConfig;
         this.secrets = secrets;
+        this.gitUtil = gitUtil;
     }
     
     /** default behavior: DM help to user */
@@ -32,17 +35,30 @@ public class HelpRunner implements IRunner {
         this.lastAfterRunMessage = "bot sent you help guid to DM";
         this.lastShouldDeferEphemeral = true;
     }
-    
-    /** Overload for /d2h help with options */
-    public void run(@NotNull Member member, boolean isAdmin, boolean showVersion){
+
+    /** Overload for /d2h help with options: version or tos link */
+    public void run(@NotNull Member member, boolean isAdmin, boolean showVersion, boolean showTos){
+        String returnMessage = "";
+
         if (showVersion) {
-            String ver = secrets.getBotVersion();
-            this.lastAfterRunMessage = 
+            final String ver = secrets.getBotVersion();
+            returnMessage +=
                     "bot version: " + ver + "\n" +
                     "GitHub: " + gitConfig.getRepo().getUrl();
             this.lastShouldDeferEphemeral = true;
-            return;
         }
+        if (showTos) {
+            final String url = gitUtil.getPagesUrlSafe() + "/tos.html";
+            if(returnMessage.isEmpty() == false){ returnMessage += "\n"; }   
+            returnMessage += "アーカイブ運用ポリシー(TOS): " + url;
+            this.lastShouldDeferEphemeral = true;
+        }
+        
+        if (showVersion == false && showTos == false) {
+            run(member, isAdmin);
+        }
+        
+        this.lastAfterRunMessage = returnMessage;
     }
 
     private String buildHelpText(){

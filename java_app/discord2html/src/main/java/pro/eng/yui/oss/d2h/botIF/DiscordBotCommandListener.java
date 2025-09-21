@@ -3,6 +3,7 @@ package pro.eng.yui.oss.d2h.botIF;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
@@ -80,6 +81,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             ,
             new SubcommandData("help", "send you about this bots command help")
                     .addOption(OptionType.BOOLEAN, "version", "show bot version", false)
+                    .addOption(OptionType.BOOLEAN, "tos", "show archive policy (TOS) link", false)
     );
 
     private final DiscordBotUtils bot;
@@ -243,10 +245,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     
     private void runHelp(SlashCommandInteractionEvent event){
         // do not need to check admin for help
-        var opt = event.getOption("version");
-        boolean showVersion = (opt != null) && opt.getAsBoolean();
+        OptionMapping optVer = event.getOption("version");
+        boolean showVersion = (optVer != null) && optVer.getAsBoolean();
+        OptionMapping optTos = event.getOption("tos");
+        boolean showTos = (optTos != null) && optTos.getAsBoolean();
         // delegate main processing to HelpRunner
-        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()), showVersion);
+        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()), showVersion, showTos);
         event.getHook()
                 .sendMessage(helpRunner.afterRunMessage())
                 .setEphemeral(helpRunner.shouldDeferEphemeral())
