@@ -73,8 +73,8 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     )
             ,
             new SubcommandData("optout", "opt-out or re-consent your archive settings")
-                    .addOption(OptionType.CHANNEL, "channel", "target channel (omit for guild-wide)", false)
                     .addOption(OptionType.BOOLEAN, "opt-in", "set True to re-consent (opt-in), False to opt-out", true)
+                    .addOption(OptionType.CHANNEL, "channel", "target channel (omit for guild-wide)", false)
             ,
             new SubcommandData("schedule", "change auto-archive cycle hours (start at 0:00JST)")
                     .addOption(OptionType.INTEGER, "cycle", "execute every N hours (1-23), starting at 0:00, if 0 then only midnight", false)
