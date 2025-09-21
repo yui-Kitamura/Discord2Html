@@ -41,15 +41,15 @@ public class DiscordBotListener extends ListenerAdapter {
                     .setName(StringConsts.ADMIN_ROLE).setColor(Color.GRAY)
                     .setMentionable(false)
                     .queue();
-        }
-        Role role = bot.getD2hAdminRole(joinEvent.getGuild());
-        if(role != null) {
-            List<GuildChannel> ch = joinEvent.getGuild().getChannels();
-            for (GuildChannel gc : ch) {
-                gc.getPermissionContainer()
-                        .upsertPermissionOverride(role)
-                        .deny(Permission.MESSAGE_HISTORY)
-                        .queue();
+            Role role = bot.getD2hAdminRole(joinEvent.getGuild());
+            if(role != null) {
+                List<GuildChannel> ch = joinEvent.getGuild().getChannels();
+                for (GuildChannel gc : ch) {
+                    gc.getPermissionContainer()
+                            .upsertPermissionOverride(role)
+                            .deny(Permission.MESSAGE_HISTORY)
+                            .queue();
+                }
             }
         }
     }
