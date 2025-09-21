@@ -140,7 +140,7 @@ public class FileGenerateUtil {
         return "/" + repoBase();
     }
     
-    @Contract("_,_ -> !null")
+    @Contract("_ -> !null")
     public String normalizeHref(String href) {
         if (href == null) { return ""; }
         String val = href;
