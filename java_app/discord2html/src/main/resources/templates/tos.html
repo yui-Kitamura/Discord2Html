@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>運用ポリシー</title>
+  <link rel="stylesheet" href="/Discord2Html/css/style.css" />
+  <link rel="icon" th:if="${guildIconUrl}" th:href="${guildIconUrl}" />
+</head>
+<body>
+  <nav class="nav">
+    <a th:if="${backToTopHref}" th:href="${backToTopHref}">トップ</a>
+  </nav>
+  <header class="page-header">
+    <div class="guild-header">
+      <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="'ギルド アイコン'" />
+      <h1>運用ポリシー（Discordアーカイブ公開）</h1>
+    </div>
+    <p class="meta">最終更新日: <time datetime="2025-09-21">2025-09-21</time></p>
+  </header>
+
+  <main class="container">
+    <section id="about-bot">
+      <h2>本Bot/アーカイブシステムについて</h2>
+      <p>当コミュニティのDiscordサーバにおける発言をアーカイブし、外部に公開するに際し、その方針・手続・利用者の権利を示します。</p>
+      <ul>
+        <li>開発者情報: GitHub <a th:href="${repoOwnerAddr}" th:text="${repoOwner}">owner</a></li>
+        <li>ソースコード: GitHub公開レポジトリ <a th:href="${repoPath}" th:text="${repoLabel}">owner/repo</a></li>
+        <li>運用: DiscordBotとGitHubActionによる自動運用。24時間常時待機ですが、技術的問題で一時的に停止する場合があります。</li>
+      </ul>
+    </section>
+    <section id="archive-scope">
+      <h2>アーカイブの対象・範囲</h2>
+      <ul>
+        <li>対象チャンネル: 当コミュニティ内に設置されているすべてのチャンネル・スレッド。一部除外チャンネルあり</li>
+        <li>対象コンテンツ: テキスト、埋め込み、添付（画像/ファイル/コード）、リアクション、返信/引用のメタ情報</li>
+        <li>対象期間: アーカイブ作成時点から遡って概ね24時間分を取得します。</li>
+      </ul>
+    </section>
+    <section id="anon-and-roles">
+      <h2>匿名化ポリシーとロールによる例外</h2>
+      <ul>
+        <li>基本方針: ユーザ識別子は匿名化し、管理者が指定する時間範囲とチャンネル・スレッド単位で一時IDを付与します</li>
+        <li>ロール例外: 特定ロール（管理者・運営など）は、匿名化されない場合があります</li>
+        <li>公開可否: 匿名化対象ロールであっても、本人の明示同意により非匿名で公開可能です</li>
+        <li>匿名化されない情報: テキスト内でメンションにされず言及されたID/アカウント名/その他呼称は匿名化されず公開されます</li>
+      </ul>
+    </section>
+    <section id="opt-out">
+      <h2>オプトアウト（不開示希望）</h2>
+      <p>以下の方法で不開示希望を登録・確認できます。</p>
+      <ul>
+        <li>コマンド例: /d2h optout archive:False</li>
+        <li>ヘルプ: /d2h help</li>
+      </ul>
+      <p>登録は即時反映を試みますが、技術的失敗時は公開を保留します。</p>
+      <p>技術的問題により不開示の希望状態を喪失した場合には速やかに当Discordコミュニティ内で告知します。
+        その際は改めて不開示希望の旨を再登録いただくようご協力をお願いいたします。</p>
+    </section>
+
+    <section id="recording-behavior">
+      <h2>記録・削除・再生成</h2>
+      <ul>
+        <li>取得対象は最大「アーカイブ作成時点の前7日」です。通常、日本標準時深夜0時に起算し前24時間を取得します</li>
+        <li>アーカイブ作成以後にDiscord上でメッセージが削除されても、既に取得済みデータには自動反映されません<ul>
+          <li>削除対応を希望する場合、管理者にアーカイブ再生成をリクエストしてください（目安: 7日以内）</li>
+          <li>再生成により公開ページは更新されますが、履歴管理の都合上、外部リポジトリ等に記録が残る場合があります</li>
+        </ul></li>
+        <li>発言の存在のみを保持/公開する場合があります</li>
+      </ul>
+    </section>
+
+    <section id="pii-and-content">
+      <h2>個人情報・機微情報の取り扱い</h2>
+      <ul>
+        <li>氏名、住所、連絡先、ID、位置情報等の個人識別子は可能な限り削除/マスキングします。</li>
+        <li>添付（画像/コード/ログ）に含まれる機微情報の検出とマスキングを試みますが、投稿前にご自身でもご確認ください。</li>
+        <li>未成年が関与する情報や機微性の高い内容は、原則として非公開または強匿名化します。</li>
+      </ul>
+    </section>
+
+    <section id="legal">
+      <h2>利用目的・保存期間</h2>
+      <ul>
+        <li>目的: 技術的知見の共有、コミュニティ運営の透明性向上、議論の再利用性確保</li>
+        <li>準拠規則: 日本国の法、<a href="https://discord.com/terms">Discordポリシー</a>に準拠します</li>
+        <li>保存期間: 目的に適する限り保持します。
+          なお、管理者が当アーカイブを非公開とした場合でも、インターネット上に公開された情報として第三者により複製保存される場合があります</li>
+        <li>第三者提供: 公開サイト/リポジトリでの一般公開を含みます</li>
+      </ul>
+    </section>
+
+    <section id="rights">
+      <h2>利用者の権利</h2>
+      <ul>
+        <li>アクセス権・訂正権・削除権・処理制限/異議申立ての権利を尊重します<ul>
+          <li><a href="#recording-behavior">技術的要件</a>により公開された履歴として残る場合があります</li>
+        </ul></li>
+        <li>請求方法: 当コミュニティDiscordサーバの対応チャンネルからリクエストしてください<ul>
+          <li>注意事項: botあるいは管理者のDMでは対応いたしかねます</li>
+          <li>技術的問題は当ポリシー冒頭記載の開発者と連携することがあります</li>
+        </ul></li>
+        <li>対応目安: 30日以内に対応（繁忙時は延長の可能性があります）</li>
+      </ul>
+    </section>
+
+    <section id="security">
+      <h2>安全管理措置</h2>
+      <ul>
+        <li>オプトアウト情報や監査ログはアクセスを制御した環境に限り保存、リスクの制御に務めます</li>
+        <li>Discordポリシーに基づき、ユーザーは13歳以上などの利用条件と伴う責任とを確認します<ul>
+          <li>親権者など適切な者は当コミュニティにおいて対象のDiscordアカウントを経由して、
+            当ポリシーに同意すること、あるいは必要なオプトアウトをすることができます</li>
+        </ul></li>
+      </ul>
+    </section>
+
+    <section id="transparency">
+      <h2>透明性と変更</h2>
+      <ul>
+        <li>本ポリシーの変更時は、サーバ内で通知し、必要に応じて対応すべき内容を通知します。</li>
+        <li>本ページ（<span th:text="${publicUrl}">https://example.github.io/repo</span>）に<a
+            href="#about-bot">ポリシー</a>/<a href="#recording-behavior">生成手順</a>/<a
+            href="#anon-and-roles">匿名化仕様の概要</a>と<a href="#rights">問い合わせ窓口</a>を明示します
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <table class="history-table">
+      <thead>
+      <tr>
+        <th>更新日</th><th>botバージョン</th><th>内容</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr>
+        <td>2025-09-21</td><td>2.0.0</td><td>初版: アーカイブ運用ポリシーの制定</td>
+      </tr>
+      </tbody>
+    </table>
+
+    <p class="footer">
+      <span th:text="'bot ver' + ${botVersion}">bot ver</span>
+    </p>
+  </footer>
+</body>
+</html>
