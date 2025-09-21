@@ -109,10 +109,10 @@ public class HelpRunner implements IRunner {
         sb.append("- 上記が「許可」になっているチャンネルのみがコマンド実行可能な「管理タグ付きチャンネル」として扱われます（カテゴリーは対象外）。\n");
         sb.append("\n");
         sb.append("[GitHub]\n");
-        sb.append("リポジトリ: " + gitConfig.getRepo().getUrl() + "\n");
+        sb.append("リポジトリ: ").append(gitConfig.getRepo().getUrl()).append("\n");
         sb.append("\n");
         sb.append("[TOS]\n");
-        sb.append("アーカイブ運用ポリシー: " + gitUtil.getPagesUrlSafe() + "/tos.html\n");
+        sb.append("アーカイブ運用ポリシー: ").append(gitUtil.getPagesUrlSafe()).append("/tos.html\n");
 
         return sb.toString();
     }
