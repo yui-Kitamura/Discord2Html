@@ -95,6 +95,12 @@ public class HelpRunner implements IRunner {
         sb.append("  権限: だれでも\n");
         sb.append("  自分の匿名設定を変更します。\n");
         sb.append("\n");
+        sb.append("- /d2h optout opt-in:(True|False) [channel:<チャンネル>] \n");
+        sb.append("  権限: だれでも\n");
+        sb.append("  個人のアーカイブ同意設定を変更します。\n");
+        sb.append("  - opt-in=True: 再同意(オプトイン)として記録します。False: オプトアウトを記録します。\n");
+        sb.append("  - channel を省略するとサーバー全体(ギルド)に対する設定、指定するとそのチャンネルにのみ適用されます。\n");
+        sb.append("\n");
         sb.append("- /d2h help\n");
         sb.append("  権限: だれでも\n");
         sb.append("  このヘルプを表示します。\n");
