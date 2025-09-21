@@ -128,9 +128,11 @@ public class IndexGenerator {
         Path channelArchive = archivesRoot.resolve(channelId.toString() + ".html");
         List<FileGenerateUtil.Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
         final String threadIndexNorm = "archives/" + channelId + "/threads/index.html";
+        final String pinListNorm = "archives/" + channelId + "/pin.html";
         merged = merged.stream()
                 .filter(l -> {
-                    return !fileUtil.normalizeHref(l.getHref()).endsWith(threadIndexNorm);
+                    String norm = fileUtil.normalizeHref(l.getHref());
+                    return !(norm.endsWith(threadIndexNorm) || norm.endsWith(pinListNorm));
                 })
                 .collect(Collectors.toList());
         Context ctx = new Context();
@@ -191,9 +193,11 @@ public class IndexGenerator {
         Files.createDirectories(archivesRoot);
         List<FileGenerateUtil.Link> merged = mergeLinksPreserveAll(items, readExistingLinks(channelArchive));
         final String threadIndexNorm = "archives/" + channelId + "/threads/index.html";
+        final String pinListNorm = "archives/" + channelId + "/pin.html";
         merged = merged.stream()
                 .filter(l -> {
-                    return !fileUtil.normalizeHref(l.getHref()).endsWith(threadIndexNorm);
+                    String norm = fileUtil.normalizeHref(l.getHref());
+                    return !(norm.endsWith(threadIndexNorm) || norm.endsWith(pinListNorm));
                 })
                 .collect(Collectors.toList());
         Context ctx = new Context();
