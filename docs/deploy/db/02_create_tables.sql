@@ -65,3 +65,15 @@ CREATE TABLE discord_oauth_token (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+CREATE TABLE optout (
+    seq_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT UNSIGNED NOT NULL,
+    guild_id BIGINT UNSIGNED NOT NULL,
+    channel_id BIGINT UNSIGNED NULL,
+    optin_timestamp TIMESTAMP NULL,
+    normalized_channel_id BIGINT UNSIGNED AS (IFNULL(channel_id, 0)) STORED,
+    CONSTRAINT fk_optout_user FOREIGN KEY (user_id, guild_id) REFERENCES users(user_id, guild_id),
+    UNIQUE KEY uq_optout_user_guild_channel (user_id, guild_id, normalized_channel_id),
+    KEY idx_optout_guild_channel (guild_id, normalized_channel_id)
+);
