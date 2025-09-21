@@ -39,7 +39,7 @@ public class GitUtil {
         }
 
         final String originUrl = config.getRepo().getUrl();
-        final String branch = config.getRepo().getMain();
+        final String branch = config.getRepo().getGhPage();
         final String authUrl = insertTokenToUrl(originUrl);
 
         if (isEmptyDir(repoDir)) {
@@ -92,6 +92,13 @@ public class GitUtil {
         final String branch = config.getRepo().getMain();
         runGitCommand("pull", "--rebase", "origin", branch);
     }
+    /**
+     * リベースでリモート追従（GitHubPages）
+     */
+    public void pullRebaseGhPage() throws Exception {
+        final String branch = config.getRepo().getGhPage();
+        runGitCommand("pull", "--rebase", "origin", branch);
+    }
 
     /**
      * ファイルをadd
@@ -113,7 +120,7 @@ public class GitUtil {
      * push
      */
     public void push() throws Exception {
-        final String branch = config.getRepo().getMain();
+        final String branch = config.getRepo().getGhPage();
         final String originUrl = getRemoteUrl();
         final String authUrl = insertTokenToUrl(originUrl);
         try {

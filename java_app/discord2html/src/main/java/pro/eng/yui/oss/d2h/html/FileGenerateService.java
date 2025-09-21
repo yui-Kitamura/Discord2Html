@@ -51,7 +51,7 @@ public class FileGenerateService {
         try {
             gitUtil.ensureRepoInitialized();
             gitUtil.fetch();
-            gitUtil.pullRebase();
+            gitUtil.pullRebaseGhPage();
         } catch (Exception e) {
             // Non-fatal: continue generation even if git operations fail
             System.out.println("[GitSync] Skip or failed: " + e.getMessage());

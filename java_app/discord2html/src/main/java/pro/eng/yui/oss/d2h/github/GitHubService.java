@@ -107,7 +107,7 @@ public class GitHubService {
             gitUtil.add(filesToAdd);
             gitUtil.commit(GitHubConsts.COMMIT_PREFIX + "multiple files");
 
-            gitUtil.pullRebase();
+            gitUtil.pullRebaseGhPage();
             gitUtil.push();
         } catch (Exception e) {
             throw new Exception("Failed to push HTML files to GitHub", e);
