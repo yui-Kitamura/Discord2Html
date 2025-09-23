@@ -225,6 +225,10 @@ public class MessageInfo {
     }
     
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
+        this(msg, authorInfo, anonymizeScopeKey, null);
+    }
+    
+    public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey, String contentRawOverride){
         this.msgLinkHtmlMap = new HashMap<>();
         this.inlineHtmlMap = new HashMap<>();
         this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
@@ -233,7 +237,11 @@ public class MessageInfo {
         this.messageUserInfo = (anonymizeScopeKey == null)
                 ? AnonymizationUtil.anonymizeUser(authorInfo)
                 : AnonymizationUtil.anonymizeUser(authorInfo, anonymizeScopeKey);
-        this.contentRaw = extractContentIncludingEmbeds(msg);
+        if (contentRawOverride != null) {
+            this.contentRaw = contentRawOverride;
+        } else {
+            this.contentRaw = extractContentIncludingEmbeds(msg);
+        }
         this.contentProcessed = preprocessArchiveText(msg, this.contentRaw);
         this.attachments = msg.getAttachments();
         this.reactions = msg.getReactions();

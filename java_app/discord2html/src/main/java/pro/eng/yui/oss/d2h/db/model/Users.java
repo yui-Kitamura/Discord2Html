@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.User;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.consts.UserAnon;
 import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
+import pro.eng.yui.oss.d2h.db.dao.OptoutDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
 
 import java.util.Objects;
@@ -94,7 +95,7 @@ public class Users {
         this.avatar = new Avatar(user);
     }
     
-    public static Users get(Message msg, AnonStatsDAO anonStatsDao){
+    public static Users get(Message msg, AnonStatsDAO anonStatsDao, OptoutDAO optoutDao){
         Users author;
         if (msg.getMember() == null) {
             // bot or non-member
@@ -107,6 +108,17 @@ public class Users {
             UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
             author.setAnonStats(new AnonStats(anonStatus));
         }
+        try {
+            GuildId gid = new GuildId(msg.getGuild());
+            UserId uid = new UserId(msg.getAuthor());
+            ChannelId chId = new ChannelId(msg.getChannel().getIdLong());
+            boolean optedOut = optoutDao.isOptedOut(uid, gid, chId);
+            author.setOptedOut(optedOut);
+            if (optedOut) {
+                // Force anonymous display for opted-out users regardless of their original anon preference
+                author.setAnonStats(new AnonStats(UserAnon.ANONYMOUS));
+            }
+        } catch (Throwable ignore) { /* ignore DB or API errors */ }
         return author;
     }
 

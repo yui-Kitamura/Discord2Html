@@ -368,7 +368,7 @@ public class FileGenerateUtil {
                         .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginInstant)
                                 && !msg.getTimeCreated().toInstant().isAfter(endInstant))
                         .forEach(msg -> {
-                            Users author = Users.get(msg, anonStatsDao);
+                            Users author = Users.get(msg, anonStatsDao, optoutDao);
                             try {
                                 if (!marked.contains(author)) {
                                     usersDao.upsertUserInfo(author);
@@ -381,8 +381,14 @@ public class FileGenerateUtil {
                             int hour = calJst.get(Calendar.HOUR_OF_DAY);
                             int cycleIndex = hour / finalAnonCycle;
                             String dateStr = DateTimeUtil.date8().format(msgDate);
-                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                            messages.add(new MessageInfo(msg, author, scopeKey));
+                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle + "-m" + msg.getId();
+
+                            boolean optedOut = author.isOptedOut();
+                            if (optedOut) {
+                                messages.add(new MessageInfo(msg, author, scopeKey, "***(非公開希望ユーザーの発言)***"));
+                            } else {
+                                messages.add(new MessageInfo(msg, author, scopeKey));
+                            }
                         });
                 if (!oldestInstant.isAfter(beginInstant)) {
                     more = false;
