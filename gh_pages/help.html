@@ -57,6 +57,15 @@
       <div>自分の匿名設定を変更します。</div>
     </li>
     <li>
+      <div class="cmd">/d2h optout <span class="args">opt-in:(True|False) [channel:&lt;#チャンネル&gt;]</span></div>
+      <div class="perm">権限: だれでも</div>
+      <div>個人のアーカイブ同意設定を変更します。</div>
+      <ul class="desc">
+        <li>opt-in=<code>True</code>: 再同意(オプトイン)として記録します。<code>False</code>: オプトアウトを記録します。</li>
+        <li>channel を省略するとサーバー全体(ギルド)に対する設定、指定するとそのチャンネルにのみ適用されます。</li>
+      </ul>
+    </li>
+    <li>
       <div class="cmd">/d2h help</div>
       <div class="perm">権限: だれでも</div>
       <div>このヘルプを表示します。</div>
@@ -92,7 +101,7 @@
   <p class="footer">
     <a href="https://github.com/yui-Kitamura/Discord2Html" target="_blank">GitHub Repository:
       yui-Kitamura/Discord2Html</a>
-    <span> | bot ver2.0.0@c09200c</span>
+    <span> | bot ver2.0.0@82eb848</span>
   </p>
 </footer>
 </body>
