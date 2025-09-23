@@ -60,6 +60,14 @@ public class Users {
     public AnonStats getAnonStats(){
         return anon_stats;
     }
+
+    private boolean optedOut;
+    public boolean isOptedOut() { 
+        return optedOut; 
+    }
+    public void setOptedOut(boolean v) { 
+        this.optedOut = v; 
+    }
     
     public Users(){
         // nothing to do
@@ -111,6 +119,7 @@ public class Users {
         hash = hash * 31 + (nickname == null ? 0 : nickname.hashCode());
         hash = hash * 31 + (avatar == null ? 0 : avatar.hashCode());
         hash = hash * 31 + (anon_stats == null ? 0 : anon_stats.hashCode());
+        hash = hash * 31 + (optedOut ? 1 : 0);
         return hash;
     }
     
@@ -136,6 +145,9 @@ public class Users {
             return false;
         }
         if(!Objects.equals(anon_stats, other.anon_stats)){
+            return false;
+        }
+        if (this.optedOut != other.optedOut) {
             return false;
         }
         return true;
