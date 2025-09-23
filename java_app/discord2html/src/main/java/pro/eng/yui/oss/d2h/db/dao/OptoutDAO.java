@@ -63,4 +63,17 @@ public class OptoutDAO {
         key.setGuildId(Objects.requireNonNull(guildId));
         return mapper.selectAllByUserGuild(key);
     }
+    
+    public boolean isOptedOut(UserId userId, GuildId guildId, @Nullable ChannelId channelId) {
+        try {
+            Optout key = new Optout();
+            key.setUserId(Objects.requireNonNull(userId));
+            key.setGuildId(Objects.requireNonNull(guildId));
+            key.setChannelId(channelId); // nullable
+            Integer cnt = mapper.countEffectiveOptout(key);
+            return cnt != null && cnt > 0;
+        } catch (Throwable ignore) {
+            return false;
+        }
+    }
 }

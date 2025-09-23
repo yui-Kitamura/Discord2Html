@@ -17,4 +17,6 @@ public interface OptoutMapper {
     Optout selectOne(Optout key);
 
     List<Optout> selectAllByUserGuild(Optout key);
+
+    Integer countEffectiveOptout(Optout key);
 }

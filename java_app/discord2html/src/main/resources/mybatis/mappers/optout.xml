@@ -47,4 +47,16 @@
         ORDER BY channel_id
     </select>
 
+    <select id="countEffectiveOptout" parameterType="Optout" resultType="int">
+        SELECT COUNT(1)
+        FROM optout
+        WHERE user_id = #{user_id}
+          AND guild_id = #{guild_id}
+          AND (optin_timestamp IS NULL)
+          AND (
+            (channel_id IS NULL AND #{channel_id} IS NULL)
+            OR channel_id = #{channel_id}
+          )
+    </select>
+
 </mapper>
