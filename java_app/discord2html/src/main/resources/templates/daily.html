@@ -43,7 +43,7 @@
         <span class="timestamp" th:text="${msg.createdTimestamp}">日付</span>
       </div>
       <blockquote class="forwarded" th:if="${msg.forwarded}" th:utext="${msg.forwardedHtml}"></blockquote>
-      <div class="content" th:utext="${msg.contentHtml}">メッセージ</div>
+      <div class="content" th:classappend="${msg.userInfo.optedOut} ? ' optout' : ''" th:utext="${msg.contentHtml}">メッセージ</div>
       <div class="poll" th:if="${msg.pollAnswersHtml != null}">
         <div class="poll-q" th:text="${msg.pollQuestion}"></div>
         <ul class="poll-list" th:utext="${msg.pollAnswersHtml}"></ul>

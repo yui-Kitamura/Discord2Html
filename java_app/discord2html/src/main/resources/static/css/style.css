@@ -278,3 +278,13 @@ kbd { background: #2b2f33; border: 1px solid #555; border-bottom-width: 2px; bor
 .archive-date-search button:hover {
   background: #3f7dbc;
 }
+
+/* Opt-out message content styling */
+.content.optout {
+  background: #2a2d31;
+  color: #cfd0d1;
+  font-style: italic;
+  padding: 0.5em 0.6em;
+  border-radius: 4px;
+  border: 1px dashed #4a4d52;
+}
