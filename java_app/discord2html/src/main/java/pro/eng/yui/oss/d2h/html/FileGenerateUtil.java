@@ -10,6 +10,7 @@ import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
+import pro.eng.yui.oss.d2h.db.dao.OptoutDAO;
 import pro.eng.yui.oss.d2h.db.field.CategoryId;
 import pro.eng.yui.oss.d2h.db.field.CategoryName;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
@@ -87,15 +88,17 @@ public class FileGenerateUtil {
     private final UsersDAO usersDao;
     private final GitConfig gitConfig;
     private final DiscordJdaProvider jdaProvider;
+    private final OptoutDAO optoutDao;
     
     public FileGenerateUtil(
-            GuildsDAO guildsDAO, AnonStatsDAO anonStatsDAO, UsersDAO usersDAO,
+            GuildsDAO guildsDAO, AnonStatsDAO anonStatsDAO, UsersDAO usersDAO, OptoutDAO optoutDao,
             DiscordJdaProvider jdaProvider,
             GitConfig gitConfig) {
         this.guildsDao = guildsDAO;
-        this.jdaProvider = jdaProvider;
         this.anonStatsDao = anonStatsDAO;
         this.usersDao = usersDAO;
+        this.optoutDao = optoutDao;
+        this.jdaProvider = jdaProvider;
         this.gitConfig = gitConfig;
     }
 
