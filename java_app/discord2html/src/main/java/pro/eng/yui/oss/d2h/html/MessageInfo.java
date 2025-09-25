@@ -862,6 +862,22 @@ public class MessageInfo {
         }
     }
 
+    private String buildForwardedBlockquoteHtml(Guild current, Message message, boolean mask) {
+        List<MessageSnapshot> forwarded = message.getMessageSnapshots();
+        if (forwarded.isEmpty()) {
+            return null;
+        }
+
+        StringBuilder html = new StringBuilder();
+        for (MessageSnapshot snapshot : forwarded) {
+            String messageHtml = buildForwardedMessageHtml(current, message, snapshot, mask);
+            if (messageHtml != null) {
+                html.append(messageHtml);
+            }
+        }
+        return (html.isEmpty() == false) ? html.toString() : null;
+    }
+    
     private String buildForwardedMessageHtml(Guild current, Message forwarded, MessageSnapshot snapshot, boolean mask) {
         if (snapshot == null) {
             return null;
@@ -936,27 +952,11 @@ public class MessageInfo {
                 bodyHtml = toHtmlWithLinks(preprocessArchiveText(sourceMsg, snapshot.getContentRaw()));
                 bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
             }
-            
+
             return bodyHtml + "<cite>" + origin + "</cite>";
         } catch (Throwable t) {
             t.printStackTrace();
             return null;
         }
-    }
-
-    private String buildForwardedBlockquoteHtml(Guild current, Message message, boolean mask) {
-        List<MessageSnapshot> forwarded = message.getMessageSnapshots();
-        if (forwarded.isEmpty()) {
-            return null;
-        }
-
-        StringBuilder html = new StringBuilder();
-        for (MessageSnapshot snapshot : forwarded) {
-            String messageHtml = buildForwardedMessageHtml(current, message, snapshot, mask);
-            if (messageHtml != null) {
-                html.append(messageHtml);
-            }
-        }
-        return (html.isEmpty() == false) ? html.toString() : null;
     }
 }
