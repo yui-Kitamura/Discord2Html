@@ -418,6 +418,9 @@ public class FileGenerateUtil {
                                 if (sourceOptedIn) {
                                     maskForward = false;
                                 }
+                            } else {
+                                // 外部サーバーからの転送は転送実施者に依存
+                                maskForward = false;
                             }
                         } catch (NullPointerException ignore) { /* best-effort */ }
                     }
