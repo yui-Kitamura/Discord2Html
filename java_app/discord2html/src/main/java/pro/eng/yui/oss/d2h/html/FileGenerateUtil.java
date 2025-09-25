@@ -2,6 +2,8 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageReference;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import org.jetbrains.annotations.Contract;
 import org.springframework.stereotype.Component;
@@ -11,9 +13,7 @@ import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
 import pro.eng.yui.oss.d2h.db.dao.OptoutDAO;
-import pro.eng.yui.oss.d2h.db.field.CategoryId;
-import pro.eng.yui.oss.d2h.db.field.CategoryName;
-import pro.eng.yui.oss.d2h.db.field.GuildId;
+import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.db.model.Users;
 import pro.eng.yui.oss.d2h.github.GitConfig;
@@ -368,27 +368,8 @@ public class FileGenerateUtil {
                         .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginInstant)
                                 && !msg.getTimeCreated().toInstant().isAfter(endInstant))
                         .forEach(msg -> {
-                            Users author = Users.get(msg, anonStatsDao, optoutDao);
-                            try {
-                                if (!marked.contains(author)) {
-                                    usersDao.upsertUserInfo(author);
-                                    marked.add(author);
-                                }
-                            } catch (Exception ignore) { /* ignore DB issues */ }
-                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
-                            calJst.setTime(msgDate);
-                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                            int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = DateTimeUtil.date8().format(msgDate);
-                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle + "-m" + msg.getId();
-
-                            boolean optedOut = author.isOptedOut();
-                            if (optedOut) {
-                                messages.add(new MessageInfo(msg, author, scopeKey, "***(非公開希望ユーザーの発言)***"));
-                            } else {
-                                messages.add(new MessageInfo(msg, author, scopeKey));
-                            }
+                            MessageInfo mi = buildMessageInfo(msg, guildId, finalAnonCycle, marked);
+                            if (mi != null) { messages.add(mi); }
                         });
                 if (!oldestInstant.isAfter(beginInstant)) {
                     more = false;
@@ -398,6 +379,55 @@ public class FileGenerateUtil {
             // best-effort: return what we have
         }
         return messages;
+    }
+
+
+    /**
+     * Build a MessageInfo for a single Message
+     */
+    private MessageInfo buildMessageInfo(Message msg, GuildId guildId, final int anonCycle, List<Users> marked) {
+        try {
+            Users author = Users.get(msg, anonStatsDao, optoutDao);
+            try {
+                if (!marked.contains(author)) {
+                    usersDao.upsertUserInfo(author);
+                    marked.add(author);
+                }
+            } catch (Exception ignore) { /* ignore DB issues */ }
+            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
+            calJst.setTime(msgDate);
+            int hour = calJst.get(Calendar.HOUR_OF_DAY);
+            int cycleIndex = hour / anonCycle;
+            String dateStr = DateTimeUtil.date8().format(msgDate);
+            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + anonCycle + "-m" + msg.getId();
+
+            // forwarded block should be shown (default: masked)
+            boolean maskForward = true;
+            try {
+                MessageReference ref = msg.getMessageReference();
+                if (ref != null && ref.getType() == MessageReference.MessageReferenceType.FORWARD) {
+                    // 転送メッセージは、同サーバー内で元ユーザがオプトアウトしてない場合のみ表示
+                    if (!author.isOptedOut()) {
+                        try {
+                            GuildMessageChannel refCh = msg.getJDA().getChannelById(GuildMessageChannel.class, ref.getChannelIdLong());
+                            Message src = refCh.retrieveMessageById(ref.getMessageIdLong()).complete();
+                            boolean sameGuild = (src.getGuild().getIdLong() == msg.getGuild().getIdLong());
+                            if (sameGuild) {
+                                boolean sourceOptedIn = !optoutDao.isOptedOut(new UserId(src.getAuthor()), new GuildId(msg.getGuild()), new ChannelId(ref.getChannelIdLong()));
+                                if (sourceOptedIn) {
+                                    maskForward = false;
+                                }
+                            }
+                        } catch (NullPointerException ignore) { /* best-effort */ }
+                    }
+                }
+            } catch (Throwable ignore) { /* best-effort */ }
+
+            return new MessageInfo(msg, author, scopeKey, author.isOptedOut(), maskForward);
+        } catch (Throwable ignore) {
+            return null;
+        }
     }
 
 }

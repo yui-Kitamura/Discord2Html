@@ -10,6 +10,7 @@ import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.entities.messages.MessageSnapshot;
 import org.jetbrains.annotations.Contract;
 import pro.eng.yui.oss.d2h.db.field.ChannelName;
+import pro.eng.yui.oss.d2h.db.field.GuildName;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
@@ -221,14 +222,10 @@ public class MessageInfo {
 
     /** コンストラクタ */
     public MessageInfo(Message msg) {
-        this(msg, new Users(msg.getAuthor(), msg.getGuild()), null);
+        this(msg, new Users(msg.getAuthor(), msg.getGuild()), null, false, false);
     }
     
-    public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey){
-        this(msg, authorInfo, anonymizeScopeKey, null);
-    }
-    
-    public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey, String contentRawOverride){
+    public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey, boolean maskContent, boolean maskForwarded){
         this.msgLinkHtmlMap = new HashMap<>();
         this.inlineHtmlMap = new HashMap<>();
         this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
@@ -237,11 +234,8 @@ public class MessageInfo {
         this.messageUserInfo = (anonymizeScopeKey == null)
                 ? AnonymizationUtil.anonymizeUser(authorInfo)
                 : AnonymizationUtil.anonymizeUser(authorInfo, anonymizeScopeKey);
-        if (contentRawOverride != null) {
-            this.contentRaw = contentRawOverride;
-        } else {
-            this.contentRaw = extractContentIncludingEmbeds(msg);
-        }
+        // Determine main content (mask if opted-out)
+        this.contentRaw = maskContent ? "***（非公開希望ユーザーの発言）***" : extractContentIncludingEmbeds(msg);
         this.contentProcessed = preprocessArchiveText(msg, this.contentRaw);
         this.attachments = msg.getAttachments();
         this.reactions = msg.getReactions();
@@ -269,8 +263,8 @@ public class MessageInfo {
         try {
             MessageReference ref = msg.getMessageReference();
             if (ref != null && ref.getType() == MessageReference.MessageReferenceType.FORWARD) {
-                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), msg);
-                tmpForwarded = true;
+                tmpForwardedHtml = buildForwardedBlockquoteHtml(msg.getGuild(), msg, maskForwarded);
+                tmpForwarded = (tmpForwardedHtml != null);
             }
         } catch (Throwable t) { t.printStackTrace(); }
         this.forwarded = tmpForwarded;
@@ -868,7 +862,7 @@ public class MessageInfo {
         }
     }
 
-    private String buildForwardedMessageHtml(Guild current, Message forwarded, MessageSnapshot snapshot) {
+    private String buildForwardedMessageHtml(Guild current, Message forwarded, MessageSnapshot snapshot, boolean mask) {
         if (snapshot == null) {
             return null;
         }
@@ -906,7 +900,7 @@ public class MessageInfo {
                     } else {
                         String name = "";
                         try { name = chAny.getName(); } catch (Throwable ignore) { }
-                        if (name.isBlank()) { name = AbstName.UNKNOWN; }
+                        if (name.isBlank()) { name = ChannelName.UNKNOWN; }
                         chDisplay = name;
                     }
                 } else {
@@ -914,9 +908,9 @@ public class MessageInfo {
                     try {
                         guildName = forwarded.getGuild().getName();
                     } catch (Throwable ignore) { }
-                    if (guildName.isBlank()) { guildName = AbstName.UNKNOWN; }
+                    if (guildName.isBlank()) { guildName = GuildName.UNKNOWN; }
                     String chName = (threadSuffix != null) ? threadSuffix : chAny.getName();
-                    if (chName.isBlank()) { chName = AbstName.UNKNOWN; }
+                    if (chName.isBlank()) { chName = ChannelName.UNKNOWN; }
                     chDisplay = guildName + ">" + chName;
                 }
             } catch (Throwable e) {
@@ -925,14 +919,23 @@ public class MessageInfo {
             }
             try {
                 Date d = Date.from(sourceMsg.getTimeCreated().toInstant());
-                String full = DateTimeUtil.time().format(d);
-                timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full;
+                if (mask) {
+                    timeDisplay = DateTimeUtil.dateOnly().format(d);
+                } else {
+                    // For normal forwarded messages (non-opt-out), show full timestamp including seconds
+                    timeDisplay = DateTimeUtil.time().format(d);
+                }
             } catch (NullPointerException ignore) { }
 
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
 
-            String bodyHtml = toHtmlWithLinks(preprocessArchiveText(sourceMsg, snapshot.getContentRaw()));
-            bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
+            String bodyHtml;
+            if (mask) {
+                bodyHtml = "<div class=\"content optout\">***（非公開希望ユーザーの発言）***</div>";
+            } else {
+                bodyHtml = toHtmlWithLinks(preprocessArchiveText(sourceMsg, snapshot.getContentRaw()));
+                bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
+            }
             
             return bodyHtml + "<cite>" + origin + "</cite>";
         } catch (Throwable t) {
@@ -941,7 +944,7 @@ public class MessageInfo {
         }
     }
 
-    private String buildForwardedBlockquoteHtml(Guild current, Message message) {
+    private String buildForwardedBlockquoteHtml(Guild current, Message message, boolean mask) {
         List<MessageSnapshot> forwarded = message.getMessageSnapshots();
         if (forwarded.isEmpty()) {
             return null;
@@ -949,7 +952,7 @@ public class MessageInfo {
 
         StringBuilder html = new StringBuilder();
         for (MessageSnapshot snapshot : forwarded) {
-            String messageHtml = buildForwardedMessageHtml(current, message, snapshot);
+            String messageHtml = buildForwardedMessageHtml(current, message, snapshot, mask);
             if (messageHtml != null) {
                 html.append(messageHtml);
             }
