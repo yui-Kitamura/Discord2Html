@@ -219,13 +219,20 @@ public class MessageInfo {
         public String getName() { return name; }
         public boolean isAnimated() { return animated; }
     }
+    
+    public enum ForwardMask {
+        ARCHIVE, OPTOUT, UNKNOWN;
+        public boolean doMask() {
+            return this == OPTOUT || this == UNKNOWN;
+        }
+    }
 
     /** コンストラクタ */
     public MessageInfo(Message msg) {
-        this(msg, new Users(msg.getAuthor(), msg.getGuild()), null, false, false);
+        this(msg, new Users(msg.getAuthor(), msg.getGuild()), null, false, ForwardMask.UNKNOWN);
     }
     
-    public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey, boolean maskContent, boolean maskForwarded){
+    public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey, boolean maskContent, ForwardMask maskForwarded){
         this.msgLinkHtmlMap = new HashMap<>();
         this.inlineHtmlMap = new HashMap<>();
         this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
@@ -862,7 +869,7 @@ public class MessageInfo {
         }
     }
 
-    private String buildForwardedBlockquoteHtml(Guild current, Message message, boolean mask) {
+    private String buildForwardedBlockquoteHtml(Guild current, Message message, ForwardMask mask) {
         List<MessageSnapshot> forwarded = message.getMessageSnapshots();
         if (forwarded.isEmpty()) {
             return null;
@@ -878,7 +885,7 @@ public class MessageInfo {
         return (html.isEmpty() == false) ? html.toString() : null;
     }
     
-    private String buildForwardedMessageHtml(Guild current, Message forwarded, MessageSnapshot snapshot, boolean mask) {
+    private String buildForwardedMessageHtml(Guild current, Message forwarded, MessageSnapshot snapshot, ForwardMask mask) {
         if (snapshot == null) {
             return null;
         }
@@ -935,7 +942,7 @@ public class MessageInfo {
             }
             try {
                 Date d = Date.from(sourceMsg.getTimeCreated().toInstant());
-                if (mask) {
+                if (mask.doMask()) {
                     timeDisplay = DateTimeUtil.dateOnly().format(d);
                 } else {
                     // For normal forwarded messages (non-opt-out), show full timestamp including seconds
@@ -946,11 +953,19 @@ public class MessageInfo {
             String origin = "#" + chDisplay + "\uD83D\uDCAC" + (timeDisplay.isEmpty() ? "" : ("(" + timeDisplay + ")"));
 
             String bodyHtml;
-            if (mask) {
-                bodyHtml = "<div class=\"content optout\">***（非公開希望ユーザーの発言）***</div>";
-            } else {
-                bodyHtml = toHtmlWithLinks(preprocessArchiveText(sourceMsg, snapshot.getContentRaw()));
-                bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
+            switch (mask) {
+                case ARCHIVE -> {
+                    bodyHtml = toHtmlWithLinks(preprocessArchiveText(sourceMsg, snapshot.getContentRaw()));
+                    bodyHtml = applyInlineAndMsgLinkReplacements(bodyHtml);
+                }
+                case UNKNOWN -> {
+                    //サーバーのユーザでないとオプトアウトできないため非公開
+                    bodyHtml = "<div class=\"content\" optout\">***（外部サーバーの発言）***</div>";
+                }
+                case OPTOUT -> {
+                    bodyHtml = "<div class=\"content optout\">***（非公開希望ユーザーの発言）***</div>";
+                }
+                default -> bodyHtml = "";
             }
 
             return bodyHtml + "<cite>" + origin + "</cite>";

@@ -402,13 +402,15 @@ public class FileGenerateUtil {
             String dateStr = DateTimeUtil.date8().format(msgDate);
             String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + anonCycle + "-m" + msg.getId();
 
-            // forwarded block should be shown (default: masked)
-            boolean maskForward = true;
+            // forwarded block should be shown
+            MessageInfo.ForwardMask maskForward = MessageInfo.ForwardMask.UNKNOWN;
             try {
                 MessageReference ref = msg.getMessageReference();
                 if (ref != null && ref.getType() == MessageReference.MessageReferenceType.FORWARD) {
                     // 転送メッセージは、同サーバー内で元ユーザがオプトアウトしてない場合のみ表示
-                    if (!author.isOptedOut()) {
+                    if (author.isOptedOut()) {
+                        maskForward = MessageInfo.ForwardMask.OPTOUT;
+                    }else {
                         try {
                             GuildMessageChannel refCh = msg.getJDA().getChannelById(GuildMessageChannel.class, ref.getChannelIdLong());
                             Message src = refCh.retrieveMessageById(ref.getMessageIdLong()).complete();
@@ -416,11 +418,8 @@ public class FileGenerateUtil {
                             if (sameGuild) {
                                 boolean sourceOptedIn = !optoutDao.isOptedOut(new UserId(src.getAuthor()), new GuildId(msg.getGuild()), new ChannelId(ref.getChannelIdLong()));
                                 if (sourceOptedIn) {
-                                    maskForward = false;
+                                    maskForward = MessageInfo.ForwardMask.ARCHIVE;
                                 }
-                            } else {
-                                // 外部サーバーからの転送は転送実施者に依存
-                                maskForward = false;
                             }
                         } catch (NullPointerException ignore) { /* best-effort */ }
                     }
