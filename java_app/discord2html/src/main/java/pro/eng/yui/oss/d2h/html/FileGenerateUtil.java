@@ -88,7 +88,7 @@ public class FileGenerateUtil {
     private final UsersDAO usersDao;
     private final GitConfig gitConfig;
     private final DiscordJdaProvider jdaProvider;
-    private final OptoutDAO optoutDao;
+    private static OptoutDAO optoutDao;
     
     public FileGenerateUtil(
             GuildsDAO guildsDAO, AnonStatsDAO anonStatsDAO, UsersDAO usersDAO, OptoutDAO optoutDao,
@@ -97,9 +97,18 @@ public class FileGenerateUtil {
         this.guildsDao = guildsDAO;
         this.anonStatsDao = anonStatsDAO;
         this.usersDao = usersDAO;
-        this.optoutDao = optoutDao;
         this.jdaProvider = jdaProvider;
         this.gitConfig = gitConfig;
+        FileGenerateUtil.optoutDao = optoutDao;
+    }
+
+    public static boolean isUserOptedOut(UserId userId, GuildId guildId, ChannelId channelId) {
+        try {
+            return optoutDao.isOptedOut(userId, guildId, channelId);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            return true;
+        }
     }
 
     /**

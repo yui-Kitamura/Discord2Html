@@ -9,8 +9,7 @@ import net.dv8tion.jda.api.entities.emoji.EmojiUnion;
 import net.dv8tion.jda.api.entities.messages.MessagePoll;
 import net.dv8tion.jda.api.entities.messages.MessageSnapshot;
 import org.jetbrains.annotations.Contract;
-import pro.eng.yui.oss.d2h.db.field.ChannelName;
-import pro.eng.yui.oss.d2h.db.field.GuildName;
+import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
@@ -459,16 +458,27 @@ public class MessageInfo {
         while (mUser.find()) {
             String id = mUser.group(1);
             String name = null;
+            boolean maskMention = false;
             try {
-                Member member = msg.getGuild().getMemberById(id);
-                if (member != null) {
-                    name = member.getEffectiveName();
-                } else if (msg.getJDA().getUserById(id) != null) {
-                    name = msg.getJDA().getUserById(id).getName();
+                try {
+                    maskMention = FileGenerateUtil.isUserOptedOut(
+                            new UserId(Long.parseUnsignedLong(id)),
+                            new GuildId(msg.getGuild()), new ChannelId(msg.getChannel()));
+                } catch (Throwable ignore) { /* best-effort */ }
+                if (!maskMention) {
+                    Member member = msg.getGuild().getMemberById(id);
+                    if (member != null) {
+                        name = member.getEffectiveName();
+                    } else if (msg.getJDA().getUserById(id) != null) {
+                        name = msg.getJDA().getUserById(id).getName();
+                    }
                 }
             } catch (Throwable ignore) { }
+            if (maskMention) {
+                name = UserName.ANON;
+            }
             if (name == null || name.isBlank()) {
-                name = AbstName.EMPTY_NAME + AbstName.SUFFIX_DELETED;
+                name = UserName.EMPTY_NAME + UserName.SUFFIX_DELETED;
             }
             String placeholder = D2H_INLINE_U_PREFIX + placeholderNonce + "_" + (idx++) + "}}";
             String html = "<span class=\"mention-user\">" + htmlEscape("@" + name) + "</span>";
