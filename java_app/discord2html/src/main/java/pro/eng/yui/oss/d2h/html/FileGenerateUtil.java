@@ -84,11 +84,11 @@ public class FileGenerateUtil {
     }
 
     private final GuildsDAO guildsDao;
-    private final AnonStatsDAO anonStatsDao;
     private final UsersDAO usersDao;
     private final GitConfig gitConfig;
     private final DiscordJdaProvider jdaProvider;
-    private static OptoutDAO optoutDao;
+    private static OptoutDAO staticOptoutDao;
+    private static AnonStatsDAO staticAnonStatsDao;
     
     public FileGenerateUtil(
             GuildsDAO guildsDAO, AnonStatsDAO anonStatsDAO, UsersDAO usersDAO, OptoutDAO optoutDao,
@@ -99,12 +99,13 @@ public class FileGenerateUtil {
         this.usersDao = usersDAO;
         this.jdaProvider = jdaProvider;
         this.gitConfig = gitConfig;
-        FileGenerateUtil.optoutDao = optoutDao;
+        FileGenerateUtil.staticOptoutDao = optoutDao;
+        FileGenerateUtil.staticAnonStatsDao = anonStatsDAO;
     }
 
     public static boolean isUserOptedOut(UserId userId, GuildId guildId, ChannelId channelId) {
         try {
-            return optoutDao.isOptedOut(userId, guildId, channelId);
+            return staticOptoutDao.isOptedOut(userId, guildId, channelId);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
             return true;
@@ -396,7 +397,7 @@ public class FileGenerateUtil {
      */
     private MessageInfo buildMessageInfo(Message msg, GuildId guildId, final int anonCycle, List<Users> marked) {
         try {
-            Users author = Users.get(msg, anonStatsDao, optoutDao);
+            Users author = Users.get(msg, staticAnonStatsDao, staticOptoutDao);
             try {
                 if (!marked.contains(author)) {
                     usersDao.upsertUserInfo(author);
@@ -425,7 +426,7 @@ public class FileGenerateUtil {
                             Message src = refCh.retrieveMessageById(ref.getMessageIdLong()).complete();
                             boolean sameGuild = (src.getGuild().getIdLong() == msg.getGuild().getIdLong());
                             if (sameGuild) {
-                                boolean sourceOptout = optoutDao.isOptedOut(new UserId(src.getAuthor()), new GuildId(msg.getGuild()), new ChannelId(ref.getChannelIdLong()));
+                                boolean sourceOptout = staticOptoutDao.isOptedOut(new UserId(src.getAuthor()), new GuildId(msg.getGuild()), new ChannelId(ref.getChannelIdLong()));
                                 if (sourceOptout) {
                                     maskForward = MessageInfo.ForwardMask.OPTOUT;
                                 }else{
