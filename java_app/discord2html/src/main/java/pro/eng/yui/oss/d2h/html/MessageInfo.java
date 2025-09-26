@@ -461,9 +461,12 @@ public class MessageInfo {
             boolean maskMention = false;
             try {
                 try {
-                    maskMention = FileGenerateUtil.isUserOptedOut(
-                            new UserId(Long.parseUnsignedLong(id)),
-                            new GuildId(msg.getGuild()), new ChannelId(msg.getChannel()));
+                    UserId uid = new UserId(Long.parseUnsignedLong(id));
+                    GuildId gid = new GuildId(msg.getGuild());
+                    ChannelId cid = new ChannelId(msg.getChannel());
+                    // Mask when opted-out OR anonymous per current guild/role settings
+                    maskMention = FileGenerateUtil.isUserOptedOut(uid, gid, cid)
+                            || FileGenerateUtil.isUserAnonymous(uid, msg.getGuild());
                 } catch (Throwable ignore) { /* best-effort */ }
                 if (!maskMention) {
                     Member member = msg.getGuild().getMemberById(id);

@@ -1,6 +1,7 @@
 package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageReference;
@@ -107,6 +108,23 @@ public class FileGenerateUtil {
             return staticOptoutDao.isOptedOut(userId, guildId, channelId);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
+            return true;
+        }
+    }
+
+    /**
+     * Check if the target user should be displayed anonymously in the given guild context
+     * using the same rule as message authors (role and user settings; bots are OPEN).
+     * Defaults to true (anonymous) on any error to avoid leaking names.
+     */
+    public static boolean isUserAnonymous(UserId userId, Guild guild) {
+        try {
+            if (guild == null || userId == null) { return true; }
+            Member member = null;
+            try { member = guild.getMemberById(userId.getValue()); } catch (Throwable ignore) { }
+            if (member == null) { return true; }
+            return staticAnonStatsDao.extractAnonStats(member).isAnon();
+        } catch (Throwable ignore) {
             return true;
         }
     }
