@@ -416,10 +416,12 @@ public class FileGenerateUtil {
                             Message src = refCh.retrieveMessageById(ref.getMessageIdLong()).complete();
                             boolean sameGuild = (src.getGuild().getIdLong() == msg.getGuild().getIdLong());
                             if (sameGuild) {
-                                boolean sourceOptedIn = !optoutDao.isOptedOut(new UserId(src.getAuthor()), new GuildId(msg.getGuild()), new ChannelId(ref.getChannelIdLong()));
-                                if (sourceOptedIn) {
+                                boolean sourceOptout = optoutDao.isOptedOut(new UserId(src.getAuthor()), new GuildId(msg.getGuild()), new ChannelId(ref.getChannelIdLong()));
+                                if (sourceOptout) {
+                                    maskForward = MessageInfo.ForwardMask.OPTOUT;
+                                }else{
                                     maskForward = MessageInfo.ForwardMask.ARCHIVE;
-                                }
+                                } 
                             }
                         } catch (NullPointerException ignore) { /* best-effort */ }
                     }
