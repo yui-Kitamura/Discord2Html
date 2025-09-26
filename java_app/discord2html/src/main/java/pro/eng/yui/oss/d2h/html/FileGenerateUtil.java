@@ -95,7 +95,6 @@ public class FileGenerateUtil {
             DiscordJdaProvider jdaProvider,
             GitConfig gitConfig) {
         this.guildsDao = guildsDAO;
-        this.anonStatsDao = anonStatsDAO;
         this.usersDao = usersDAO;
         this.jdaProvider = jdaProvider;
         this.gitConfig = gitConfig;
