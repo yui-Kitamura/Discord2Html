@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.entities.User;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.consts.UserAnon;
 import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
+import pro.eng.yui.oss.d2h.db.dao.OptoutDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
 
 import java.util.Objects;
@@ -60,6 +61,14 @@ public class Users {
     public AnonStats getAnonStats(){
         return anon_stats;
     }
+
+    private boolean optedOut;
+    public boolean isOptedOut() { 
+        return optedOut; 
+    }
+    public void setOptedOut(boolean v) { 
+        this.optedOut = v; 
+    }
     
     public Users(){
         // nothing to do
@@ -86,7 +95,7 @@ public class Users {
         this.avatar = new Avatar(user);
     }
     
-    public static Users get(Message msg, AnonStatsDAO anonStatsDao){
+    public static Users get(Message msg, AnonStatsDAO anonStatsDao, OptoutDAO optoutDao){
         Users author;
         if (msg.getMember() == null) {
             // bot or non-member
@@ -99,6 +108,17 @@ public class Users {
             UserAnon anonStatus = anonStatsDao.extractAnonStats(msg.getMember());
             author.setAnonStats(new AnonStats(anonStatus));
         }
+        try {
+            GuildId gid = new GuildId(msg.getGuild());
+            UserId uid = new UserId(msg.getAuthor());
+            ChannelId chId = new ChannelId(msg.getChannel().getIdLong());
+            boolean optedOut = optoutDao.isOptedOut(uid, gid, chId);
+            author.setOptedOut(optedOut);
+            if (optedOut) {
+                // Force anonymous display for opted-out users regardless of their original anon preference
+                author.setAnonStats(new AnonStats(UserAnon.ANONYMOUS));
+            }
+        } catch (Throwable ignore) { /* ignore DB or API errors */ }
         return author;
     }
 
@@ -111,6 +131,7 @@ public class Users {
         hash = hash * 31 + (nickname == null ? 0 : nickname.hashCode());
         hash = hash * 31 + (avatar == null ? 0 : avatar.hashCode());
         hash = hash * 31 + (anon_stats == null ? 0 : anon_stats.hashCode());
+        hash = hash * 31 + (optedOut ? 1 : 0);
         return hash;
     }
     
@@ -136,6 +157,9 @@ public class Users {
             return false;
         }
         if(!Objects.equals(anon_stats, other.anon_stats)){
+            return false;
+        }
+        if (this.optedOut != other.optedOut) {
             return false;
         }
         return true;

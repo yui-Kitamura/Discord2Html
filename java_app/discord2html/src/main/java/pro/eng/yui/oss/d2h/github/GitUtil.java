@@ -24,6 +24,52 @@ public class GitUtil {
         this.config = gitConfig;
         this.secrets = secrets;
     }
+
+    // ---- Safe accessors for repository metadata (null/exception safe) ----
+    public String getRepoOwnerSafe() {
+        try { return String.valueOf(config.getRepo().getOwner()); } catch (Exception ignore) { return ""; }
+    }
+    public String getRepoNameSafe() {
+        try { return String.valueOf(config.getRepo().getName()); } catch (Exception ignore) { return ""; }
+    }
+    public String getRepoFullNameSafe() {
+        String owner = getRepoOwnerSafe();
+        String name = getRepoNameSafe();
+        if (owner.isEmpty() && name.isEmpty()) return "";
+        if (owner.isEmpty()) return name;
+        if (name.isEmpty()) return owner;
+        return owner + "/" + name;
+    }
+    public String getRepoUrlSafe() {
+        try { return String.valueOf(config.getRepo().getUrl()); } catch (Exception ignore) { return ""; }
+    }
+    public String getRepoOwnerUrlSafe() {
+        String owner = getRepoOwnerSafe();
+        if (owner.isEmpty()) return "";
+        return "https://github.com/" + owner + "/";
+    }
+    public String getRepoBaseSafe() {
+        try {
+            String name = config.getRepo().getName();
+            if (name == null) return "";
+            name = name.trim();
+            while (name.startsWith("/")) { name = name.substring(1); }
+            while (name.endsWith("/")) { name = name.substring(0, name.length() - 1); }
+            return name;
+        } catch (Exception ignore) {
+            return "";
+        }
+    }
+    public String getRepoBaseWithPrefixSafe() {
+        return "/" + getRepoBaseSafe();
+    }
+    /** https://$repoOwner$.github.io/$repoName$ */
+    public String getPagesUrlSafe() {
+        String owner = getRepoOwnerSafe();
+        String base = getRepoBaseSafe();
+        if (owner.isEmpty() || base.isEmpty()) return "";
+        return "https://" + owner + ".github.io/" + base;
+    }
     /**
      * リポジトリ初期化を保証する
      * - .git が無ければ clone もしくは init + remote 設定 + fetch + checkout を行う

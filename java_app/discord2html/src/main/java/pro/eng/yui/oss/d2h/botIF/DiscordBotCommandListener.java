@@ -3,6 +3,7 @@ package pro.eng.yui.oss.d2h.botIF;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
@@ -71,11 +72,16 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                                     .addChoice("open", "open")
                     )
             ,
+            new SubcommandData("optout", "opt-out or re-consent your archive settings")
+                    .addOption(OptionType.BOOLEAN, "opt-in", "set True to re-consent (opt-in), False to opt-out", true)
+                    .addOption(OptionType.CHANNEL, "channel", "target channel (omit for guild-wide)", false)
+            ,
             new SubcommandData("schedule", "change auto-archive cycle hours (start at 0:00JST)")
                     .addOption(OptionType.INTEGER, "cycle", "execute every N hours (1-23), starting at 0:00, if 0 then only midnight", false)
             ,
             new SubcommandData("help", "send you about this bots command help")
                     .addOption(OptionType.BOOLEAN, "version", "show bot version", false)
+                    .addOption(OptionType.BOOLEAN, "tos", "show archive policy (TOS) link", false)
     );
 
     private final DiscordBotUtils bot;
@@ -86,12 +92,14 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private final RunArchiveRunner runArchiveRunner;
     private final ArchiveConfigRunner archiveConfigRunner;
     private final AutoArchiveScheduleRunner autoArchiveScheduleRunner;
+    private final OptoutRunner optoutRunner;
 
     @Autowired
     public DiscordBotCommandListener(DiscordBotUtils bot,
                                      HelpRunner help, MeRunner me, RoleRunner role,
                                      AnonymousSettingRunner anon, RunArchiveRunner run,
-                                     ArchiveConfigRunner archive, AutoArchiveScheduleRunner schedule){
+                                     ArchiveConfigRunner archive, AutoArchiveScheduleRunner schedule,
+                                     OptoutRunner optoutRunner){
         this.bot = bot;
         this.roleRunner = role;
         this.anonymousSettingRunner = anon;
@@ -100,6 +108,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         this.runArchiveRunner = run;
         this.archiveConfigRunner = archive;
         this.autoArchiveScheduleRunner = schedule;
+        this.optoutRunner = optoutRunner;
     }
 
     @Override
@@ -150,6 +159,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "me" -> runMe(event);
                 case "help" -> runHelp(event);
                 case "schedule" -> runSchedule(event);
+                case "optout" -> runOptout(event);
                 default -> {
                     event.getHook()
                             .sendMessage("unknown subcommand. Use `/d2h help`")
@@ -216,6 +226,15 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         event.getHook().sendMessage(meRunner.afterRunMessage()).queue();
     }
     
+    private void runOptout(SlashCommandInteractionEvent event){
+        // No admin permission required for personal opt-out
+        optoutRunner.run(event.getMember(), event.getOptions());
+        event.getHook()
+                .sendMessage(optoutRunner.afterRunMessage())
+                .setEphemeral(optoutRunner.shouldDeferEphemeral())
+                .queue();
+    }
+    
     private void runAnonymous(SlashCommandInteractionEvent event){
         if(hasAdminPermission(event) == false) {
             return;
@@ -226,10 +245,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     
     private void runHelp(SlashCommandInteractionEvent event){
         // do not need to check admin for help
-        var opt = event.getOption("version");
-        boolean showVersion = (opt != null) && opt.getAsBoolean();
+        OptionMapping optVer = event.getOption("version");
+        boolean showVersion = (optVer != null) && optVer.getAsBoolean();
+        OptionMapping optTos = event.getOption("tos");
+        boolean showTos = (optTos != null) && optTos.getAsBoolean();
         // delegate main processing to HelpRunner
-        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()), showVersion);
+        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()), showVersion, showTos);
         event.getHook()
                 .sendMessage(helpRunner.afterRunMessage())
                 .setEphemeral(helpRunner.shouldDeferEphemeral())
@@ -256,6 +277,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             case "me" -> meRunner;
             case "help" -> helpRunner;
             case "schedule" -> autoArchiveScheduleRunner;
+            case "optout" -> optoutRunner;
             default -> null;
         };
     }

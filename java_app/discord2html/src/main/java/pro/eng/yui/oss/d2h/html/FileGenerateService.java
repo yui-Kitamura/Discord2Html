@@ -81,6 +81,9 @@ public class FileGenerateService {
             indexGenerator.regenerateTopIndex(gid);
             Path top = appConfig.getOutputPath().resolve("index.html");
             if (!outs.contains(top) && Files.exists(top)){ outs.add(top); }
+            indexGenerator.regenerateTosPage(gid);
+            Path tos = appConfig.getOutputPath().resolve("tos.html");
+            if (!outs.contains(tos) && Files.exists(tos)){ outs.add(tos); }
         } catch (IOException ignore) { }
         return outs;
     }

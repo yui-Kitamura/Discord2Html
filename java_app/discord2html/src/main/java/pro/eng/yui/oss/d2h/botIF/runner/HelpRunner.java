@@ -6,19 +6,22 @@ import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.github.GitConfig;
+import pro.eng.yui.oss.d2h.github.GitUtil;
 
 @Component
 public class HelpRunner implements IRunner {
     
     private final GitConfig gitConfig;
     private final Secrets secrets;
+    private final GitUtil gitUtil;
     
     private String lastAfterRunMessage = "bot sent you help guid to DM";
     private boolean lastShouldDeferEphemeral = true;
     
-    public HelpRunner(GitConfig gitConfig, Secrets secrets){
+    public HelpRunner(GitConfig gitConfig, Secrets secrets, GitUtil gitUtil){
         this.gitConfig = gitConfig;
         this.secrets = secrets;
+        this.gitUtil = gitUtil;
     }
     
     /** default behavior: DM help to user */
@@ -32,17 +35,30 @@ public class HelpRunner implements IRunner {
         this.lastAfterRunMessage = "bot sent you help guid to DM";
         this.lastShouldDeferEphemeral = true;
     }
-    
-    /** Overload for /d2h help with options */
-    public void run(@NotNull Member member, boolean isAdmin, boolean showVersion){
+
+    /** Overload for /d2h help with options: version or tos link */
+    public void run(@NotNull Member member, boolean isAdmin, boolean showVersion, boolean showTos){
+        String returnMessage = "";
+
         if (showVersion) {
-            String ver = secrets.getBotVersion();
-            this.lastAfterRunMessage = 
+            final String ver = secrets.getBotVersion();
+            returnMessage +=
                     "bot version: " + ver + "\n" +
                     "GitHub: " + gitConfig.getRepo().getUrl();
             this.lastShouldDeferEphemeral = true;
-            return;
         }
+        if (showTos) {
+            final String url = gitUtil.getPagesUrlSafe() + "/tos.html";
+            if(returnMessage.isEmpty() == false){ returnMessage += "\n"; }   
+            returnMessage += "アーカイブ運用ポリシー(TOS): " + url;
+            this.lastShouldDeferEphemeral = true;
+        }
+        
+        if (showVersion == false && showTos == false) {
+            run(member, isAdmin);
+        }
+        
+        this.lastAfterRunMessage = returnMessage;
     }
 
     private String buildHelpText(){
@@ -79,6 +95,12 @@ public class HelpRunner implements IRunner {
         sb.append("  権限: だれでも\n");
         sb.append("  自分の匿名設定を変更します。\n");
         sb.append("\n");
+        sb.append("- /d2h optout opt-in:(True|False) [channel:<チャンネル>] \n");
+        sb.append("  権限: だれでも\n");
+        sb.append("  個人のアーカイブ同意設定を変更します。\n");
+        sb.append("  - opt-in=True: 再同意(オプトイン)として記録します。False: オプトアウトを記録します。\n");
+        sb.append("  - channel を省略するとサーバー全体(ギルド)に対する設定、指定するとそのチャンネルにのみ適用されます。\n");
+        sb.append("\n");
         sb.append("- /d2h help\n");
         sb.append("  権限: だれでも\n");
         sb.append("  このヘルプを表示します。\n");
@@ -93,7 +115,11 @@ public class HelpRunner implements IRunner {
         sb.append("- 上記が「許可」になっているチャンネルのみがコマンド実行可能な「管理タグ付きチャンネル」として扱われます（カテゴリーは対象外）。\n");
         sb.append("\n");
         sb.append("[GitHub]\n");
-        sb.append("リポジトリ: https://github.com/yui-Kitamura/Discord2Html\n");
+        sb.append("リポジトリ: ").append(gitConfig.getRepo().getUrl()).append("\n");
+        sb.append("\n");
+        sb.append("[TOS]\n");
+        sb.append("アーカイブ運用ポリシー: ").append(gitUtil.getPagesUrlSafe()).append("/tos.html\n");
+
         return sb.toString();
     }
 

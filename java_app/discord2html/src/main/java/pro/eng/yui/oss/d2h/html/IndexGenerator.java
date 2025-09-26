@@ -18,6 +18,7 @@ import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.Secrets;
+import pro.eng.yui.oss.d2h.github.GitUtil;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -38,10 +39,11 @@ public class IndexGenerator {
     private final DiscordJdaProvider jdaProvider;
     private final String botVersion;
     private final FileGenerateUtil fileUtil;
+    private final GitUtil gitUtil;
 
     public IndexGenerator(ApplicationConfig config, Secrets secrets, TemplateEngine templateEngine,
                           GuildsDAO guildsDao, ChannelsDAO channelsDao,
-                          DiscordJdaProvider jdaProvider, FileGenerateUtil fileUtil) {
+                          DiscordJdaProvider jdaProvider, FileGenerateUtil fileUtil, GitUtil gitUtil) {
         this.appConfig = config;
         this.templateEngine = templateEngine;
         this.guildsDao = guildsDao;
@@ -49,6 +51,7 @@ public class IndexGenerator {
         this.jdaProvider = jdaProvider;
         this.botVersion = secrets.getBotVersion();
         this.fileUtil = fileUtil;
+        this.gitUtil = gitUtil;
     }
 
     // ===== Top index generation =====
@@ -99,6 +102,32 @@ public class IndexGenerator {
         ctx.setVariable("botVersion", botVersion);
         String page = templateEngine.process("top", ctx);
         fileUtil.writeIfChanged(index, page);
+    }
+
+    /**
+     * Generate ToS page (tos.html) independently from index generation.
+     */
+    public void regenerateTosPage(GuildId targetGuild) throws IOException {
+        Path base = appConfig.getOutputPath();
+        if (!Files.exists(base)) { return; }
+        Context tosCtx = new Context();
+        tosCtx.setVariable("guildIconUrl", fileUtil.resolveGuildIconUrl(targetGuild));
+        tosCtx.setVariable("botVersion", botVersion);
+        tosCtx.setVariable("backToTopHref", gitUtil.getRepoBaseWithPrefixSafe() + "/index.html");
+        Calendar nowJst = Calendar.getInstance(DateTimeUtil.JST);
+        String humanDate = DateTimeUtil.dateOnly().format(nowJst.getTime());
+        String d8 = DateTimeUtil.date8().format(nowJst.getTime());
+        String iso = d8.substring(0,4) + "-" + d8.substring(4,6) + "-" + d8.substring(6,8);
+        tosCtx.setVariable("lastUpdatedDate", humanDate);
+        tosCtx.setVariable("lastUpdatedIso", iso);
+        // Repository metadata
+        tosCtx.setVariable("repoOwner", gitUtil.getRepoOwnerSafe());
+        tosCtx.setVariable("repoOwnerAddr", gitUtil.getRepoOwnerUrlSafe());
+        tosCtx.setVariable("repoPath", gitUtil.getRepoUrlSafe());
+        tosCtx.setVariable("repoLabel", gitUtil.getRepoFullNameSafe());
+        tosCtx.setVariable("publicUrl", gitUtil.getPagesUrlSafe());
+        String tosPage = templateEngine.process("tos", tosCtx);
+        fileUtil.writeIfChanged(base.resolve("tos.html"), tosPage);
     }
 
     // ===== Channel list pages =====
