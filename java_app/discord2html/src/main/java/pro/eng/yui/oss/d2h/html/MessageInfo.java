@@ -905,8 +905,8 @@ public class MessageInfo {
                     if (chAny.getType().isThread()) {
                         ThreadChannel tc = (ThreadChannel) chAny;
                         String parentName = tc.getParentChannel().getName();
-                        if (parentName.isBlank()) { parentName = AbstName.UNKNOWN; }
-                        String threadName = (chAny.getName().isBlank()) ? AbstName.UNKNOWN : chAny.getName();
+                        if (parentName.isBlank()) { parentName = ChannelName.UNKNOWN; }
+                        String threadName = (chAny.getName().isBlank()) ? ChannelName.UNKNOWN : chAny.getName();
                         threadSuffix = parentName + ">" + threadName;
                     }
                 } catch (Throwable ignore) { }
