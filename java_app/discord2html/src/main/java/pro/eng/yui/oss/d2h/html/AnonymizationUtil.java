@@ -24,15 +24,9 @@ public class AnonymizationUtil {
      * Backward compatible anonymization without scope.
      */
     public static MessageUserInfo anonymizeUser(Users user) {
-        if (user.getAnonStats() != null && user.getAnonStats().get().isAnon()) {
+        if (user != null && user.getAnonStats().get().isAnon()) {
             UserId userId = user.getUserId();
-            
-            String anonId = userIdToAnonId.computeIfAbsent(userId, id -> {
-                // Generate a UUID and use the last 12 characters
-                String uuid = UUID.randomUUID().toString().replace("-", "");
-                return uuid.substring(uuid.length() - 12);
-            });
-            
+            String anonId = getMaskedUserId();
             String avatarUrl = userIdToAnonAvatar.computeIfAbsent(userId, id -> {
                 String color = generateColorFromId(anonId); // #なし
                 // Create a URL to a colored circle SVG
@@ -66,26 +60,18 @@ public class AnonymizationUtil {
      * @return Display info
      */
     public static MessageUserInfo anonymizeUser(Users user, String scopeKey) {
-        if (user.getAnonStats() != null && user.getAnonStats().get().isAnon()) {
+        String anonId = getMaskedUserId(user, scopeKey);
+        if (anonId != null) {
             UserId userId = user.getUserId();
-
-            Map<UserId, String> idMap = scopedAnonId.computeIfAbsent(scopeKey, k -> new HashMap<>());
             Map<UserId, String> avatarMap = scopedAnonAvatar.computeIfAbsent(scopeKey, k -> new HashMap<>());
-
-            String anonId = idMap.computeIfAbsent(userId, id -> {
-                String uuid = UUID.randomUUID().toString().replace("-", "");
-                return uuid.substring(uuid.length() - 12);
-            });
-
             String avatarUrl = avatarMap.computeIfAbsent(userId, id -> {
                 String color = generateColorFromId(anonId);
-                String svg = 
+                String svg =
                         "<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'>" +
                         "<circle cx='22' cy='22' r='22' fill='%23" + color + "'/>" +
                         "</svg>";
                 return "data:image/svg+xml;charset=UTF-8," + svg;
             });
-            
             return new MessageUserInfo(anonId, avatarUrl);
         } else {
             // User is not anonymous: prefer nickname; fallback to username when nickname is blank
@@ -119,5 +105,29 @@ public class AnonymizationUtil {
         userIdToAnonAvatar.clear();
         scopedAnonId.clear();
         scopedAnonAvatar.clear();
+    }
+
+    /**
+     * Returns the 12-character anonymized ID
+     */
+    public static String getMaskedUserId() {
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        return uuid.substring(uuid.length() - 12);
+    }
+
+    /**
+     * Scoped variant. Returns the anonymized ID stable within the given scopeKey.
+     * Returns null if the user is not anonymous.
+     */
+    public static String getMaskedUserId(Users user, String scopeKey) {
+        if (user == null || scopeKey == null) { return getMaskedUserId(); }
+        try {
+            if (user.getAnonStats() != null && user.getAnonStats().get().isAnon()) {
+                UserId userId = user.getUserId();
+                Map<UserId, String> idMap = scopedAnonId.computeIfAbsent(scopeKey, k -> new HashMap<>());
+                return idMap.computeIfAbsent(userId, id -> getMaskedUserId());
+            }
+        } catch (Throwable ignore) { }
+        return null;
     }
 }

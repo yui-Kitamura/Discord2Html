@@ -478,7 +478,7 @@ public class MessageInfo {
                 }
             } catch (Throwable ignore) { }
             if (maskMention) {
-                name = UserName.ANON;
+                name = AnonymizationUtil.getMaskedUserId();
             }
             if (name == null || name.isBlank()) {
                 name = UserName.EMPTY_NAME + UserName.SUFFIX_DELETED;
