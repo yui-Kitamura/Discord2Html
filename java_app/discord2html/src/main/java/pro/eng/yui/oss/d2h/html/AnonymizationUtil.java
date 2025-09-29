@@ -38,8 +38,8 @@ public class AnonymizationUtil {
                         "</svg>";
                 return "data:image/svg+xml;charset=UTF-8," + svg;
             });
-
-            return new MessageUserInfo(anonId, avatarUrl);
+            String maskedName = anonId.substring(0, 6);
+            return new MessageUserInfo(maskedName, avatarUrl);
         } else {
             return getOpenUserInfo(user);
         }
@@ -66,7 +66,8 @@ public class AnonymizationUtil {
                         "</svg>";
                 return "data:image/svg+xml;charset=UTF-8," + svg;
             });
-            return new MessageUserInfo(anonId, avatarUrl);
+            String maskedName = anonId.substring(0, Math.min(6, anonId.length()));
+            return new MessageUserInfo(maskedName, avatarUrl);
         } else {
             return getOpenUserInfo(user);
         }
