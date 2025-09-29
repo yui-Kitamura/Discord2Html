@@ -31,6 +31,11 @@ public class MeRunner implements IRunner {
         return "Your configuration has updated successfully";
     }
     
+    @Override
+    public boolean shouldDeferEphemeral(){
+        return true;
+    }
+    
     private void runSetAnonymous(Member member, UserAnon newValue){
         final UserId userId = new UserId(member.getUser());
         final GuildId guildId = new GuildId(member.getGuild());
