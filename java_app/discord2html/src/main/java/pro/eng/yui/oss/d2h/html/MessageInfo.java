@@ -473,7 +473,10 @@ public class MessageInfo {
                     if (member != null) {
                         name = member.getEffectiveName();
                     } else if (msg.getJDA().getUserById(id) != null) {
-                        name = msg.getJDA().getUserById(id).getName();
+                        User u = msg.getJDA().getUserById(id);
+                        String gn = null;
+                        try { gn = u.getGlobalName(); } catch (Throwable ignore) { }
+                        name = (gn != null && !gn.isBlank()) ? gn : u.getName();
                     }
                 }
             } catch (Throwable ignore) { }
@@ -736,7 +739,10 @@ public class MessageInfo {
                         if (mbr != null) {
                             authorDisplay = mbr.getEffectiveName();
                         } else {
-                            authorDisplay = target.getAuthor().getName();
+                            var au = target.getAuthor();
+                            String gn = null;
+                            try { gn = au.getGlobalName(); } catch (Throwable ignore) { }
+                            authorDisplay = (gn != null && !gn.isBlank()) ? gn : au.getName();
                         }
                     } catch (Throwable ignore) { }
                     if (authorDisplay.isBlank()) {

@@ -10,7 +10,17 @@ public class UserName extends AbstName {
         super(value, LIMIT);
     }
     public UserName(User user){
-        this(user.getName());
+        super(safeUserName(user), LIMIT);
+    }
+
+    private static String safeUserName(User user) {
+        try {
+            String gn = null;
+            try { gn = user.getGlobalName(); } catch (Throwable ignore) { }
+            return (gn != null && !gn.isBlank()) ? gn : user.getName();
+        } catch (Throwable t) {
+            try { return user.getName(); } catch (Throwable ignore) { return ""; }
+        }
     }
 
     @Override

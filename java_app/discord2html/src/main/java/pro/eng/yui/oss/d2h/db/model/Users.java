@@ -91,7 +91,14 @@ public class Users {
         this.guild_id = new GuildId(guild);
         this.user_id = new UserId(user);
         this.user_name = new UserName(user);
-        this.nickname = new Nickname(user.getName());
+        String base;
+        try {
+            String gn = user.getGlobalName();
+            base = (gn != null && !gn.isBlank()) ? gn : user.getName();
+        } catch (Throwable ignore) {
+            base = user.getName();
+        }
+        this.nickname = new Nickname(base);
         this.avatar = new Avatar(user);
     }
     
