@@ -1,5 +1,7 @@
 package pro.eng.yui.oss.d2h.html;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
@@ -23,8 +25,8 @@ public class AnonymizationUtil {
     /**
      * Backward compatible anonymization without scope.
      */
-    public static MessageUserInfo anonymizeUser(Users user) {
-        if (user != null && user.getAnonStats().get().isAnon()) {
+    public static MessageUserInfo anonymizeUser(@NotNull Users user) {
+        if (user.getAnonStats().get().isAnon()) {
             UserId userId = user.getUserId();
             String anonId = getMaskedUserId();
             String avatarUrl = userIdToAnonAvatar.computeIfAbsent(userId, id -> {
@@ -39,15 +41,7 @@ public class AnonymizationUtil {
 
             return new MessageUserInfo(anonId, avatarUrl);
         } else {
-            // Non-anonymous: prefer nickname, but fallback to username when nickname is blank
-            String nick = (user.getNickname() == null) ? null : user.getNickname().getValue();
-            if (nick == null || nick.isBlank()) {
-                nick = (user.getUserName() == null) ? "" : user.getUserName().getValue();
-            }
-            return new MessageUserInfo(
-                    nick,
-                    user.getAvatar().getImgPath(user.getUserId())
-            );
+            return getOpenUserInfo(user);
         }
     }
 
@@ -59,7 +53,7 @@ public class AnonymizationUtil {
      * @param scopeKey A key representing anonymization cycle (e.g., guildId-yyyyMMdd-cX-nN)
      * @return Display info
      */
-    public static MessageUserInfo anonymizeUser(Users user, String scopeKey) {
+    public static MessageUserInfo anonymizeUser(@NotNull Users user, String scopeKey) {
         String anonId = getMaskedUserId(user, scopeKey);
         if (anonId != null) {
             UserId userId = user.getUserId();
@@ -74,16 +68,20 @@ public class AnonymizationUtil {
             });
             return new MessageUserInfo(anonId, avatarUrl);
         } else {
-            // User is not anonymous: prefer nickname; fallback to username when nickname is blank
-            String nick = (user.getNickname() == null) ? null : user.getNickname().getValue();
-            if (nick == null || nick.isBlank()) {
-                nick = (user.getUserName() == null) ? "" : user.getUserName().getValue();
-            }
-            return new MessageUserInfo(
+            return getOpenUserInfo(user);
+        }
+    }
+    
+    /** User is not anonymous: prefer nickname; fallback to username when nickname is blank */
+    private static MessageUserInfo getOpenUserInfo(Users user){
+        String nick = (user.getNickname() == null) ? null : user.getNickname().getValue();
+        if (nick == null || nick.isBlank()) {
+            nick = (user.getUserName() == null) ? "" : user.getUserName().getValue();
+        }
+        return new MessageUserInfo(
                 nick,
                 user.getAvatar().getImgPath(user.getUserId())
-            );
-        }
+        );
     }
     
     /**
