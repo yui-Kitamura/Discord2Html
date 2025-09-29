@@ -3,6 +3,7 @@ package pro.eng.yui.oss.d2h.botIF.runner;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
@@ -23,13 +24,16 @@ public class ArchiveConfigRunner implements IRunner {
     private final ChannelsDAO channelDao;
     private final GuildsDAO guildsDao;
     
+    private String afterMessage = "";
+    
     @Autowired
     public ArchiveConfigRunner(ChannelsDAO c, GuildsDAO g){
         this.channelDao = c;
         this.guildsDao = g;
     }
     
-    public void run(Guild guild, List<OptionMapping> options){
+    public void run(@NotNull Guild guild, List<OptionMapping> options){
+        afterMessage = "";
         GuildChannel targetCh = null;
         Status newMode = null;
         String onRunMessageStr = null;
@@ -108,6 +112,9 @@ public class ArchiveConfigRunner implements IRunner {
 
     @Override
     public String afterRunMessage() {
-        return "archive setting has changed";
+        if (afterMessage == null || afterMessage.isEmpty()) {
+            return "archive setting has changed";
+        }
+        return afterMessage;
     }
 }
