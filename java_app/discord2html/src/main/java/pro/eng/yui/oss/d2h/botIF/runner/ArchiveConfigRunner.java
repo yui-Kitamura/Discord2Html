@@ -61,7 +61,7 @@ public class ArchiveConfigRunner implements IRunner {
         GuildId guildId = null;
         if (targetCh != null) {
             try {
-                guildId = new GuildId(opChannelGuildId(options));
+                guildId = opChannelGuildId(options);
             } catch (Exception ignore) { /* best effort */ }
         }
         if (guildId == null && guild != null) {
@@ -101,13 +101,12 @@ public class ArchiveConfigRunner implements IRunner {
         }
     }
 
-    private long opChannelGuildId(List<OptionMapping> options) {
-        for (OptionMapping op : options) {
-            if ("channel".equals(op.getName())) {
-                return op.getAsChannel().getGuild().getIdLong();
-            }
+    private GuildId opChannelGuildId(List<OptionMapping> options) {
+        OptionMapping channelOption = get(options, "channel");
+        if(channelOption == null) {
+            return null;
         }
-        throw new IllegalArgumentException("channel option is missed");
+        return new GuildId(channelOption.getAsChannel().getGuild());
     }
 
     @Override
