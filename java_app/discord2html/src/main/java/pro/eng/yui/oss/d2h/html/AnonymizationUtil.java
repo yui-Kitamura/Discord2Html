@@ -108,9 +108,25 @@ public class AnonymizationUtil {
     /**
      * Returns the 12-character anonymized ID
      */
+    @Contract("-> new")
     public static String getMaskedUserId() {
         String uuid = UUID.randomUUID().toString().replace("-", "");
         return uuid.substring(uuid.length() - 12);
+    }
+
+    /**
+     * Global (legacy) variant: returns 12-char anonymized ID for an anonymous user, stable per user across run.
+     * Returns null if the user is not anonymous.
+     */
+    public static String getMaskedUserId(Users user) {
+        try {
+            if (user == null) { return null; }
+            if (user.getAnonStats() != null && user.getAnonStats().get().isAnon()) {
+                UserId userId = user.getUserId();
+                return userIdToAnonId.computeIfAbsent(userId, id -> getMaskedUserId());
+            }
+        } catch (Throwable ignore) { }
+        return null;
     }
 
     /**
@@ -127,5 +143,23 @@ public class AnonymizationUtil {
             }
         } catch (Throwable ignore) { }
         return null;
+    }
+
+    /**
+     * Returns the 6-character masked display name for the given anonymous user.
+     */
+    public static String getMaskedUserName() {
+        String id = getMaskedUserId();
+        return id.substring(0, 6);
+    }
+
+    /**
+     * Scoped variant of masked display name (6 chars), stable within scopeKey.
+     * Returns null if the user is not anonymous.
+     */
+    public static String getMaskedUserName(Users user, String scopeKey) {
+        String id = getMaskedUserId(user, scopeKey);
+        if (id == null) { return null; }
+        return id.substring(0, Math.min(6, id.length()));
     }
 }
