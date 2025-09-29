@@ -99,6 +99,31 @@ public class ArchiveConfigRunner implements IRunner {
             }
             guildsDao.upsertGuildInfo(g);
         }
+        
+        // 3) build response message
+        afterMessage = buildArchiveTargetListMessage(guild);
+    }
+
+    /** list channels archived for this guild grouped by category in Discord order */
+    private String buildArchiveTargetListMessage(Guild guild) {
+        if (guild == null) {
+            return "archive targets: (guild not resolved)";
+        }
+        GuildId guildId = new GuildId(guild);
+        List<Channels> targetRecords = new ArrayList<>();
+        try {
+            targetRecords = channelDao.selectChannelArchiveDo(guildId);
+        } catch (Exception ignore) { /* ignore */ }
+        if (targetRecords == null || targetRecords.isEmpty()) {
+            return "archive targets: (none)";
+        }
+
+        // Render output
+        StringBuilder sb = new StringBuilder();
+        if (sb.isEmpty() == false) {
+            sb.setLength(sb.length() - 1); // trim the last "\n"
+        }
+        return sb.toString();
     }
 
     private GuildId opChannelGuildId(List<OptionMapping> options) {
