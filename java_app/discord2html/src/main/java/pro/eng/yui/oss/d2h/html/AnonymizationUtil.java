@@ -1,5 +1,7 @@
 package pro.eng.yui.oss.d2h.html;
 
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 import pro.eng.yui.oss.d2h.db.field.UserId;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
@@ -23,16 +25,10 @@ public class AnonymizationUtil {
     /**
      * Backward compatible anonymization without scope.
      */
-    public static MessageUserInfo anonymizeUser(Users user) {
-        if (user.getAnonStats() != null && user.getAnonStats().get().isAnon()) {
+    public static MessageUserInfo anonymizeUser(@NotNull Users user) {
+        if (user.getAnonStats().get().isAnon()) {
             UserId userId = user.getUserId();
-            
-            String anonId = userIdToAnonId.computeIfAbsent(userId, id -> {
-                // Generate a UUID and use the last 12 characters
-                String uuid = UUID.randomUUID().toString().replace("-", "");
-                return uuid.substring(uuid.length() - 12);
-            });
-            
+            String anonId = getMaskedUserId();
             String avatarUrl = userIdToAnonAvatar.computeIfAbsent(userId, id -> {
                 String color = generateColorFromId(anonId); // #なし
                 // Create a URL to a colored circle SVG
@@ -42,18 +38,10 @@ public class AnonymizationUtil {
                         "</svg>";
                 return "data:image/svg+xml;charset=UTF-8," + svg;
             });
-
-            return new MessageUserInfo(anonId, avatarUrl);
+            String maskedName = anonId.substring(0, 6);
+            return new MessageUserInfo(maskedName, avatarUrl);
         } else {
-            // Non-anonymous: prefer nickname, but fallback to username when nickname is blank
-            String nick = (user.getNickname() == null) ? null : user.getNickname().getValue();
-            if (nick == null || nick.isBlank()) {
-                nick = (user.getUserName() == null) ? "" : user.getUserName().getValue();
-            }
-            return new MessageUserInfo(
-                    nick,
-                    user.getAvatar().getImgPath(user.getUserId())
-            );
+            return getOpenUserInfo(user);
         }
     }
 
@@ -65,39 +53,36 @@ public class AnonymizationUtil {
      * @param scopeKey A key representing anonymization cycle (e.g., guildId-yyyyMMdd-cX-nN)
      * @return Display info
      */
-    public static MessageUserInfo anonymizeUser(Users user, String scopeKey) {
-        if (user.getAnonStats() != null && user.getAnonStats().get().isAnon()) {
+    public static MessageUserInfo anonymizeUser(@NotNull Users user, String scopeKey) {
+        String anonId = getMaskedUserId(user, scopeKey);
+        if (anonId != null) {
             UserId userId = user.getUserId();
-
-            Map<UserId, String> idMap = scopedAnonId.computeIfAbsent(scopeKey, k -> new HashMap<>());
             Map<UserId, String> avatarMap = scopedAnonAvatar.computeIfAbsent(scopeKey, k -> new HashMap<>());
-
-            String anonId = idMap.computeIfAbsent(userId, id -> {
-                String uuid = UUID.randomUUID().toString().replace("-", "");
-                return uuid.substring(uuid.length() - 12);
-            });
-
             String avatarUrl = avatarMap.computeIfAbsent(userId, id -> {
                 String color = generateColorFromId(anonId);
-                String svg = 
+                String svg =
                         "<svg xmlns='http://www.w3.org/2000/svg' width='44' height='44'>" +
                         "<circle cx='22' cy='22' r='22' fill='%23" + color + "'/>" +
                         "</svg>";
                 return "data:image/svg+xml;charset=UTF-8," + svg;
             });
-            
-            return new MessageUserInfo(anonId, avatarUrl);
+            String maskedName = anonId.substring(0, Math.min(6, anonId.length()));
+            return new MessageUserInfo(maskedName, avatarUrl);
         } else {
-            // User is not anonymous: prefer nickname; fallback to username when nickname is blank
-            String nick = (user.getNickname() == null) ? null : user.getNickname().getValue();
-            if (nick == null || nick.isBlank()) {
-                nick = (user.getUserName() == null) ? "" : user.getUserName().getValue();
-            }
-            return new MessageUserInfo(
+            return getOpenUserInfo(user);
+        }
+    }
+    
+    /** User is not anonymous: prefer nickname; fallback to username when nickname is blank */
+    private static MessageUserInfo getOpenUserInfo(Users user){
+        String nick = (user.getNickname() == null) ? null : user.getNickname().getValue();
+        if (nick == null || nick.isBlank()) {
+            nick = (user.getUserName() == null) ? "" : user.getUserName().getValue();
+        }
+        return new MessageUserInfo(
                 nick,
                 user.getAvatar().getImgPath(user.getUserId())
-            );
-        }
+        );
     }
     
     /**
@@ -119,5 +104,63 @@ public class AnonymizationUtil {
         userIdToAnonAvatar.clear();
         scopedAnonId.clear();
         scopedAnonAvatar.clear();
+    }
+
+    /**
+     * Returns the 12-character anonymized ID
+     */
+    @Contract("-> new")
+    public static String getMaskedUserId() {
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        return uuid.substring(uuid.length() - 12);
+    }
+
+    /**
+     * Global (legacy) variant: returns 12-char anonymized ID for an anonymous user, stable per user across run.
+     * Returns null if the user is not anonymous.
+     */
+    public static String getMaskedUserId(Users user) {
+        try {
+            if (user == null) { return null; }
+            if (user.getAnonStats() != null && user.getAnonStats().get().isAnon()) {
+                UserId userId = user.getUserId();
+                return userIdToAnonId.computeIfAbsent(userId, id -> getMaskedUserId());
+            }
+        } catch (Throwable ignore) { }
+        return null;
+    }
+
+    /**
+     * Scoped variant. Returns the anonymized ID stable within the given scopeKey.
+     * Returns null if the user is not anonymous.
+     */
+    public static String getMaskedUserId(Users user, String scopeKey) {
+        if (user == null || scopeKey == null) { return getMaskedUserId(); }
+        try {
+            if (user.getAnonStats() != null && user.getAnonStats().get().isAnon()) {
+                UserId userId = user.getUserId();
+                Map<UserId, String> idMap = scopedAnonId.computeIfAbsent(scopeKey, k -> new HashMap<>());
+                return idMap.computeIfAbsent(userId, id -> getMaskedUserId());
+            }
+        } catch (Throwable ignore) { }
+        return null;
+    }
+
+    /**
+     * Returns the 6-character masked display name for the given anonymous user.
+     */
+    public static String getMaskedUserName() {
+        String id = getMaskedUserId();
+        return id.substring(0, 6);
+    }
+
+    /**
+     * Scoped variant of masked display name (6 chars), stable within scopeKey.
+     * Returns null if the user is not anonymous.
+     */
+    public static String getMaskedUserName(Users user, String scopeKey) {
+        String id = getMaskedUserId(user, scopeKey);
+        if (id == null) { return null; }
+        return id.substring(0, Math.min(6, id.length()));
     }
 }

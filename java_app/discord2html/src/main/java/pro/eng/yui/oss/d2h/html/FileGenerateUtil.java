@@ -1,6 +1,7 @@
 package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageHistory;
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.MessageReference;
@@ -84,29 +85,46 @@ public class FileGenerateUtil {
     }
 
     private final GuildsDAO guildsDao;
-    private final AnonStatsDAO anonStatsDao;
     private final UsersDAO usersDao;
     private final GitConfig gitConfig;
     private final DiscordJdaProvider jdaProvider;
-    private static OptoutDAO optoutDao;
+    private static OptoutDAO staticOptoutDao;
+    private static AnonStatsDAO staticAnonStatsDao;
     
     public FileGenerateUtil(
             GuildsDAO guildsDAO, AnonStatsDAO anonStatsDAO, UsersDAO usersDAO, OptoutDAO optoutDao,
             DiscordJdaProvider jdaProvider,
             GitConfig gitConfig) {
         this.guildsDao = guildsDAO;
-        this.anonStatsDao = anonStatsDAO;
         this.usersDao = usersDAO;
         this.jdaProvider = jdaProvider;
         this.gitConfig = gitConfig;
-        FileGenerateUtil.optoutDao = optoutDao;
+        FileGenerateUtil.staticOptoutDao = optoutDao;
+        FileGenerateUtil.staticAnonStatsDao = anonStatsDAO;
     }
 
     public static boolean isUserOptedOut(UserId userId, GuildId guildId, ChannelId channelId) {
         try {
-            return optoutDao.isOptedOut(userId, guildId, channelId);
+            return staticOptoutDao.isOptedOut(userId, guildId, channelId);
         } catch (Throwable throwable) {
             throwable.printStackTrace();
+            return true;
+        }
+    }
+
+    /**
+     * Check if the target user should be displayed anonymously in the given guild context
+     * using the same rule as message authors (role and user settings; bots are OPEN).
+     * Defaults to true (anonymous) on any error to avoid leaking names.
+     */
+    public static boolean isUserAnonymous(UserId userId, Guild guild) {
+        try {
+            if (guild == null || userId == null) { return true; }
+            Member member = null;
+            try { member = guild.getMemberById(userId.getValue()); } catch (Throwable ignore) { }
+            if (member == null) { return true; }
+            return staticAnonStatsDao.extractAnonStats(member).isAnon();
+        } catch (Throwable ignore) {
             return true;
         }
     }
@@ -396,7 +414,7 @@ public class FileGenerateUtil {
      */
     private MessageInfo buildMessageInfo(Message msg, GuildId guildId, final int anonCycle, List<Users> marked) {
         try {
-            Users author = Users.get(msg, anonStatsDao, optoutDao);
+            Users author = Users.get(msg, staticAnonStatsDao, staticOptoutDao);
             try {
                 if (!marked.contains(author)) {
                     usersDao.upsertUserInfo(author);
@@ -425,7 +443,7 @@ public class FileGenerateUtil {
                             Message src = refCh.retrieveMessageById(ref.getMessageIdLong()).complete();
                             boolean sameGuild = (src.getGuild().getIdLong() == msg.getGuild().getIdLong());
                             if (sameGuild) {
-                                boolean sourceOptout = optoutDao.isOptedOut(new UserId(src.getAuthor()), new GuildId(msg.getGuild()), new ChannelId(ref.getChannelIdLong()));
+                                boolean sourceOptout = staticOptoutDao.isOptedOut(new UserId(src.getAuthor()), new GuildId(msg.getGuild()), new ChannelId(ref.getChannelIdLong()));
                                 if (sourceOptout) {
                                     maskForward = MessageInfo.ForwardMask.OPTOUT;
                                 }else{

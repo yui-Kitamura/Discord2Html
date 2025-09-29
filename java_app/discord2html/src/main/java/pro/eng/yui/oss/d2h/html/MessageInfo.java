@@ -461,21 +461,27 @@ public class MessageInfo {
             boolean maskMention = false;
             try {
                 try {
-                    maskMention = FileGenerateUtil.isUserOptedOut(
-                            new UserId(Long.parseUnsignedLong(id)),
-                            new GuildId(msg.getGuild()), new ChannelId(msg.getChannel()));
+                    UserId uid = new UserId(Long.parseUnsignedLong(id));
+                    GuildId gid = new GuildId(msg.getGuild());
+                    ChannelId cid = new ChannelId(msg.getChannel());
+                    // Mask when opted-out OR anonymous per current guild/role settings
+                    maskMention = FileGenerateUtil.isUserOptedOut(uid, gid, cid)
+                            || FileGenerateUtil.isUserAnonymous(uid, msg.getGuild());
                 } catch (Throwable ignore) { /* best-effort */ }
                 if (!maskMention) {
                     Member member = msg.getGuild().getMemberById(id);
                     if (member != null) {
                         name = member.getEffectiveName();
                     } else if (msg.getJDA().getUserById(id) != null) {
-                        name = msg.getJDA().getUserById(id).getName();
+                        User u = msg.getJDA().getUserById(id);
+                        String gn = null;
+                        try { gn = u.getGlobalName(); } catch (Throwable ignore) { }
+                        name = (gn != null && !gn.isBlank()) ? gn : u.getName();
                     }
                 }
             } catch (Throwable ignore) { }
             if (maskMention) {
-                name = UserName.ANON;
+                name = AnonymizationUtil.getMaskedUserName();
             }
             if (name == null || name.isBlank()) {
                 name = UserName.EMPTY_NAME + UserName.SUFFIX_DELETED;
@@ -733,7 +739,10 @@ public class MessageInfo {
                         if (mbr != null) {
                             authorDisplay = mbr.getEffectiveName();
                         } else {
-                            authorDisplay = target.getAuthor().getName();
+                            var au = target.getAuthor();
+                            String gn = null;
+                            try { gn = au.getGlobalName(); } catch (Throwable ignore) { }
+                            authorDisplay = (gn != null && !gn.isBlank()) ? gn : au.getName();
                         }
                     } catch (Throwable ignore) { }
                     if (authorDisplay.isBlank()) {
