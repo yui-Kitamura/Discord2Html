@@ -155,8 +155,6 @@ public class ArchiveConfigRunner implements IRunner {
         }
         // ギルドに現存しないチャンネル（remaining）は無視する
 
-        
-
         // Remove non-target channels and empty groups
         List<CategoryId> emptyKeys = new ArrayList<>();
         for (Map.Entry<CategoryId, List<ChannelId>> e : groups.entrySet()) {
@@ -169,9 +167,9 @@ public class ArchiveConfigRunner implements IRunner {
                 emptyKeys.add(e.getKey());
             }
         }
-        for (CategoryId k : emptyKeys) { 
-            groups.remove(k); 
-            categoryNames.remove(k); 
+        for (CategoryId k : emptyKeys) {
+            groups.remove(k);
+            categoryNames.remove(k);
         }
 
         if (groups.isEmpty()) {
