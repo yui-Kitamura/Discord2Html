@@ -123,6 +123,10 @@ public class ArchiveConfigRunner implements IRunner {
         if (targetRecords == null || targetRecords.isEmpty()) {
             return "archive targets: (none)";
         }
+        Set<ChannelId> targetChannels = new HashSet<>();
+        for (Channels ch : targetRecords) {
+            targetChannels.add(ch.getChannelId());
+        }
 
         // Build groups by category id in Discord order
         Map<CategoryId, List<ChannelId>> groups = new LinkedHashMap<>();
@@ -151,10 +155,17 @@ public class ArchiveConfigRunner implements IRunner {
         }
         // ギルドに現存しないチャンネル（remaining）は無視する
 
-        // Remove empty groups
+        
+
+        // Remove non-target channels and empty groups
         List<CategoryId> emptyKeys = new ArrayList<>();
         for (Map.Entry<CategoryId, List<ChannelId>> e : groups.entrySet()) {
             if (e.getValue() == null || e.getValue().isEmpty()) {
+                emptyKeys.add(e.getKey());
+                continue;
+            }
+            e.getValue().removeIf(ch -> !targetChannels.contains(ch));
+            if (e.getValue().isEmpty()) {
                 emptyKeys.add(e.getKey());
             }
         }
