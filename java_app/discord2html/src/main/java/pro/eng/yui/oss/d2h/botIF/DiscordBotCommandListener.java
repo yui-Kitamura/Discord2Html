@@ -191,8 +191,10 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     }
     
     private void runArchive(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
+        if(event.getOptions().isEmpty() == false) {
+            if (hasAdminPermission(event) == false) {
+                return;
+            }
         }
         if(isAcceptedChannel(event.getGuildChannel()) == false) {
             return;
