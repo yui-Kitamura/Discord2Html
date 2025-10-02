@@ -71,6 +71,9 @@ public class HelpRunner implements IRunner {
         sb.append("- ほとんどのコマンドは 管理者権限(D2H Admin) が必要です。\n");
         sb.append("\n");
         sb.append("/d2h コマンド一覧\n");
+        sb.append("- /d2h archive\n");
+        sb.append("  権限: だれでも\n");
+        sb.append("  アーカイブ対象のチャンネル一覧を表示します。\n");
         sb.append("- /d2h archive channel:<チャンネル> mode:(ignore|monitor)\n");
         sb.append("  権限: 管理者のみ\n");
         sb.append("  対象チャンネルのアーカイブ対象設定を変更します。\n");
