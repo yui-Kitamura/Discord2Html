@@ -51,12 +51,6 @@ a:hover {
     text-decoration: underline;
 }
 
-@media print {
-    a:not(:has([text*="http"]))::after {
-        content: " (" attr(href) ")";
-    }
-}
-
 /* Navigation */
 .nav {
     margin-bottom: 1em;
