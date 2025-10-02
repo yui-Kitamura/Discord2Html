@@ -16,7 +16,7 @@
       <img class="guild-icon" th:if="${guildIconUrl} != null" th:src="${guildIconUrl}" th:alt="'ギルド アイコン'" />
       <h1>運用ポリシー（Discordアーカイブ公開）</h1>
     </div>
-    <p class="meta">最終更新日: <time datetime="2025-09-26">2025-09-26</time></p>
+    <p class="meta">最終更新日: <time datetime="2025-10-03">2025-10-03</time></p>
   </header>
 
   <main class="container">
@@ -32,9 +32,11 @@
     <section id="archive-scope">
       <h2>アーカイブの対象・範囲</h2>
       <ul>
-        <li>対象チャンネル: 当コミュニティ内に設置されているすべてのチャンネル・スレッド。一部除外チャンネルあり</li>
+        <li>対象チャンネル: 当コミュニティ内に設置されているすべてのチャンネル・スレッド。一部除外チャンネルあり<ul>
+          <li>確認方法： コマンド<code>/d2h archive</code>をDiscordサーバー内で実行してください</li>
+        </ul></li>
         <li>対象コンテンツ: テキスト、埋め込み、添付（画像/ファイル/コード）、リアクション、返信/引用のメタ情報</li>
-        <li>対象期間: アーカイブ作成時点から遡って概ね24時間分を取得します。</li>
+        <li>対象期間: アーカイブ作成時点から遡って概ね24時間分を取得します</li>
       </ul>
     </section>
     <section id="anon-and-roles">
@@ -137,6 +139,7 @@
       <tbody>
       <tr>
         <td>2025-09-26</td><td>2.1.0</td><td>初版: アーカイブ運用ポリシーの制定</td>
+        <td>2025-10-03</td><td>2.1.3</td><td>追記：アーカイブ対象の確認方法</td>
       </tr>
       </tbody>
     </table>
