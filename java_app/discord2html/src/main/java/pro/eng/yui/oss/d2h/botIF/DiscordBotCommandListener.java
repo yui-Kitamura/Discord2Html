@@ -179,10 +179,18 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 default -> {
                     event.getHook()
                             .sendMessage("unknown subcommand. Use `/d2h help`")
+                            .setEphemeral(true)
                             .setSuppressedNotifications(true)
                             .queue();
+                    return;
                 }
             }
+
+            event.getHook()
+                    .sendMessage(runner.afterRunMessage())
+                    .setEphemeral(runner.shouldDeferEphemeral())
+                    .queue();
+            
         }catch(Exception unexpected) {
             event.getHook()
                 .sendMessage("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
@@ -223,48 +231,34 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     
     private void runArchive(SlashCommandInteractionEvent event){
         archiveConfigRunner.run(event.getGuild(), event.getOptions());
-        event.getHook().sendMessage(archiveConfigRunner.afterRunMessage()).queue();
     }
     
     private void runRun(SlashCommandInteractionEvent event){
         runArchiveRunner.run(new GuildId(event.getGuild()), event.getOptions());
-        event.getHook().sendMessage(runArchiveRunner.afterRunMessage()).queue();
     }
     
     private void runRole(SlashCommandInteractionEvent event){
         roleRunner.run(event.getOptions());
-        event.getHook().sendMessage(roleRunner.afterRunMessage()).queue();
     }
     
     private void runMe(SlashCommandInteractionEvent event){
         meRunner.run(event.getMember(), event.getOptions());
-        event.getHook().sendMessage(meRunner.afterRunMessage()).queue();
     }
     
     private void runOptout(SlashCommandInteractionEvent event){
         optoutRunner.run(event.getMember(), event.getOptions());
-        event.getHook()
-                .sendMessage(optoutRunner.afterRunMessage())
-                .setEphemeral(optoutRunner.shouldDeferEphemeral())
-                .queue();
     }
     /** 匿名周期の変更 */
     private void runAnonymous(SlashCommandInteractionEvent event){
         anonymousSettingRunner.run(event.getGuild(), event.getOptions());
-        event.getHook().sendMessage(anonymousSettingRunner.afterRunMessage()).queue();
     }
     
     private void runHelp(SlashCommandInteractionEvent event){
         helpRunner.run(event.getMember(), event.getOptions());
-        event.getHook()
-                .sendMessage(helpRunner.afterRunMessage())
-                .setEphemeral(helpRunner.shouldDeferEphemeral())
-                .queue();
     }
 
     private void runSchedule(SlashCommandInteractionEvent event){
         autoArchiveScheduleRunner.run(event.getGuild(), event.getOptions());
-        event.getHook().sendMessage(autoArchiveScheduleRunner.afterRunMessage()).queue();
     }
     
     private IRunner getRunnerBySub(String sub) {
