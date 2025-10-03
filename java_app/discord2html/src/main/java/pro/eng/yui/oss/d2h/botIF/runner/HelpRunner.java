@@ -31,18 +31,6 @@ public class HelpRunner implements IRunner {
     public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
         return RequiredPermissionType.ANY;
     }
-    
-    /** default behavior: DM help to user */
-    public void run(@NotNull Member member, boolean isAdmin){
-        final User user = member.getUser();
-        final String helpText = buildHelpText();
-        user.openPrivateChannel().queue(
-                ch -> ch.sendMessage(helpText).queue(),
-                err -> { /* nothing to do */ }
-        );
-        this.lastAfterRunMessage = "bot sent you help guid to DM";
-        this.lastShouldDeferEphemeral = true;
-    }
 
     /** Overload for /d2h help with options: version or tos link */
     public void run(@NotNull Member member, boolean isAdmin, boolean showVersion, boolean showTos){
@@ -63,7 +51,12 @@ public class HelpRunner implements IRunner {
         }
         
         if (showVersion == false && showTos == false) {
-            run(member, isAdmin);
+            member.getUser().openPrivateChannel().queue(
+                    ch -> ch.sendMessage(buildHelpText()).queue(),
+                    err -> { /* nothing to do */ }
+            );
+            this.lastAfterRunMessage = "bot sent you help guid to DM";
+            this.lastShouldDeferEphemeral = true;
         }
         
         this.lastAfterRunMessage = returnMessage;
