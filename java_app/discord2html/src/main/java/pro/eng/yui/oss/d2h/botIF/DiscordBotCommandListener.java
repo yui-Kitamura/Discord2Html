@@ -1,5 +1,7 @@
 package pro.eng.yui.oss.d2h.botIF;
 
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -144,10 +146,24 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if (runner != null) {
             event.deferReply(runner.shouldDeferEphemeral()).queue();
         } else {
-            event.deferReply().queue();
+            event.deferReply(true).queue();
+            event.getHook()
+                    .editOriginal("command runner not found. " +
+                            "Please check your input. Use `/d2h help`")
+                    .queue();
+            return;
         }
+        
+        // 権限チェック
+        if(hasPermission(event, runner) == false) {
+            event.getHook()
+                    .editOriginal("you do NOT have required permission(role) to do this")
+                    .queue();
+            return;
+        }
+        
+        // 処理実行
         try {
-
             bot.upsertGuildInfoToDB(event.getGuild());
             bot.upsertGuildChannelToDB(event.getGuild());
 
@@ -175,19 +191,38 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         }
     }
     
-    /** 汎用Admin権限チェック。エラーメッセージのレスポンスつき */
-    protected boolean hasAdminPermission(SlashCommandInteractionEvent event){
-        if(bot.isD2hAdmin(event.getMember()) == false) {
-            event.getHook()
-                    .editOriginal("you do NOT have required permission(role) to do this")
-                    .queue();
-            return false;
-        }
-        return true;
-    }
     /** コマンド実行チャンネルの確認 */
     protected boolean isAcceptedChannel(GuildChannel channel){
         return bot.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
+    }
+    protected boolean hasPermission(@NotNull SlashCommandInteractionEvent event, @NotNull IRunner runner){
+        IRunner.RequiredPermissionType required = runner.requiredPermissionType(event.getOptions());
+        switch (required) {
+            case DENY -> {
+                return false;
+            }
+            case ANY -> {
+                return true;
+            }
+            case D2H_ADMIN -> {
+                if(bot.isD2hAdmin(event.getMember()) == false) {
+                    return false;
+                }
+                return true;
+            }
+            case SERVER_ADMIN -> {
+                try{
+                    if(event.getMember().isOwner()){ return true; }
+                    for(Role r : event.getMember().getRoles()) {
+                        if (r.hasPermission(Permission.ADMINISTRATOR)) {
+                            return true;
+                        }
+                    }
+                    return false; 
+                }catch(NullPointerException e){ return false; }
+            }
+        }
+        return false;
     }
     
     private void runArchive(SlashCommandInteractionEvent event){
