@@ -71,7 +71,7 @@ public class ArchiveConfigRunner implements IRunner {
                 guildId = opChannelGuildId(options);
             } catch (Exception ignore) { /* best effort */ }
         }
-        if (guildId == null && guild != null) {
+        if (guildId == null) {
             guildId = new GuildId(guild.getIdLong());
         }
 
