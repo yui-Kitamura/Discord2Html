@@ -178,22 +178,19 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "optout" -> runOptout(event);
                 default -> {
                     event.getHook()
-                            .sendMessage("unknown subcommand. Use `/d2h help`")
-                            .setEphemeral(true)
-                            .setSuppressedNotifications(true)
+                            .editOriginal("unknown subcommand. Use `/d2h help`")
                             .queue();
                     return;
                 }
             }
 
             event.getHook()
-                    .sendMessage(runner.afterRunMessage())
-                    .setEphemeral(runner.shouldDeferEphemeral())
+                    .editOriginal(runner.afterRunMessage())
                     .queue();
             
         }catch(Exception unexpected) {
             event.getHook()
-                .sendMessage("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
+                .editOriginal("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
                 .queue();
             return;
         }
