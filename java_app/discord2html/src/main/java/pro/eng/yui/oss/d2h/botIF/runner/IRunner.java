@@ -7,6 +7,13 @@ import java.util.List;
 /** marker for command runner */
 public interface IRunner {
     
+    enum RequiredPermissionType {
+        DENY,
+        ANY,
+        D2H_ADMIN,
+        SERVER_ADMIN
+    }
+    
     /** 終了後replyするメッセージ */
     String afterRunMessage();
     
@@ -28,7 +35,6 @@ public interface IRunner {
         return null;
     }
     
-    default boolean isNull(Object obj){
-        return obj == null;
-    }
+    RequiredPermissionType requiredPermissionType(List<OptionMapping> options);
+    
 }
