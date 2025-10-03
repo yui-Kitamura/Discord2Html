@@ -196,18 +196,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 return;
             }
         }
-        if(isAcceptedChannel(event.getGuildChannel()) == false) {
-            return;
-        }
         archiveConfigRunner.run(event.getGuild(), event.getOptions());
         event.getHook().sendMessage(archiveConfigRunner.afterRunMessage()).queue();
     }
     
     private void runRun(SlashCommandInteractionEvent event){
         if(hasAdminPermission(event) == false) {
-            return;
-        }
-        if(isAcceptedChannel(event.getGuildChannel()) == false) {
             return;
         }
         runArchiveRunner.run(new GuildId(event.getGuild()), event.getOptions());
@@ -261,9 +255,6 @@ public class DiscordBotCommandListener extends ListenerAdapter {
 
     private void runSchedule(SlashCommandInteractionEvent event){
         if(hasAdminPermission(event) == false) {
-            return;
-        }
-        if(isAcceptedChannel(event.getGuildChannel()) == false) {
             return;
         }
         autoArchiveScheduleRunner.run(event.getGuild(), event.getOptions());
