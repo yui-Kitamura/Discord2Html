@@ -190,6 +190,7 @@ public class RunArchiveRunner implements IRunner {
         jda.getJda().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
     }
     
+    /** バッチ実行用I/F */
     public void run(){
         try {
             jda.getJda().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
