@@ -15,14 +15,7 @@ import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Component
 public class ArchiveConfigRunner implements IRunner {
@@ -36,6 +29,14 @@ public class ArchiveConfigRunner implements IRunner {
     public ArchiveConfigRunner(ChannelsDAO c, GuildsDAO g){
         this.channelDao = c;
         this.guildsDao = g;
+    }
+    
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        if(options.isEmpty()) {
+            return RequiredPermissionType.ANY;
+        }
+        return RequiredPermissionType.D2H_ADMIN;
     }
     
     public void run(@NotNull Guild guild, List<OptionMapping> options){
