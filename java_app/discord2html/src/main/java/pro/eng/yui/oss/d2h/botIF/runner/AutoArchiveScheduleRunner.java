@@ -27,6 +27,11 @@ public class AutoArchiveScheduleRunner implements IRunner {
         this.guildsDAO = guildsDAO;
     }
 
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.D2H_ADMIN;
+    }
+    
     public void run(Guild guild, List<OptionMapping> options) {
         Integer cycle = null;
         for (OptionMapping op : options) {

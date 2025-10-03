@@ -2,11 +2,14 @@ package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.github.GitUtil;
+
+import java.util.List;
 
 @Component
 public class HelpRunner implements IRunner {
@@ -24,21 +27,19 @@ public class HelpRunner implements IRunner {
         this.gitUtil = gitUtil;
     }
     
-    /** default behavior: DM help to user */
-    public void run(@NotNull Member member, boolean isAdmin){
-        final User user = member.getUser();
-        final String helpText = buildHelpText();
-        user.openPrivateChannel().queue(
-                ch -> ch.sendMessage(helpText).queue(),
-                err -> { /* nothing to do */ }
-        );
-        this.lastAfterRunMessage = "bot sent you help guid to DM";
-        this.lastShouldDeferEphemeral = true;
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.ANY;
     }
 
     /** Overload for /d2h help with options: version or tos link */
-    public void run(@NotNull Member member, boolean isAdmin, boolean showVersion, boolean showTos){
+    public void run(@NotNull Member member, List<OptionMapping> options){
         String returnMessage = "";
+
+        OptionMapping optVer = get(options, "version");
+        boolean showVersion = (optVer != null) && optVer.getAsBoolean();
+        OptionMapping optTos = get(options, "tos");
+        boolean showTos = (optTos != null) && optTos.getAsBoolean();
 
         if (showVersion) {
             final String ver = secrets.getBotVersion();
@@ -55,7 +56,12 @@ public class HelpRunner implements IRunner {
         }
         
         if (showVersion == false && showTos == false) {
-            run(member, isAdmin);
+            member.getUser().openPrivateChannel().queue(
+                    ch -> ch.sendMessage(buildHelpText()).queue(),
+                    err -> { /* nothing to do */ }
+            );
+            returnMessage = "bot sent you help guid to DM";
+            this.lastShouldDeferEphemeral = true;
         }
         
         this.lastAfterRunMessage = returnMessage;
@@ -71,6 +77,9 @@ public class HelpRunner implements IRunner {
         sb.append("- ほとんどのコマンドは 管理者権限(D2H Admin) が必要です。\n");
         sb.append("\n");
         sb.append("/d2h コマンド一覧\n");
+        sb.append("- /d2h archive\n");
+        sb.append("  権限: だれでも\n");
+        sb.append("  アーカイブ対象のチャンネル一覧を表示します。\n");
         sb.append("- /d2h archive channel:<チャンネル> mode:(ignore|monitor)\n");
         sb.append("  権限: 管理者のみ\n");
         sb.append("  対象チャンネルのアーカイブ対象設定を変更します。\n");

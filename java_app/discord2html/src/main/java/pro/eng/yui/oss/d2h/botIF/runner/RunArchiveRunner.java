@@ -70,6 +70,11 @@ public class RunArchiveRunner implements IRunner {
         this.gitHubService = gitHubService;
         this.gitConfig = gitConfig;
     }
+
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.D2H_ADMIN;
+    }
     
     public void run(GuildId target, List<OptionMapping> options){
         jda.getJda().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
@@ -185,6 +190,7 @@ public class RunArchiveRunner implements IRunner {
         jda.getJda().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
     }
     
+    /** バッチ実行用I/F */
     public void run(){
         try {
             jda.getJda().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);

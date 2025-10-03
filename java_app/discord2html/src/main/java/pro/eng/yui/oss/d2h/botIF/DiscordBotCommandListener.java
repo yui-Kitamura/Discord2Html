@@ -1,5 +1,7 @@
 package pro.eng.yui.oss.d2h.botIF;
 
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -144,10 +146,24 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if (runner != null) {
             event.deferReply(runner.shouldDeferEphemeral()).queue();
         } else {
-            event.deferReply().queue();
+            event.deferReply(true).queue();
+            event.getHook()
+                    .editOriginal("command runner not found. " +
+                            "Please check your input. Use `/d2h help`")
+                    .queue();
+            return;
         }
+        
+        // 権限チェック
+        if(hasPermission(event, runner) == false) {
+            event.getHook()
+                    .editOriginal("you do NOT have required permission(role) to do this")
+                    .queue();
+            return;
+        }
+        
+        // 処理実行
         try {
-
             bot.upsertGuildInfoToDB(event.getGuild());
             bot.upsertGuildChannelToDB(event.getGuild());
 
@@ -162,110 +178,84 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "optout" -> runOptout(event);
                 default -> {
                     event.getHook()
-                            .sendMessage("unknown subcommand. Use `/d2h help`")
-                            .setSuppressedNotifications(true)
+                            .editOriginal("unknown subcommand. Use `/d2h help`")
                             .queue();
+                    return;
                 }
             }
+
+            event.getHook()
+                    .editOriginal(runner.afterRunMessage())
+                    .queue();
+            
         }catch(Exception unexpected) {
             event.getHook()
-                .sendMessage("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
+                .editOriginal("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
                 .queue();
             return;
         }
     }
     
-    /** 汎用Admin権限チェック。エラーメッセージのレスポンスつき */
-    protected boolean hasAdminPermission(SlashCommandInteractionEvent event){
-        if(bot.isD2hAdmin(event.getMember()) == false) {
-            event.getHook()
-                    .editOriginal("you do NOT have required permission(role) to do this")
-                    .queue();
-            return false;
-        }
-        return true;
-    }
     /** コマンド実行チャンネルの確認 */
     protected boolean isAcceptedChannel(GuildChannel channel){
         return bot.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
     }
+    protected boolean hasPermission(@NotNull SlashCommandInteractionEvent event, @NotNull IRunner runner){
+        IRunner.RequiredPermissionType required = runner.requiredPermissionType(event.getOptions());
+        switch (required) {
+            case DENY -> {
+                return false;
+            }
+            case ANY -> {
+                return true;
+            }
+            case D2H_ADMIN -> {
+                return bot.isD2hAdmin(event.getMember());
+            }
+            case SERVER_ADMIN -> {
+                try{
+                    for(Role r : event.getMember().getRoles()) {
+                        if (r.hasPermission(Permission.ADMINISTRATOR)) {
+                            return true;
+                        }
+                    }
+                    return false; 
+                }catch(NullPointerException e){ return false; }
+            }
+        }
+        return false;
+    }
     
     private void runArchive(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
-        if(isAcceptedChannel(event.getGuildChannel()) == false) {
-            return;
-        }
         archiveConfigRunner.run(event.getGuild(), event.getOptions());
-        event.getHook().sendMessage(archiveConfigRunner.afterRunMessage()).queue();
     }
     
     private void runRun(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
-        if(isAcceptedChannel(event.getGuildChannel()) == false) {
-            return;
-        }
         runArchiveRunner.run(new GuildId(event.getGuild()), event.getOptions());
-        event.getHook().sendMessage(runArchiveRunner.afterRunMessage()).queue();
     }
     
     private void runRole(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
-        roleRunner.run(event.getMember(), event.getOptions());
-        event.getHook().sendMessage(roleRunner.afterRunMessage()).queue();
+        roleRunner.run(event.getOptions());
     }
     
     private void runMe(SlashCommandInteractionEvent event){
-        //do not need to check //if(hasAdminPermission(event) == false) == false)
         meRunner.run(event.getMember(), event.getOptions());
-        event.getHook().sendMessage(meRunner.afterRunMessage()).queue();
     }
     
     private void runOptout(SlashCommandInteractionEvent event){
-        // No admin permission required for personal opt-out
         optoutRunner.run(event.getMember(), event.getOptions());
-        event.getHook()
-                .sendMessage(optoutRunner.afterRunMessage())
-                .setEphemeral(optoutRunner.shouldDeferEphemeral())
-                .queue();
     }
-    
+    /** 匿名周期の変更 */
     private void runAnonymous(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
         anonymousSettingRunner.run(event.getGuild(), event.getOptions());
-        event.getHook().sendMessage(anonymousSettingRunner.afterRunMessage()).queue();
     }
     
     private void runHelp(SlashCommandInteractionEvent event){
-        // do not need to check admin for help
-        OptionMapping optVer = event.getOption("version");
-        boolean showVersion = (optVer != null) && optVer.getAsBoolean();
-        OptionMapping optTos = event.getOption("tos");
-        boolean showTos = (optTos != null) && optTos.getAsBoolean();
-        // delegate main processing to HelpRunner
-        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()), showVersion, showTos);
-        event.getHook()
-                .sendMessage(helpRunner.afterRunMessage())
-                .setEphemeral(helpRunner.shouldDeferEphemeral())
-                .queue();
+        helpRunner.run(event.getMember(), event.getOptions());
     }
 
     private void runSchedule(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
-        if(isAcceptedChannel(event.getGuildChannel()) == false) {
-            return;
-        }
         autoArchiveScheduleRunner.run(event.getGuild(), event.getOptions());
-        event.getHook().sendMessage(autoArchiveScheduleRunner.afterRunMessage()).queue();
     }
     
     private IRunner getRunnerBySub(String sub) {

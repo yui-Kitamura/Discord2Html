@@ -29,6 +29,11 @@ public class OptoutRunner implements IRunner {
         this.optoutDAO = optoutDAO;
     }
 
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.ANY;
+    }
+    
     public void run(Member member, List<OptionMapping> options) {
         // parse options
         OptionMapping chOpt = get(options, "channel");

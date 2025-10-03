@@ -25,7 +25,12 @@ public class RoleRunner implements IRunner {
         this.roleDao = rolesDao;
     }
     
-    public void run(Member member, List<OptionMapping> options){
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.D2H_ADMIN;
+    }
+    
+    public void run(List<OptionMapping> options){
         Role targetRole = get(options, "role").getAsRole();
         UserAnon newValue = UserAnon.get(get(options, "anonymous").getAsString());
         
