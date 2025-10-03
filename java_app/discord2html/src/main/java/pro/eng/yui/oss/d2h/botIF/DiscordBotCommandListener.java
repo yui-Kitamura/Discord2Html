@@ -226,56 +226,39 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     }
     
     private void runArchive(SlashCommandInteractionEvent event){
-        if(event.getOptions().isEmpty() == false) {
-            if (hasAdminPermission(event) == false) {
-                return;
-            }
-        }
         archiveConfigRunner.run(event.getGuild(), event.getOptions());
         event.getHook().sendMessage(archiveConfigRunner.afterRunMessage()).queue();
     }
     
     private void runRun(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
         runArchiveRunner.run(new GuildId(event.getGuild()), event.getOptions());
         event.getHook().sendMessage(runArchiveRunner.afterRunMessage()).queue();
     }
     
     private void runRole(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
-        roleRunner.run(event.getMember(), event.getOptions());
+        roleRunner.run(event.getOptions());
         event.getHook().sendMessage(roleRunner.afterRunMessage()).queue();
     }
     
     private void runMe(SlashCommandInteractionEvent event){
-        //do not need to check //if(hasAdminPermission(event) == false) == false)
         meRunner.run(event.getMember(), event.getOptions());
         event.getHook().sendMessage(meRunner.afterRunMessage()).queue();
     }
     
     private void runOptout(SlashCommandInteractionEvent event){
-        // No admin permission required for personal opt-out
         optoutRunner.run(event.getMember(), event.getOptions());
         event.getHook()
                 .sendMessage(optoutRunner.afterRunMessage())
                 .setEphemeral(optoutRunner.shouldDeferEphemeral())
                 .queue();
     }
-    
+    /** 匿名周期の変更 */
     private void runAnonymous(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
         anonymousSettingRunner.run(event.getGuild(), event.getOptions());
         event.getHook().sendMessage(anonymousSettingRunner.afterRunMessage()).queue();
     }
     
     private void runHelp(SlashCommandInteractionEvent event){
-        // do not need to check admin for help
         OptionMapping optVer = event.getOption("version");
         boolean showVersion = (optVer != null) && optVer.getAsBoolean();
         OptionMapping optTos = event.getOption("tos");
@@ -289,9 +272,6 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     }
 
     private void runSchedule(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
         autoArchiveScheduleRunner.run(event.getGuild(), event.getOptions());
         event.getHook().sendMessage(autoArchiveScheduleRunner.afterRunMessage()).queue();
     }

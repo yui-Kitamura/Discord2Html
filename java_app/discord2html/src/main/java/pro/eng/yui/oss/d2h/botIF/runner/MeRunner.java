@@ -21,6 +21,11 @@ public class MeRunner implements IRunner {
         this.usersDao = users;
     }
 
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.ANY;
+    }
+    
     public void run(Member member, List<OptionMapping> options){
         UserAnon newValue = UserAnon.get(get(options, "anonymous").getAsString());
         runSetAnonymous(member, newValue);

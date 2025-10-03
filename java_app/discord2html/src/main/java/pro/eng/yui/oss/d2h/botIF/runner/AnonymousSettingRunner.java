@@ -21,6 +21,11 @@ public class AnonymousSettingRunner implements IRunner {
         this.guildDao = g;
     }
     
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.D2H_ADMIN;
+    }
+    
     public void run(Guild guild, List<OptionMapping> command){
         boolean isConfigAnonymousCycle = false;
 
