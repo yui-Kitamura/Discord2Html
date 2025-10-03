@@ -60,7 +60,7 @@ public class HelpRunner implements IRunner {
                     ch -> ch.sendMessage(buildHelpText()).queue(),
                     err -> { /* nothing to do */ }
             );
-            this.lastAfterRunMessage = "bot sent you help guid to DM";
+            returnMessage = "bot sent you help guid to DM";
             this.lastShouldDeferEphemeral = true;
         }
         
