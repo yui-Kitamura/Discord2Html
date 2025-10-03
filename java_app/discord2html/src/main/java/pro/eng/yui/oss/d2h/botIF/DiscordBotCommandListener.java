@@ -205,14 +205,10 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 return true;
             }
             case D2H_ADMIN -> {
-                if(bot.isD2hAdmin(event.getMember()) == false) {
-                    return false;
-                }
-                return true;
+                return bot.isD2hAdmin(event.getMember());
             }
             case SERVER_ADMIN -> {
                 try{
-                    if(event.getMember().isOwner()){ return true; }
                     for(Role r : event.getMember().getRoles()) {
                         if (r.hasPermission(Permission.ADMINISTRATOR)) {
                             return true;
