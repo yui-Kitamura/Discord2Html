@@ -33,8 +33,13 @@ public class HelpRunner implements IRunner {
     }
 
     /** Overload for /d2h help with options: version or tos link */
-    public void run(@NotNull Member member, boolean isAdmin, boolean showVersion, boolean showTos){
+    public void run(@NotNull Member member, List<OptionMapping> options){
         String returnMessage = "";
+
+        OptionMapping optVer = get(options, "version");
+        boolean showVersion = (optVer != null) && optVer.getAsBoolean();
+        OptionMapping optTos = get(options, "tos");
+        boolean showTos = (optTos != null) && optTos.getAsBoolean();
 
         if (showVersion) {
             final String ver = secrets.getBotVersion();

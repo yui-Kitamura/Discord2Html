@@ -259,12 +259,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     }
     
     private void runHelp(SlashCommandInteractionEvent event){
-        OptionMapping optVer = event.getOption("version");
-        boolean showVersion = (optVer != null) && optVer.getAsBoolean();
-        OptionMapping optTos = event.getOption("tos");
-        boolean showTos = (optTos != null) && optTos.getAsBoolean();
-        // delegate main processing to HelpRunner
-        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()), showVersion, showTos);
+        helpRunner.run(event.getMember(), event.getOptions());
         event.getHook()
                 .sendMessage(helpRunner.afterRunMessage())
                 .setEphemeral(helpRunner.shouldDeferEphemeral())
