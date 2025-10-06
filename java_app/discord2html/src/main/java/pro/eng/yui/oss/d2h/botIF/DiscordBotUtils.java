@@ -1,15 +1,12 @@
 package pro.eng.yui.oss.d2h.botIF;
 
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.Permission;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.IPermissionHolder;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.entities.channel.Channel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
-import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -22,6 +19,7 @@ import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,6 +35,13 @@ public class DiscordBotUtils {
         this.guildsDao = g;
         this.channelsDao = c;
         this.usersDao = u;
+    }
+
+    public MessageEmbed buildStatusEmbed(Color frameColor, String message) {
+        return new EmbedBuilder()
+                .setDescription(message)
+                .setColor(frameColor)
+                .build();
     }
 
     /* pkg-prv */ void upsertGuildInfoToDB(Guild guild){
