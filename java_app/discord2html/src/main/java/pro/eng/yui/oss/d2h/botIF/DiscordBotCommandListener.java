@@ -5,7 +5,6 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
@@ -86,7 +85,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     .addOption(OptionType.BOOLEAN, "tos", "show archive policy (TOS) link", false)
     );
 
-    private final DiscordBotUtils bot;
+    private final DiscordBotUtils botUtils;
     private final RoleRunner roleRunner;
     private final AnonymousSettingRunner anonymousSettingRunner;
     private final MeRunner meRunner;
@@ -97,12 +96,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private final OptoutRunner optoutRunner;
 
     @Autowired
-    public DiscordBotCommandListener(DiscordBotUtils bot,
+    public DiscordBotCommandListener(DiscordBotUtils botUtils,
                                      HelpRunner help, MeRunner me, RoleRunner role,
                                      AnonymousSettingRunner anon, RunArchiveRunner run,
                                      ArchiveConfigRunner archive, AutoArchiveScheduleRunner schedule,
                                      OptoutRunner optoutRunner){
-        this.bot = bot;
+        this.botUtils = botUtils;
         this.roleRunner = role;
         this.anonymousSettingRunner = anon;
         this.meRunner = me;
@@ -164,8 +163,8 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         
         // 処理実行
         try {
-            bot.upsertGuildInfoToDB(event.getGuild());
-            bot.upsertGuildChannelToDB(event.getGuild());
+            botUtils.upsertGuildInfoToDB(event.getGuild());
+            botUtils.upsertGuildChannelToDB(event.getGuild());
 
             switch (sub) {
                 case "archive" -> runArchive(event);
@@ -198,7 +197,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     
     /** コマンド実行チャンネルの確認 */
     protected boolean isAcceptedChannel(GuildChannel channel){
-        return bot.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
+        return botUtils.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
     }
     protected boolean hasPermission(@NotNull SlashCommandInteractionEvent event, @NotNull IRunner runner){
         IRunner.RequiredPermissionType required = runner.requiredPermissionType(event.getOptions());
@@ -210,7 +209,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 return true;
             }
             case D2H_ADMIN -> {
-                return bot.isD2hAdmin(event.getMember());
+                return botUtils.isD2hAdmin(event.getMember());
             }
             case SERVER_ADMIN -> {
                 try{
