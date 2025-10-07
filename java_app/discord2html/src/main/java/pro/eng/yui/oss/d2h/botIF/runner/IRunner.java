@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
+import java.awt.Color;
 import java.util.List;
 
 /** marker for command runner */
@@ -14,6 +15,11 @@ public interface IRunner {
         SERVER_ADMIN
     }
     
+    public final Color INFO = Color.BLUE;
+    public final Color SUCCESS = Color.GREEN;
+    public final Color WARN = Color.ORANGE;
+    public final Color ERROR = Color.RED;
+
     /** 終了後replyするメッセージ */
     String afterRunMessage();
     
