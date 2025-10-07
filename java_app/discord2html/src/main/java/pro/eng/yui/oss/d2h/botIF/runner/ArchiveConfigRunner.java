@@ -1,6 +1,7 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
@@ -9,6 +10,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
@@ -22,13 +24,15 @@ public class ArchiveConfigRunner implements IRunner {
     
     private final ChannelsDAO channelDao;
     private final GuildsDAO guildsDao;
-    
+    private final DiscordBotUtils discordBotUtils;
+
     private String afterMessage = "";
     
     @Autowired
-    public ArchiveConfigRunner(ChannelsDAO c, GuildsDAO g){
+    public ArchiveConfigRunner(ChannelsDAO c, GuildsDAO g, DiscordBotUtils discordBotUtils){
         this.channelDao = c;
         this.guildsDao = g;
+        this.discordBotUtils = discordBotUtils;
     }
     
     @Override
@@ -207,10 +211,10 @@ public class ArchiveConfigRunner implements IRunner {
     }
 
     @Override
-    public String afterRunMessage() {
+    public MessageEmbed afterRunMessage() {
         if (afterMessage == null || afterMessage.isEmpty()) {
-            return "archive setting has changed";
+            afterMessage = "archive setting has changed";
         }
-        return afterMessage;
+        return discordBotUtils.buildStatusEmbed(INFO, afterMessage);
     }
 }

@@ -1,5 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 
 import java.awt.Color;
@@ -21,7 +22,7 @@ public interface IRunner {
     public final Color ERROR = Color.RED;
 
     /** 終了後replyするメッセージ */
-    String afterRunMessage();
+    MessageEmbed afterRunMessage();
     
     /**
      * deferReply の引数に用いるフラグ。

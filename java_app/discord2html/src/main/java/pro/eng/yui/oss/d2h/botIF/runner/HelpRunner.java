@@ -1,10 +1,11 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.github.GitUtil;
@@ -17,14 +18,16 @@ public class HelpRunner implements IRunner {
     private final GitConfig gitConfig;
     private final Secrets secrets;
     private final GitUtil gitUtil;
-    
+    private final DiscordBotUtils discordBotUtils;
+
     private String lastAfterRunMessage = "bot sent you help guid to DM";
     private boolean lastShouldDeferEphemeral = true;
     
-    public HelpRunner(GitConfig gitConfig, Secrets secrets, GitUtil gitUtil){
+    public HelpRunner(GitConfig gitConfig, Secrets secrets, GitUtil gitUtil, DiscordBotUtils discordBotUtils){
         this.gitConfig = gitConfig;
         this.secrets = secrets;
         this.gitUtil = gitUtil;
+        this.discordBotUtils = discordBotUtils;
     }
     
     @Override
@@ -133,8 +136,8 @@ public class HelpRunner implements IRunner {
     }
 
     @Override
-    public String afterRunMessage() {
-        return lastAfterRunMessage;
+    public MessageEmbed afterRunMessage() {
+        return discordBotUtils.buildStatusEmbed(INFO, lastAfterRunMessage);
     }
     
     @Override

@@ -28,10 +28,7 @@ import pro.eng.yui.oss.d2h.html.ChannelInfo;
 import pro.eng.yui.oss.d2h.html.FileGenerateService;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
-
-import java.awt.Color;
 
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -361,7 +358,7 @@ public class RunArchiveRunner implements IRunner {
         OnRunMessageMode msgMode = guildSettings.getOnRunMessage().get();
         
         if ((!isThread) && !isVoiceText(channel) && channel instanceof GuildMessageChannel msgCh && (msgMode.isStart() || msgMode.isBoth())) {
-            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(Color.BLUE, "This channel is archive target. Start >>>")).queue();
+            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(INFO, "This channel is archive target. Start >>>")).queue();
         }
 
         // Retrieve messages differently for normal channels vs threads
@@ -512,7 +509,7 @@ public class RunArchiveRunner implements IRunner {
                     endMsg += "\n" + buildChannelArchiveUrl(msgCh, DateTimeUtil.formatDate8(urlCal));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
-            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(Color.GREEN, endMsg)).queue();
+            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(SUCCESS, endMsg)).queue();
         }
     }
     private void runActiveThreadsUnder(IThreadContainer parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
@@ -561,13 +558,13 @@ public class RunArchiveRunner implements IRunner {
     }
 
     @Override
-    public String afterRunMessage() {
+    public MessageEmbed afterRunMessage() {
         if (lastRunNotes.size() == 0) {
             // success
             if (config.getPushToGitHub()) {
-                return "bot completed making archive and pushing all files to GitHub repository";
+                return discordBotUtils.buildStatusEmbed(SUCCESS, "bot completed making archive and pushing all files to GitHub repository");
             } else {
-                return "bot completed making archive";
+                return discordBotUtils.buildStatusEmbed(SUCCESS, "bot completed making archive");
             }
         } else {
             // fail
@@ -576,7 +573,7 @@ public class RunArchiveRunner implements IRunner {
                 sb.append(n).append("\n");
             }
             sb.setLength(sb.length() - 1); // remove the last "\n"
-            return sb.toString();
+            return discordBotUtils.buildStatusEmbed(WARN, sb.toString());
         }
     }
 }

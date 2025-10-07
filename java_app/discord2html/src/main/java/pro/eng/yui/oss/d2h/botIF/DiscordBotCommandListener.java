@@ -119,25 +119,25 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         final String sub = event.getSubcommandName();
         
         if((event.getChannel() instanceof GuildChannel) == false) {
-            event.replyEmbeds(botUtils.buildStatusEmbed(Color.ORANGE, "commands is enabled only in server channel")).queue();
+            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.WARN, "commands is enabled only in server channel")).queue();
             return;
         }
         if (isAcceptedChannel(event.getGuildChannel()) == false) {
-            event.replyEmbeds(botUtils.buildStatusEmbed(Color.RED, "you can NOT USE commands in this channel"))
+            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "you can NOT USE commands in this channel"))
                     .setEphemeral(true) //visible=false
                     .queue();
             return;
         }
         
         if(commands.contains(command) == false) {
-            event.replyEmbeds(botUtils.buildStatusEmbed(Color.RED, "bot D2H has called but was not supported"))
+            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "bot D2H has called but was not supported"))
                     .setEphemeral(true)
                     .setSuppressedNotifications(true)
                     .queue();
             return;
         }
         if(sub == null) {
-            event.replyEmbeds(botUtils.buildStatusEmbed(Color.ORANGE, "command /D2H required more command message. Use `/d2h help`"))
+            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.WARN, "command /D2H required more command message. Use `/d2h help`"))
                     .setEphemeral(true)
                     .setSuppressedNotifications(true)
                     .queue();
@@ -150,7 +150,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         } else {
             event.deferReply(true).queue();
             event.getHook()
-                    .editOriginalEmbeds(botUtils.buildStatusEmbed(Color.ORANGE, 
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.WARN, 
                             "command runner not found. Please check your input. Use `/d2h help`"))
                     .queue();
             return;
@@ -159,7 +159,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         // 権限チェック
         if(hasPermission(event, runner) == false) {
             event.getHook()
-                    .editOriginalEmbeds(botUtils.buildStatusEmbed(Color.RED, 
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, 
                             "you do NOT have required permission(role) to do this"))
                     .queue();
             return;
@@ -181,19 +181,19 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "optout" -> runOptout(event);
                 default -> {
                     event.getHook()
-                            .editOriginalEmbeds(botUtils.buildStatusEmbed(Color.RED, "unknown subcommand. Use `/d2h help`"))
+                            .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "unknown subcommand. Use `/d2h help`"))
                             .queue();
                     return;
                 }
             }
 
             event.getHook()
-                    .editOriginal(runner.afterRunMessage())
+                    .editOriginalEmbeds(runner.afterRunMessage())
                     .queue();
             
         }catch(Exception unexpected) {
             event.getHook()
-                .editOriginalEmbeds(botUtils.buildStatusEmbed(Color.RED, "something wrong in bot server. >> `"+ unexpected.getMessage() +"`"))
+                .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "something wrong in bot server. >> `"+ unexpected.getMessage() +"`"))
                 .queue();
             return;
         }
