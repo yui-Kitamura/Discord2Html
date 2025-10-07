@@ -31,7 +31,7 @@ public class OptoutRunner implements IRunner {
     public OptoutRunner(OptoutDAO optoutDAO, DiscordBotUtils discordBotUtils) {
         this.optoutDAO = optoutDAO;
         this.discordBotUtils = discordBotUtils;
-        afterMessage = discordBotUtils.buildStatusEmbed(INFO, "");
+        afterMessage = discordBotUtils.buildStatusEmbed(INFO, "you can opt-out from archive");
     }
 
     @Override
