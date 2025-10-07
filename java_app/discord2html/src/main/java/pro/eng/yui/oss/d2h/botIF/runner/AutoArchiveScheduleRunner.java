@@ -1,9 +1,11 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
@@ -20,11 +22,15 @@ import java.util.List;
 public class AutoArchiveScheduleRunner implements IRunner {
 
     private final GuildsDAO guildsDAO;
-    private volatile String lastRunsOnListMessage = "auto archive schedule has changed";
+    private final DiscordBotUtils discordBotUtils;
+
+    private MessageEmbed lastRunsOnListMessage;
 
     @Autowired
-    public AutoArchiveScheduleRunner(GuildsDAO guildsDAO) {
+    public AutoArchiveScheduleRunner(GuildsDAO guildsDAO, DiscordBotUtils discordBotUtils) {
         this.guildsDAO = guildsDAO;
+        this.discordBotUtils = discordBotUtils;
+        this.lastRunsOnListMessage = discordBotUtils.buildStatusEmbed(INFO, "auto archive schedule has changed");
     }
 
     @Override
@@ -43,7 +49,8 @@ public class AutoArchiveScheduleRunner implements IRunner {
 
         if (cycle == null) {
             // 変更なし: 現在の設定を返答
-            lastRunsOnListMessage = "current scheduled hours are: " + buildRunsOnListString(current.getRunsOnList());
+            lastRunsOnListMessage = discordBotUtils.buildStatusEmbed(
+                    INFO, "current scheduled hours are: " + buildRunsOnListString(current.getRunsOnList()));
             return;
         }
         if (cycle < 0 || 23 < cycle) {
@@ -54,7 +61,8 @@ public class AutoArchiveScheduleRunner implements IRunner {
         guildsDAO.upsertGuildInfo(current);
 
         // 最新のスケジュールを作成
-        lastRunsOnListMessage = "new scheduled hours are: " + buildRunsOnListString(current.getRunsOnList());
+        lastRunsOnListMessage = discordBotUtils.buildStatusEmbed(SUCCESS,
+                "new scheduled hours are: " + buildRunsOnListString(current.getRunsOnList()));
     }
 
     private String buildRunsOnListString(List<RunsOn> runsList) {
@@ -71,7 +79,7 @@ public class AutoArchiveScheduleRunner implements IRunner {
     }
 
     @Override
-    public String afterRunMessage() {
+    public MessageEmbed afterRunMessage() {
         return lastRunsOnListMessage;
     }
 }

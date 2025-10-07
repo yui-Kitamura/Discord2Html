@@ -1,6 +1,7 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.OnlineStatus;
+import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.html.FileGenerateUtil;
 import net.dv8tion.jda.api.entities.channel.concrete.ForumChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.StageChannel;
@@ -27,6 +28,7 @@ import pro.eng.yui.oss.d2h.html.ChannelInfo;
 import pro.eng.yui.oss.d2h.html.FileGenerateService;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -53,6 +55,7 @@ public class RunArchiveRunner implements IRunner {
     private final GitHubService gitHubService;
     private final GitConfig gitConfig;
     private final List<Path> generatedFiles = new ArrayList<>();
+    private final DiscordBotUtils discordBotUtils;
     // private final IndexGenerator indexGenerator;
 
     @Autowired
@@ -60,7 +63,7 @@ public class RunArchiveRunner implements IRunner {
             ApplicationConfig c,
             GuildsDAO g, ChannelsDAO ch,
             DiscordJdaProvider j, FileGenerateService fileGenerator, FileGenerateUtil fileUtil,
-            GitHubService gitHubService, GitConfig gitConfig){
+            GitHubService gitHubService, GitConfig gitConfig, DiscordBotUtils discordBotUtils){
         this.config = c;
         this.guildDao = g;
         this.channelDao = ch;
@@ -69,6 +72,7 @@ public class RunArchiveRunner implements IRunner {
         this.fileUtil = fileUtil;
         this.gitHubService = gitHubService;
         this.gitConfig = gitConfig;
+        this.discordBotUtils = discordBotUtils;
     }
 
     @Override
@@ -354,7 +358,7 @@ public class RunArchiveRunner implements IRunner {
         OnRunMessageMode msgMode = guildSettings.getOnRunMessage().get();
         
         if ((!isThread) && !isVoiceText(channel) && channel instanceof GuildMessageChannel msgCh && (msgMode.isStart() || msgMode.isBoth())) {
-            msgCh.sendMessage("This channel is archive target. Start >>>").queue();
+            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(INFO, "This channel is archive target. Start >>>")).queue();
         }
 
         // Retrieve messages differently for normal channels vs threads
@@ -505,7 +509,7 @@ public class RunArchiveRunner implements IRunner {
                     endMsg += "\n" + buildChannelArchiveUrl(msgCh, DateTimeUtil.formatDate8(urlCal));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
-            msgCh.sendMessage(endMsg).queue();
+            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(SUCCESS, endMsg)).queue();
         }
     }
     private void runActiveThreadsUnder(IThreadContainer parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
@@ -554,13 +558,13 @@ public class RunArchiveRunner implements IRunner {
     }
 
     @Override
-    public String afterRunMessage() {
+    public MessageEmbed afterRunMessage() {
         if (lastRunNotes.size() == 0) {
             // success
             if (config.getPushToGitHub()) {
-                return "bot completed making archive and pushing all files to GitHub repository";
+                return discordBotUtils.buildStatusEmbed(SUCCESS, "bot completed making archive and pushing all files to GitHub repository");
             } else {
-                return "bot completed making archive";
+                return discordBotUtils.buildStatusEmbed(SUCCESS, "bot completed making archive");
             }
         } else {
             // fail
@@ -569,7 +573,7 @@ public class RunArchiveRunner implements IRunner {
                 sb.append(n).append("\n");
             }
             sb.setLength(sb.length() - 1); // remove the last "\n"
-            return sb.toString();
+            return discordBotUtils.buildStatusEmbed(WARN, sb.toString());
         }
     }
 }

@@ -5,7 +5,6 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
-import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
@@ -15,6 +14,7 @@ import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.botIF.runner.*;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 
+import java.awt.*;
 import java.util.Arrays;
 import java.util.List;
 
@@ -86,7 +86,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                     .addOption(OptionType.BOOLEAN, "tos", "show archive policy (TOS) link", false)
     );
 
-    private final DiscordBotUtils bot;
+    private final DiscordBotUtils botUtils;
     private final RoleRunner roleRunner;
     private final AnonymousSettingRunner anonymousSettingRunner;
     private final MeRunner meRunner;
@@ -97,12 +97,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private final OptoutRunner optoutRunner;
 
     @Autowired
-    public DiscordBotCommandListener(DiscordBotUtils bot,
+    public DiscordBotCommandListener(DiscordBotUtils botUtils,
                                      HelpRunner help, MeRunner me, RoleRunner role,
                                      AnonymousSettingRunner anon, RunArchiveRunner run,
                                      ArchiveConfigRunner archive, AutoArchiveScheduleRunner schedule,
                                      OptoutRunner optoutRunner){
-        this.bot = bot;
+        this.botUtils = botUtils;
         this.roleRunner = role;
         this.anonymousSettingRunner = anon;
         this.meRunner = me;
@@ -119,24 +119,26 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         final String sub = event.getSubcommandName();
         
         if((event.getChannel() instanceof GuildChannel) == false) {
-            event.reply("commands is enabled only in server channel").queue();
+            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.WARN, "commands is enabled only in server channel")).queue();
             return;
         }
         if (isAcceptedChannel(event.getGuildChannel()) == false) {
-            event.reply("you can NOT USE commands in this channel")
+            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "you can NOT USE commands in this channel"))
                     .setEphemeral(true) //visible=false
                     .queue();
             return;
         }
         
         if(commands.contains(command) == false) {
-            event.reply("bot D2H has called but was not supported")
+            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "bot D2H has called but was not supported"))
+                    .setEphemeral(true)
                     .setSuppressedNotifications(true)
                     .queue();
             return;
         }
         if(sub == null) {
-            event.reply("command /D2H required more command message. Use `/d2h help`")
+            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.WARN, "command /D2H required more command message. Use `/d2h help`"))
+                    .setEphemeral(true)
                     .setSuppressedNotifications(true)
                     .queue();
             return;
@@ -148,8 +150,8 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         } else {
             event.deferReply(true).queue();
             event.getHook()
-                    .editOriginal("command runner not found. " +
-                            "Please check your input. Use `/d2h help`")
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.WARN, 
+                            "command runner not found. Please check your input. Use `/d2h help`"))
                     .queue();
             return;
         }
@@ -157,15 +159,16 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         // 権限チェック
         if(hasPermission(event, runner) == false) {
             event.getHook()
-                    .editOriginal("you do NOT have required permission(role) to do this")
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, 
+                            "you do NOT have required permission(role) to do this"))
                     .queue();
             return;
         }
         
         // 処理実行
         try {
-            bot.upsertGuildInfoToDB(event.getGuild());
-            bot.upsertGuildChannelToDB(event.getGuild());
+            botUtils.upsertGuildInfoToDB(event.getGuild());
+            botUtils.upsertGuildChannelToDB(event.getGuild());
 
             switch (sub) {
                 case "archive" -> runArchive(event);
@@ -178,19 +181,19 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "optout" -> runOptout(event);
                 default -> {
                     event.getHook()
-                            .editOriginal("unknown subcommand. Use `/d2h help`")
+                            .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "unknown subcommand. Use `/d2h help`"))
                             .queue();
                     return;
                 }
             }
 
             event.getHook()
-                    .editOriginal(runner.afterRunMessage())
+                    .editOriginalEmbeds(runner.afterRunMessage())
                     .queue();
             
         }catch(Exception unexpected) {
             event.getHook()
-                .editOriginal("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
+                .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "something wrong in bot server. >> `"+ unexpected.getMessage() +"`"))
                 .queue();
             return;
         }
@@ -198,7 +201,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     
     /** コマンド実行チャンネルの確認 */
     protected boolean isAcceptedChannel(GuildChannel channel){
-        return bot.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
+        return botUtils.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
     }
     protected boolean hasPermission(@NotNull SlashCommandInteractionEvent event, @NotNull IRunner runner){
         IRunner.RequiredPermissionType required = runner.requiredPermissionType(event.getOptions());
@@ -210,7 +213,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 return true;
             }
             case D2H_ADMIN -> {
-                return bot.isD2hAdmin(event.getMember());
+                return botUtils.isD2hAdmin(event.getMember());
             }
             case SERVER_ADMIN -> {
                 try{

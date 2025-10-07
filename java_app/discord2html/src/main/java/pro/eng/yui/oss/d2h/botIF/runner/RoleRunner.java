@@ -1,10 +1,11 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
-import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.consts.UserAnon;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.dao.RolesDAO;
@@ -19,10 +20,12 @@ import java.util.List;
 public class RoleRunner implements IRunner {
     
     private final RolesDAO roleDao;
-    
+    private final DiscordBotUtils discordBotUtils;
+
     @Autowired
-    public RoleRunner(RolesDAO rolesDao){
+    public RoleRunner(RolesDAO rolesDao, DiscordBotUtils discordBotUtils){
         this.roleDao = rolesDao;
+        this.discordBotUtils = discordBotUtils;
     }
     
     @Override
@@ -49,7 +52,7 @@ public class RoleRunner implements IRunner {
     }
 
     @Override
-    public String afterRunMessage() {
-        return "role setting has changed";
+    public MessageEmbed afterRunMessage() {
+        return discordBotUtils.buildStatusEmbed(SUCCESS, "role setting has changed");
     }
 }
