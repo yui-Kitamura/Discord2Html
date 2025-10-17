@@ -81,4 +81,19 @@ public final class DateTimeUtil {
     public static String formatDate8(Calendar cal) { return date8().format(cal.getTime()); }
     /** Get current JST date as yyyyMMdd. */
     public static String nowDate8() { return date8().format(Calendar.getInstance(JST).getTime()); }
+    
+    public static Calendar getFromUnix(long unixValue){
+        Calendar cal = Calendar.getInstance(JST);
+        cal.setTimeInMillis(unixValue * 1000);
+        return cal;
+    }
+
+    public static Calendar getFromUnix(String unixValue) {
+        try {
+            return getFromUnix(Long.parseLong(unixValue));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid unix timestamp: " + unixValue, e);
+        }
+    }
+
 }
