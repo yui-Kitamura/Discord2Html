@@ -5,11 +5,13 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.TimeZone;
+import java.util.regex.Pattern;
 
 public final class DateTimeUtil {
 
     private DateTimeUtil() {}
 
+    public static final Pattern DISCORD_TIME_PATTERN = Pattern.compile("<t:(\\d+):([tTdDfFR])>");
     /** JST timezone constant (Asia/Tokyo). */
     public static final TimeZone JST = TimeZone.getTimeZone("Asia/Tokyo");
     public static final String endOfDay = "2359";
