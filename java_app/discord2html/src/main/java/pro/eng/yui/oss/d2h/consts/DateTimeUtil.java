@@ -29,6 +29,7 @@ public final class DateTimeUtil {
     private static final ThreadLocal<SimpleDateFormat> SDF_DATE_ONLY = tl("yyyy/MM/dd");
     private static final ThreadLocal<SimpleDateFormat> SDF_FOLDER = tl("yyyyMMddHHmm");
     private static final ThreadLocal<SimpleDateFormat> SDF_DATE8 = tl("yyyyMMdd");
+    private static final ThreadLocal<SimpleDateFormat> SDF_TIME = tl("HH:mm:ss");
 
     /** Returns a per-thread formatter for pattern HH:mm:ss.SSS */
     public static SimpleDateFormat mill() { return SDF_MILLIS.get(); }
@@ -40,6 +41,8 @@ public final class DateTimeUtil {
     public static SimpleDateFormat folder() { return SDF_FOLDER.get(); }
     /** Returns a per-thread formatter for pattern yyyyMMdd */
     public static SimpleDateFormat date8() { return SDF_DATE8.get(); }
+    /** Returns a per-thread formatter for pattern HH:mm:ss */
+    public static SimpleDateFormat time() { return SDF_TIME.get(); }
 
     /** Validate string is exactly yyyyMMdd and represents a real calendar date (JST). */
     public static boolean isValidDate8(String s) {
