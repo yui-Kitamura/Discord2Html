@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
+import net.dv8tion.jda.api.requests.restaction.pagination.PinnedMessagePaginationAction;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -165,14 +166,14 @@ public class ArchiveGenerator {
     }
 
     private void generateChannelPinnedPage(GuildId guildId, ChannelInfo channel) throws IOException {
-        List<Message> pinnedMessages = jdaProvider.getJda()
+        List<PinnedMessagePaginationAction.PinnedMessage> pinnedMessages = jdaProvider.getJda()
                 .getChannelById(GuildMessageChannel.class, channel.getChannelId().getValue())
                 .retrievePinnedMessages().complete();
 
         List<MessageInfo> pins = new ArrayList<>();
-        for (Message msg : pinnedMessages) {
+        for (PinnedMessagePaginationAction.PinnedMessage msg : pinnedMessages) {
             try {
-                pins.add(new MessageInfo(msg));
+                pins.add(new MessageInfo(msg.getMessage()));
             } catch (Throwable ignore) { }
         }
         final String basePrefix = fileUtil.repoBaseWithPrefix();
@@ -194,14 +195,14 @@ public class ArchiveGenerator {
 
     private void generateThreadPinnedPage(GuildId guildId, ChannelInfo channel, List<MessageInfo> messages) throws IOException {
         // Retrieve pinned messages from the thread using the same approach as channels
-        List<Message> pinnedMessages = jdaProvider.getJda()
+        List<PinnedMessagePaginationAction.PinnedMessage> pinnedMessages = jdaProvider.getJda()
                 .getThreadChannelById(channel.getChannelId().getValue())
                 .retrievePinnedMessages().complete();
         
         List<MessageInfo> pins = new ArrayList<>();
-        for (Message msg : pinnedMessages) {
+        for (PinnedMessagePaginationAction.PinnedMessage msg : pinnedMessages) {
             try { 
-                pins.add(new MessageInfo(msg));
+                pins.add(new MessageInfo(msg.getMessage()));
             } catch (Throwable ignore) { }
         }
         final String basePrefix = fileUtil.repoBaseWithPrefix();
