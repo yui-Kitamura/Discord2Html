@@ -367,6 +367,29 @@ public class FileGenerateUtil {
         return safe.replaceAll("[^A-Za-z0-9_-]", "_");
     }
 
+    private static String convertUnixTime(String tag) {
+        if (tag == null || tag.isEmpty()) {
+            return tag;
+        }
+        try {
+            Matcher m = DateTimeUtil.DISCORD_TIME_PATTERN.matcher(tag);
+            if (!m.matches()) {
+                return tag;
+            }
+            final Date timestamp = DateTimeUtil.getFromUnix(m.group(1)).getTime();
+            final String patternLetter = m.group(2);
+            return switch (patternLetter) {
+                case "d", "D" -> DateTimeUtil.dateOnly().format(timestamp);
+                case "t", "T" -> DateTimeUtil.time().format(timestamp);
+                case "f", "F", "R" -> DateTimeUtil.full().format(timestamp);
+                default -> DateTimeUtil.folder().format(timestamp);
+            };
+        } catch (Exception e) {
+            e.printStackTrace();
+            return tag;
+        }
+    }
+
     public List<MessageInfo> fetchMessagesForDaily(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();

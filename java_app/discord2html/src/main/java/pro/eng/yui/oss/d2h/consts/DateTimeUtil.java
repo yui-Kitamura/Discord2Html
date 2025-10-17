@@ -11,7 +11,7 @@ public final class DateTimeUtil {
 
     private DateTimeUtil() {}
 
-    public static final Pattern DISCORD_TIME_PATTERN = Pattern.compile("<t:(\\d+):([tTdDfFR])>");
+    public static final Pattern DISCORD_TIME_PATTERN = Pattern.compile("<t:(\\d+):([A-Za-z])>");
     /** JST timezone constant (Asia/Tokyo). */
     public static final TimeZone JST = TimeZone.getTimeZone("Asia/Tokyo");
     public static final String endOfDay = "2359";
