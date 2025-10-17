@@ -149,7 +149,7 @@ public class IndexGenerator {
             String today8 = DateTimeUtil.date8().format(Calendar.getInstance().getTime());
             Path file = archivesRoot.resolve(date8).resolve(channelId.toString() + ".html");
             if (today8.equals(date8) && Files.exists(file)) {
-                displayTs = DateTimeUtil.time().format(new Date(Files.getLastModifiedTime(file).toMillis()));
+                displayTs = DateTimeUtil.full().format(new Date(Files.getLastModifiedTime(file).toMillis()));
             }
         } catch (Exception ignore) { }
         List<FileGenerateUtil.Link> items = new ArrayList<>();
@@ -209,7 +209,7 @@ public class IndexGenerator {
                 try {
                     String today8 = DateTimeUtil.date8().format(Calendar.getInstance().getTime());
                     if (today8.equals(date8)) {
-                        displayTs = DateTimeUtil.time().format(new Date(Files.getLastModifiedTime(file).toMillis()));
+                        displayTs = DateTimeUtil.full().format(new Date(Files.getLastModifiedTime(file).toMillis()));
                     } else {
                         Date endOfDay = DateTimeUtil.folder().parse(date8 + DateTimeUtil.endOfDay);
                         displayTs = DateTimeUtil.dateOnly().format(endOfDay);
@@ -279,7 +279,7 @@ public class IndexGenerator {
                     if (mm.find()) { endEpoch = Long.parseLong(mm.group(1)); } else { endEpoch = 0L; }
                 } catch (Exception unexpected) { endEpoch = 0L; }
                 String updatedLabel = threadName;
-                if (endEpoch > 0L) { updatedLabel = threadName + " (" + DateTimeUtil.time().format(new Date(endEpoch)) + ")"; }
+                if (endEpoch > 0L) { updatedLabel = threadName + " (" + DateTimeUtil.full().format(new Date(endEpoch)) + ")"; }
                 ThreadEntry te = new ThreadEntry();
                 te.href = href; te.label = updatedLabel; te.active = active; te.lastModified = endEpoch; te.created = created;
                 entries.add(te);

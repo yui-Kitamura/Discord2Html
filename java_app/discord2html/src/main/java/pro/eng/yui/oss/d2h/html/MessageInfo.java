@@ -234,7 +234,7 @@ public class MessageInfo {
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey, boolean maskContent, ForwardMask maskForwarded){
         this.msgLinkHtmlMap = new HashMap<>();
         this.inlineHtmlMap = new HashMap<>();
-        this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
+        this.createdTimestamp = DateTimeUtil.full().format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
         this.anonymizeScopeKey = anonymizeScopeKey;
         this.messageUserInfo = (anonymizeScopeKey == null)
@@ -750,7 +750,7 @@ public class MessageInfo {
                     }
                     try {
                         Date d = Date.from(target.getTimeCreated().toInstant());
-                        String full = DateTimeUtil.time().format(d); // yyyy/MM/dd HH:mm:ss
+                        String full = DateTimeUtil.full().format(d); // yyyy/MM/dd HH:mm:ss
                         timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full; // drop :ss
                     } catch (Throwable ignore) { }
                     try {
@@ -872,14 +872,14 @@ public class MessageInfo {
             String startText = "投票開始：";
             try {
                 if(isResult) {
-                    startText += DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
+                    startText += DateTimeUtil.full().format(Date.from(msg.getTimeCreated().toInstant()));
                 }else {
                     startText = null;
                 }
             }catch(Throwable ignore){ }
             String endText = "投票締切：";
             try {
-                endText += DateTimeUtil.time().format(Date.from(poll.getTimeExpiresAt().toInstant()));
+                endText += DateTimeUtil.full().format(Date.from(poll.getTimeExpiresAt().toInstant()));
             }catch(Throwable ignore){ }
 
             return new PollParts(escapedQuestion, li.toString(), startText, endText, emojiList);
@@ -965,7 +965,7 @@ public class MessageInfo {
                     timeDisplay = DateTimeUtil.dateOnly().format(d);
                 } else {
                     // For normal forwarded messages (non-opt-out), show full timestamp including seconds
-                    timeDisplay = DateTimeUtil.time().format(d);
+                    timeDisplay = DateTimeUtil.full().format(d);
                 }
             } catch (NullPointerException ignore) { }
 

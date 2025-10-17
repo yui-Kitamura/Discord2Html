@@ -375,13 +375,13 @@ public class RunArchiveRunner implements IRunner {
         Calendar endForOutput = (Calendar) endDate.clone();
         if (isThread && !messages.isEmpty()) {
             try {
-                Date first = DateTimeUtil.time().parse(messages.get(0).getCreatedTimestamp());
+                Date first = DateTimeUtil.full().parse(messages.get(0).getCreatedTimestamp());
                 Calendar calBegin = Calendar.getInstance(DateTimeUtil.JST);
                 calBegin.setTime(first);
                 beginForOutput = calBegin;
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
             try {
-                Date last = DateTimeUtil.time().parse(messages.get(messages.size() - 1).getCreatedTimestamp());
+                Date last = DateTimeUtil.full().parse(messages.get(messages.size() - 1).getCreatedTimestamp());
                 Calendar calEnd = Calendar.getInstance(DateTimeUtil.JST);
                 calEnd.setTime(last);
                 endForOutput = calEnd;

@@ -25,14 +25,15 @@ public final class DateTimeUtil {
 
     // Common formatters (ThreadLocal to ensure thread-safety of SimpleDateFormat usage)
     private static final ThreadLocal<SimpleDateFormat> SDF_MILLIS = tl("yyyy/MM/dd HH:mm:ss.SSS");
-    private static final ThreadLocal<SimpleDateFormat> SDF_TIME = tl("yyyy/MM/dd HH:mm:ss");
+    private static final ThreadLocal<SimpleDateFormat> SDF_FULL = tl("yyyy/MM/dd HH:mm:ss");
     private static final ThreadLocal<SimpleDateFormat> SDF_DATE_ONLY = tl("yyyy/MM/dd");
     private static final ThreadLocal<SimpleDateFormat> SDF_FOLDER = tl("yyyyMMddHHmm");
     private static final ThreadLocal<SimpleDateFormat> SDF_DATE8 = tl("yyyyMMdd");
 
+    /** Returns a per-thread formatter for pattern HH:mm:ss.SSS */
     public static SimpleDateFormat mill() { return SDF_MILLIS.get(); }
     /** Returns a per-thread formatter for pattern yyyy/MM/dd HH:mm:ss */
-    public static SimpleDateFormat time() { return SDF_TIME.get(); }
+    public static SimpleDateFormat full() { return SDF_FULL.get(); }
     /** Returns a per-thread formatter for pattern yyyy/MM/dd */
     public static SimpleDateFormat dateOnly() { return SDF_DATE_ONLY.get(); }
     /** Returns a per-thread formatter for pattern yyyyMMddHHmmss */
