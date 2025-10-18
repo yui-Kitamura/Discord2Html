@@ -367,7 +367,14 @@ public class FileGenerateUtil {
         return safe.replaceAll("[^A-Za-z0-9_-]", "_");
     }
 
-    private static String convertUnixTime(String tag) {
+
+    /**
+     * Discordのタイムスタンプ記法の文字列を人間可読な文字列に変換します
+     *
+     * @param tag Discordのタイムスタンプ文字列
+     * @return 変換された日時文字列。変換に失敗した場合は入力された文字列をそのまま返します。
+     */
+    public static String convertUnixTime(String tag) {
         if (tag == null || tag.isEmpty()) {
             return tag;
         }
@@ -376,9 +383,24 @@ public class FileGenerateUtil {
             if (!m.matches()) {
                 return tag;
             }
-            final Date timestamp = DateTimeUtil.getFromUnix(m.group(1)).getTime();
-            final String patternLetter = m.group(2);
-            return switch (patternLetter) {
+            return convertUnixTime(DateTimeUtil.getFromUnix(m.group(1)), m.group(2));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return tag;
+        }
+    }
+
+    /**
+     * カレンダーオブジェクトを指定されたフォーマットの日時文字列に変換します。
+     *
+     * @param time   変換対象のカレンダーオブジェクト
+     * @param format 変換フォーマット (d/D: 日付のみ, t/T: 時刻のみ, f/F/R: 完全な日時)
+     * @return フォーマットされた日時文字列
+     */
+    public static String convertUnixTime(final Calendar time, final String format) {
+        final Date timestamp = time.getTime();
+        try {
+            return switch (format) {
                 case "d", "D" -> DateTimeUtil.dateOnly().format(timestamp);
                 case "t", "T" -> DateTimeUtil.time().format(timestamp);
                 case "f", "F", "R" -> DateTimeUtil.full().format(timestamp);
@@ -386,7 +408,7 @@ public class FileGenerateUtil {
             };
         } catch (Exception e) {
             e.printStackTrace();
-            return tag;
+            return DateTimeUtil.folder().format(timestamp);
         }
     }
 
