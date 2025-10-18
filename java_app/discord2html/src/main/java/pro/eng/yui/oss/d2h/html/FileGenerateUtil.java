@@ -412,6 +412,14 @@ public class FileGenerateUtil {
         }
     }
 
+    /**
+     * 指定されたチャンネルから特定期間のメッセージを取得します。
+     *
+     * @param channel   対象のDiscordチャンネル
+     * @param beginDate 取得開始日時
+     * @param endDate   取得終了日時
+     * @return 取得されたメッセージ情報のリスト
+     */
     public List<MessageInfo> fetchMessagesForDaily(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
@@ -455,7 +463,13 @@ public class FileGenerateUtil {
 
 
     /**
-     * Build a MessageInfo for a single Message
+     * 単一のDiscordメッセージからMessageInfo オブジェクトを構築します。
+     *
+     * @param msg       Discordメッセージ
+     * @param guildId   サーバーID
+     * @param anonCycle 匿名化サイクル時間（時間単位）
+     * @param marked    処理済みユーザーリスト
+     * @return 構築されたMessageInfoオブジェクト。失敗時はnull
      */
     private MessageInfo buildMessageInfo(Message msg, GuildId guildId, final int anonCycle, List<Users> marked) {
         try {
