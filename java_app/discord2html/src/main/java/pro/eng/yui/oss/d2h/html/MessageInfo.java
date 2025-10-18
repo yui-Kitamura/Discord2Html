@@ -302,6 +302,19 @@ public class MessageInfo {
     @Contract("_ -> new")
     public static String toHtmlWithLinks(String content) {
         String escaped = htmlEscape(content == null ? "" : content);
+        // 0) Convert escaped Discord time tags <t:UNIX:fmt> to plain text using FileGenerateUtil (Util expects raw <t:..>).
+        {
+            Pattern p = Pattern.compile(htmlEscape(DateTimeUtil.DISCORD_TIME_PATTERN.pattern()));
+            Matcher m = p.matcher(escaped);
+            StringBuffer sb = new StringBuffer();
+            while (m.find()) {
+                String original = "<t:" + m.group(1) + ":" + m.group(2) + ">";
+                String disp = FileGenerateUtil.convertUnixTime(original);
+                m.appendReplacement(sb, Matcher.quoteReplacement(disp));
+            }
+            m.appendTail(sb);
+            escaped = sb.toString();
+        }
         // 1) Markdown-style: [label](https://url)
         escaped = escaped.replaceAll("\\[([^\\]]+)\\]\\((https://[^)\\s]+)\\)",
                 "<a href=\"$2\">$2</a>($1)");
@@ -421,13 +434,11 @@ public class MessageInfo {
     protected String preprocessArchiveText(Message msg, String text) {
         if (text == null){ return ""; }
         String processed = replaceEveryoneHereMentions(text); // @here/everyone
-        // 1) Replace Discord time tags like <t:UNIX:fmt> with <time> elements (via placeholders)
-        processed = replaceDiscordTimeTags(processed);
-        // 2) Replace Discord message links
+        // 1) Replace Discord message links
         processed = replaceDiscordMessageLinksWithPlaceholders(msg, processed);
-        // 3) Replace user and role mentions: <@123>, <@!123>, <@&456> -> @表示名
+        // 2) Replace user and role mentions: <@123>, <@!123>, <@&456> -> @表示名
         processed = replaceUserAndRoleMentions(msg, processed);
-        // 4) Replace channel mentions: <#789> -> #表示名
+        // 3) Replace channel mentions: <#789> -> #表示名
         processed = replaceChannelMentions(msg, processed);
 
         return processed;
@@ -444,30 +455,6 @@ public class MessageInfo {
             String placeholder = D2H_INLINE_R_PREFIX + placeholderNonce + "_EH_" + (idx++) + "}}";
             // Reuse mention-role styling to keep same blue style
             String html = "<span class=\"mention-role\">" + htmlEscape(label) + "</span>";
-            inlineHtmlMap.put(placeholder, html);
-            m.appendReplacement(sb, Matcher.quoteReplacement(placeholder));
-        }
-        m.appendTail(sb);
-        return sb.toString();
-    }
-
-    private String replaceDiscordTimeTags(String text) {
-        if (text == null || text.isEmpty()) { return text; }
-        Matcher m = DateTimeUtil.DISCORD_TIME_PATTERN.matcher(text);
-        StringBuilder sb = new StringBuilder();
-        int idx = 0;
-        while (m.find()) {
-            final String display = FileGenerateUtil.convertUnixTime(m.group());
-            String placeholder = D2H_INLINE_R_PREFIX + placeholderNonce + "_T_" + (idx++) + "}}";
-            String html;
-            try {
-                Date d = DateTimeUtil.getFromUnix(m.group(1)).getTime();
-                String datetime = DateTimeUtil.iso().format(d);
-                String title = DateTimeUtil.full().format(d);
-                html = "<time datetime=\"" + htmlEscape(datetime) + "\" title=\"" + htmlEscape(title) + "\">" + htmlEscape(display) + "</time>";
-            } catch (Throwable ignore) {
-                html = htmlEscape(m.group(0));
-            }
             inlineHtmlMap.put(placeholder, html);
             m.appendReplacement(sb, Matcher.quoteReplacement(placeholder));
         }
