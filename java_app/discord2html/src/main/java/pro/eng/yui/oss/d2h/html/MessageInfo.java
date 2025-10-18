@@ -461,10 +461,10 @@ public class MessageInfo {
             String placeholder = D2H_INLINE_R_PREFIX + placeholderNonce + "_T_" + (idx++) + "}}";
             String html;
             try {
-                Calendar cal = DateTimeUtil.getFromUnix(m.group(1));
-                Date d = cal.getTime();
+                Date d = DateTimeUtil.getFromUnix(m.group(1)).getTime();
                 String datetime = DateTimeUtil.iso().format(d);
-                html = "<time datetime=\"" + htmlEscape(datetime) + "\">" + htmlEscape(display) + "</time>";
+                String title = DateTimeUtil.full().format(d);
+                html = "<time datetime=\"" + htmlEscape(datetime) + "\" title=\"" + htmlEscape(title) + "\">" + htmlEscape(display) + "</time>";
             } catch (Throwable ignore) {
                 html = htmlEscape(m.group(0));
             }
