@@ -2,6 +2,7 @@ package pro.eng.yui.oss.d2h.html;
 
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Executable;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -14,8 +15,10 @@ class FileGenerateUtilTest {
             Method method = FileGenerateUtil.class.getDeclaredMethod("convertUnixTime", String.class);
             method.setAccessible(true);
             return (String) method.invoke(FileGenerateUtil.class, input);
-        } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+        } catch (NoSuchMethodException | IllegalAccessException e) {
             throw new RuntimeException(e);
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException(e.getCause());
         }
     }
 
@@ -37,8 +40,8 @@ class FileGenerateUtilTest {
     @Test
     void fallsBackOnUnknownPatternWithoutException() {
         String unix = "1767193198";
-        String result = testableConvertUnixTime("<t:" + unix + ":x>");
-        // Fallback formatter uses yyyyMMddHHmm in JST
-        assertEquals("202512312359", result);
+        Exception exception = assertThrows(RuntimeException.class,
+                () -> testableConvertUnixTime("<t:" + unix + ":x>"));
+        assertInstanceOf(IllegalArgumentException.class, exception.getCause());
     }
 }
