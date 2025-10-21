@@ -367,6 +367,56 @@ public class FileGenerateUtil {
         return safe.replaceAll("[^A-Za-z0-9_-]", "_");
     }
 
+
+    /**
+     * Discordのタイムスタンプ記法の文字列を人間可読な文字列に変換します
+     *
+     * @param tag Discordのタイムスタンプ文字列
+     * @return 変換された日時文字列。変換に失敗した場合は入力された文字列をそのまま返します。
+     */
+    public static String convertUnixTime(String tag) {
+        if (tag == null || tag.isEmpty()) {
+            return tag;
+        }
+        try {
+            Matcher m = DateTimeUtil.DISCORD_TIME_PATTERN.matcher(tag);
+            if (!m.matches()) {
+                return tag;
+            }
+            return convertUnixTime(DateTimeUtil.getFromUnix(m.group(1)), m.group(2));
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return tag;
+        }
+    }
+
+    /**
+     * カレンダーオブジェクトを指定されたフォーマットの日時文字列に変換します。
+     *
+     * @param time   変換対象のカレンダーオブジェクト
+     * @param format 変換フォーマット (d/D: 日付のみ, t/T: 時刻のみ, f/F/R: 完全な日時)
+     * @return フォーマットされた日時文字列
+     */
+    public static String convertUnixTime(final Calendar time, final String format) {
+        final Date timestamp = time.getTime();
+        return switch (format) {
+            case "d", "D" -> DateTimeUtil.dateOnly().format(timestamp);
+            case "t", "T" -> DateTimeUtil.time().format(timestamp);
+            case "f", "F", "R" -> DateTimeUtil.full().format(timestamp);
+            default -> throw new IllegalArgumentException();
+        };
+    }
+
+    /**
+     * 指定されたチャンネルから特定期間のメッセージを取得します。
+     *
+     * @param channel   対象のDiscordチャンネル
+     * @param beginDate 取得開始日時
+     * @param endDate   取得終了日時
+     * @return 取得されたメッセージ情報のリスト
+     */
     public List<MessageInfo> fetchMessagesForDaily(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
@@ -410,7 +460,13 @@ public class FileGenerateUtil {
 
 
     /**
-     * Build a MessageInfo for a single Message
+     * 単一のDiscordメッセージからMessageInfo オブジェクトを構築します。
+     *
+     * @param msg       Discordメッセージ
+     * @param guildId   サーバーID
+     * @param anonCycle 匿名化サイクル時間（時間単位）
+     * @param marked    処理済みユーザーリスト
+     * @return 構築されたMessageInfoオブジェクト。失敗時はnull
      */
     private MessageInfo buildMessageInfo(Message msg, GuildId guildId, final int anonCycle, List<Users> marked) {
         try {

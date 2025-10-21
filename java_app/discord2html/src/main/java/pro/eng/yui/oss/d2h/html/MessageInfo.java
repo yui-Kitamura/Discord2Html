@@ -234,7 +234,7 @@ public class MessageInfo {
     public MessageInfo(Message msg, Users authorInfo, String anonymizeScopeKey, boolean maskContent, ForwardMask maskForwarded){
         this.msgLinkHtmlMap = new HashMap<>();
         this.inlineHtmlMap = new HashMap<>();
-        this.createdTimestamp = DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
+        this.createdTimestamp = DateTimeUtil.full().format(Date.from(msg.getTimeCreated().toInstant()));
         this.userInfo = authorInfo;
         this.anonymizeScopeKey = anonymizeScopeKey;
         this.messageUserInfo = (anonymizeScopeKey == null)
@@ -302,6 +302,23 @@ public class MessageInfo {
     @Contract("_ -> new")
     public static String toHtmlWithLinks(String content) {
         String escaped = htmlEscape(content == null ? "" : content);
+        // 0) Convert escaped Discord time tags <t:UNIX:fmt> to plain text using FileGenerateUtil (Util expects raw <t:..>).
+        {
+            Pattern p = Pattern.compile(htmlEscape(DateTimeUtil.DISCORD_TIME_PATTERN.pattern()));
+            Matcher m = p.matcher(escaped);
+            StringBuffer sb = new StringBuffer();
+            while (m.find()) {
+                String tag = m.group();
+                try {
+                    final String isoTimestamp = DateTimeUtil.iso().format(DateTimeUtil.getFromUnix(m.group(1)).getTime());
+                    final String showTimestamp = FileGenerateUtil.convertUnixTime("<t:" + m.group(1) + ":" + m.group(2) + ">");
+                    tag = "<time datetime=\"" + isoTimestamp + "\">" + showTimestamp + "</time>";
+                }catch(Exception ignore){ }
+                m.appendReplacement(sb, Matcher.quoteReplacement(tag));
+            }
+            m.appendTail(sb);
+            escaped = sb.toString();
+        }
         // 1) Markdown-style: [label](https://url)
         escaped = escaped.replaceAll("\\[([^\\]]+)\\]\\((https://[^)\\s]+)\\)",
                 "<a href=\"$2\">$2</a>($1)");
@@ -750,7 +767,7 @@ public class MessageInfo {
                     }
                     try {
                         Date d = Date.from(target.getTimeCreated().toInstant());
-                        String full = DateTimeUtil.time().format(d); // yyyy/MM/dd HH:mm:ss
+                        String full = DateTimeUtil.full().format(d); // yyyy/MM/dd HH:mm:ss
                         timeDisplay = (full.length() >= 16) ? full.substring(0, 16) : full; // drop :ss
                     } catch (Throwable ignore) { }
                     try {
@@ -872,14 +889,14 @@ public class MessageInfo {
             String startText = "投票開始：";
             try {
                 if(isResult) {
-                    startText += DateTimeUtil.time().format(Date.from(msg.getTimeCreated().toInstant()));
+                    startText += DateTimeUtil.full().format(Date.from(msg.getTimeCreated().toInstant()));
                 }else {
                     startText = null;
                 }
             }catch(Throwable ignore){ }
             String endText = "投票締切：";
             try {
-                endText += DateTimeUtil.time().format(Date.from(poll.getTimeExpiresAt().toInstant()));
+                endText += DateTimeUtil.full().format(Date.from(poll.getTimeExpiresAt().toInstant()));
             }catch(Throwable ignore){ }
 
             return new PollParts(escapedQuestion, li.toString(), startText, endText, emojiList);
@@ -965,7 +982,7 @@ public class MessageInfo {
                     timeDisplay = DateTimeUtil.dateOnly().format(d);
                 } else {
                     // For normal forwarded messages (non-opt-out), show full timestamp including seconds
-                    timeDisplay = DateTimeUtil.time().format(d);
+                    timeDisplay = DateTimeUtil.full().format(d);
                 }
             } catch (NullPointerException ignore) { }
 
