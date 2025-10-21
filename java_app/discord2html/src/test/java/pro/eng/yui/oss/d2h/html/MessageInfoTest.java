@@ -136,13 +136,13 @@ class MessageInfoTest {
     void discordTimeTagIsEscaped_whenUsingToHtmlWithLinksDirectly() {
         String in = "<t:1767193198:d>";
         String out = MessageInfo.toHtmlWithLinks(in);
-        assertEquals("2025/12/31", out);
+        assertEquals("<time datetime=\"2025-12-31T23:59:58\">2025/12/31</time>", out);
     }
 
     @Test
     void discordTimeTagEmbeddedInTextIsEscaped_notConverted() {
         String in = "Start <t:1767193198:F> end";
         String out = MessageInfo.toHtmlWithLinks(in);
-        assertEquals("Start 2025/12/31 23:59:58 end", out);
+        assertEquals("Start <time datetime=\"2025-12-31T23:59:58\">2025/12/31 23:59:58</time> end", out);
     }
 }

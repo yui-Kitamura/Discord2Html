@@ -308,9 +308,10 @@ public class MessageInfo {
             Matcher m = p.matcher(escaped);
             StringBuffer sb = new StringBuffer();
             while (m.find()) {
-                String original = "<t:" + m.group(1) + ":" + m.group(2) + ">";
-                String disp = FileGenerateUtil.convertUnixTime(original);
-                m.appendReplacement(sb, Matcher.quoteReplacement(disp));
+                final String isoTimestamp = DateTimeUtil.iso().format(DateTimeUtil.getFromUnix(m.group(1)).getTime());
+                final String showTimestamp = FileGenerateUtil.convertUnixTime("<t:" + m.group(1) + ":" + m.group(2) + ">");
+                final String tag = "<time datetime=\""+ isoTimestamp +"\">"+ showTimestamp +"</time>";
+                m.appendReplacement(sb, Matcher.quoteReplacement(tag));
             }
             m.appendTail(sb);
             escaped = sb.toString();
