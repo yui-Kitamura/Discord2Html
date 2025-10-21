@@ -384,6 +384,8 @@ public class FileGenerateUtil {
                 return tag;
             }
             return convertUnixTime(DateTimeUtil.getFromUnix(m.group(1)), m.group(2));
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             e.printStackTrace();
             return tag;
@@ -399,17 +401,12 @@ public class FileGenerateUtil {
      */
     public static String convertUnixTime(final Calendar time, final String format) {
         final Date timestamp = time.getTime();
-        try {
-            return switch (format) {
-                case "d", "D" -> DateTimeUtil.dateOnly().format(timestamp);
-                case "t", "T" -> DateTimeUtil.time().format(timestamp);
-                case "f", "F", "R" -> DateTimeUtil.full().format(timestamp);
-                default -> DateTimeUtil.folder().format(timestamp);
-            };
-        } catch (Exception e) {
-            e.printStackTrace();
-            return DateTimeUtil.folder().format(timestamp);
-        }
+        return switch (format) {
+            case "d", "D" -> DateTimeUtil.dateOnly().format(timestamp);
+            case "t", "T" -> DateTimeUtil.time().format(timestamp);
+            case "f", "F", "R" -> DateTimeUtil.full().format(timestamp);
+            default -> throw new IllegalArgumentException();
+        };
     }
 
     /**
