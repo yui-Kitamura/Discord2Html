@@ -167,12 +167,15 @@ public class RunArchiveRunner implements IRunner {
                 }
             }
 
-            // Generate help page only once per run
+            // Generate root page only once per run
             try {
                 fileGenerator.regenerateHelpPage(target);
-                Path help = config.getOutputPath().resolve("help.html");
-                if (!generatedFiles.contains(help) && Files.exists(help)) {
-                    generatedFiles.add(help);
+                Path base = config.getOutputPath();
+                for (String topPage : List.of("help.html", "index.html", "tos.html")) {
+                    Path p = base.resolve(topPage);
+                    if (!generatedFiles.contains(p) && Files.exists(p)) {
+                        generatedFiles.add(p);
+                    }
                 }
             } catch (IOException ignore) { }
 
@@ -245,12 +248,15 @@ public class RunArchiveRunner implements IRunner {
                         }
                     }
                     
-                    // Generate help page once per scheduled guild run
+                    // Generate root page once per scheduled guild run
                     try {
                         fileGenerator.regenerateHelpPage(guilds.getGuildId());
-                        Path help = config.getOutputPath().resolve("help.html");
-                        if (!generatedFiles.contains(help) && Files.exists(help)) {
-                            generatedFiles.add(help);
+                        Path base = config.getOutputPath();
+                        for (String topPage : List.of("help.html", "index.html", "tos.html")) {
+                            Path p = base.resolve(topPage);
+                            if (!generatedFiles.contains(p) && Files.exists(p)) {
+                                generatedFiles.add(p);
+                            }
                         }
                     } catch (IOException ignore) { }
                     

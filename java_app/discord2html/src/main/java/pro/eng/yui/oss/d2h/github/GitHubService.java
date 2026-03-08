@@ -76,7 +76,10 @@ public class GitHubService {
             File targetFile;
             // Normalize path for checks
             String normalized = htmlFilePath.toString().replace('\\', '/');
-            boolean isTopLevelIndexOrHelp = ("index.html".equalsIgnoreCase(fileName) || "help.html".equalsIgnoreCase(fileName))
+            boolean isTopLevelIndexOrHelp = 
+                    ("index.html".equalsIgnoreCase(fileName) 
+                     || "help.html".equalsIgnoreCase(fileName) 
+                     || "tos.html".equalsIgnoreCase(fileName))
                     && !normalized.contains("/archives/");
             if (isTopLevelIndexOrHelp) {
                 // Place top-level index.html and help.html at gh_pages root
