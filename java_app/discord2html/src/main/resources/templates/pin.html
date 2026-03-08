@@ -49,8 +49,8 @@
             </a>
           </div>
           <div th:if="${!att.image}">
-            <a class="attachment-link" th:href="${att.url}" th:text="${att.fileName}" target="_blank" rel="noopener"></a>
-            <span th:if="${att.size > 0}" th:text="' (' + att.size + ' bytes)'"> サイズ </span>
+            <span class="attachment-text">📄<span th:text="${att.fileName}">ファイル名</span></span>
+            <span th:if="${att.size > 0}" th:text="' (' + ${att.size} + ' bytes)'"> サイズ </span>
           </div>
         </div>
       </div>
