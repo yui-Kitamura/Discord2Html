@@ -1,6 +1,5 @@
 package pro.eng.yui.oss.d2h.html;
 
-import net.dv8tion.jda.api.entities.Message;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.requests.restaction.pagination.PinnedMessagePaginationAction;
 import org.springframework.stereotype.Component;
