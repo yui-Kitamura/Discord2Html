@@ -64,7 +64,19 @@ public class OptoutRunner implements IRunner {
         if (optIn) {
             // clear opt-out by setting optin timestamp
             optoutDAO.optin(userId, guildId, channelId, null);
-            afterMessage = discordBotUtils.buildStatusEmbed(SUCCESS, "Opt-in recorded for " + scopeLabel);
+            String successMsg = "Opt-in recorded for " + scopeLabel;
+            
+            // look issue#127
+            // though out-IN, warn that OUT channels still exclude
+            if (channelId == null) {
+                List<Optout> allRecs = optoutDAO.selectAllByUserGuild(userId, guildId);
+                boolean hasSpecificOptout = allRecs.stream()
+                        .anyMatch(r -> r.getChannelId() != null && r.getOptinTimestamp() == null);
+                if (hasSpecificOptout) {
+                    successMsg += "\n**Note**: 一部のチャンネルで個別にオプトアウト設定が残っています。これらは引き続きアーカイブから除外されます。";
+                }
+            }
+            afterMessage = discordBotUtils.buildStatusEmbed(SUCCESS, successMsg);
         } else {
             // set opt-out (insert if not exists; if exists, clear optin timestamp to null)
             Optout rec = new Optout();
