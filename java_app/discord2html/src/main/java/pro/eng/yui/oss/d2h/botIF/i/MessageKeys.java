@@ -23,12 +23,12 @@ public interface MessageKeys {
     MessageKey COMMON_ERROR_NO_PERMISSION = new MessageKey("common.error.no_permission");
     /** 不明なサブコマンドです。`/d2h help` をご覧ください */
     MessageKey COMMON_ERROR_UNKNOWN_SUBCOMMAND = new MessageKey("common.error.unknown_subcommand");
-    /** ボットサーバーでエラーが発生しました。 >> `{0}` */
+    /** botサーバーでエラーが発生しました。 >> `{0}` */
     MessageKey COMMON_ERROR_INTERNAL_SERVER_ERROR = new MessageKey("common.error.internal_server_error");
 
     /** 設定が正常に更新されました */
     MessageKey RUNNER_ME_SUCCESS = new MessageKey("runner.me.success");
-    /** ボットバージョン： {0}\nGitHub： {1} */
+    /** botバージョン： {0}\nGitHub： {1} */
     MessageKey RUNNER_HELP_VERSION_INFO = new MessageKey("runner.help.version_info");
     /** アーカイブ運用ポリシー(TOS)： {0} */
     MessageKey RUNNER_HELP_TOS_INFO = new MessageKey("runner.help.tos_info");
@@ -62,15 +62,15 @@ public interface MessageKeys {
     MessageKey RUNNER_OPTOUT_OPTIN_SUCCESS = new MessageKey("runner.optout.optin.success");
     /** \n【補足】：個別チャンネルのオプトアウト設定は残っています。そのチャンネルはアーカイブから除外されます。 */
     MessageKey RUNNER_OPTOUT_OPTIN_NOTE = new MessageKey("runner.optout.optin.note");
-    /** {0} のオプトアウトを記録しました */
+    /** {0} のオプトアウトを記録しました{1} */
     MessageKey RUNNER_OPTOUT_OPTOUT_SUCCESS = new MessageKey("runner.optout.optout.success");
     /** ロール設定が正常に更新されました */
     MessageKey RUNNER_ROLE_SUCCESS = new MessageKey("runner.role.success");
-    /** アーカイブ作成を開始しました。完了までしばらくお待ちください。 */
+    /** アーカイブ作成を開始しました。{0} */
     MessageKey RUNNER_RUN_ARCHIVE_SUCCESS = new MessageKey("runner.run_archive.success");
-    /** runner.run_archive.success.push */
+    /** GitHubへプッシュされます。 */
     MessageKey RUNNER_RUN_ARCHIVE_SUCCESS_PUSH = new MessageKey("runner.run_archive.success.push");
-    /** runner.run_archive.success.local */
+    /** （ローカル保存のみ）。 */
     MessageKey RUNNER_RUN_ARCHIVE_SUCCESS_LOCAL = new MessageKey("runner.run_archive.success.local");
     /** 一部のチャンネルでアーカイブに失敗しました。詳細：\n{0} */
     MessageKey RUNNER_RUN_ARCHIVE_FAIL_NOTES = new MessageKey("runner.run_archive.fail_notes");

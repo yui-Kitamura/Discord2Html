@@ -568,11 +568,10 @@ public class RunArchiveRunner implements IRunner {
     public MessageSeed afterRunMessage() {
         if (lastRunNotes.size() == 0) {
             // success
-            if (config.getPushToGitHub()) {
-                return new MessageSeed(SUCCESS, MessageKeys.RUNNER_RUN_ARCHIVE_SUCCESS_PUSH);
-            } else {
-                return new MessageSeed(SUCCESS, MessageKeys.RUNNER_RUN_ARCHIVE_SUCCESS_LOCAL);
-            }
+            return new MessageSeed(SUCCESS, MessageKeys.RUNNER_RUN_ARCHIVE_SUCCESS,
+                    config.getPushToGitHub() ?
+                            MessageKeys.RUNNER_RUN_ARCHIVE_SUCCESS_PUSH :
+                            MessageKeys.RUNNER_RUN_ARCHIVE_SUCCESS_LOCAL);
         } else {
             // fail
             StringBuilder sb = new StringBuilder();
