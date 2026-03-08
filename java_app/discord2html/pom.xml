@@ -7,7 +7,16 @@
     <groupId>pro.eng.yui.oss.d2h</groupId>
     <artifactId>discord2html</artifactId>
     <version>3.0.1</version>
-
+    <description>create archive HTML file from Discord</description>
+    <developers>
+        <developer>
+            <name>yui KITAMURA</name>
+            <organization>Yui-Kitamura LLC.</organization>
+            <url>https://yui.eng.pro/</url>
+            <timezone>+09:00</timezone>
+        </developer>
+    </developers>
+    
     <parent>
         <!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-parent -->
         <groupId>org.springframework.boot</groupId>
