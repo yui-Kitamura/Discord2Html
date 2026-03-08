@@ -365,7 +365,7 @@ public class RunArchiveRunner implements IRunner {
         OnRunMessageMode msgMode = guildSettings.getOnRunMessage().get();
         
         if ((!isThread) && !isVoiceText(channel) && channel instanceof GuildMessageChannel msgCh && (msgMode.isStart() || msgMode.isBoth())) {
-            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(new MessageSeed(INFO, MessageKeys.COMMON_RAW, "This channel is archive target. Start >>>"), locale)).queue();
+            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(new MessageSeed(INFO, MessageKeys.COMMON_INFO_ARCHIVE_TARGET_START), locale)).queue();
         }
 
         // Retrieve messages differently for normal channels vs threads
@@ -506,17 +506,17 @@ public class RunArchiveRunner implements IRunner {
         }
 
         if ((!isThread) && !isVoiceText(channel) && channel instanceof GuildMessageChannel msgCh && (msgMode.isEnd() || msgMode.isBoth())) {
-            String endMsg = "archive created. task end <<<";
+            String urlMsg = "";
             if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
                     Calendar urlCal = (Calendar) endDate.clone();
                     if (scheduled && urlCal.get(Calendar.HOUR_OF_DAY) == 0) {
                         urlCal.add(Calendar.DAY_OF_MONTH, -1);
                     }
-                    endMsg += "\n" + buildChannelArchiveUrl(msgCh, DateTimeUtil.formatDate8(urlCal));
+                    urlMsg = buildChannelArchiveUrl(msgCh, DateTimeUtil.formatDate8(urlCal));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
-            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(new MessageSeed( SUCCESS, MessageKeys.COMMON_RAW, endMsg), locale)).queue();
+            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(new MessageSeed( SUCCESS, MessageKeys.COMMON_INFO_ARCHIVE_CREATED_END, urlMsg), locale)).queue();
         }
     }
     private void runActiveThreadsUnder(IThreadContainer parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
@@ -582,7 +582,7 @@ public class RunArchiveRunner implements IRunner {
             if (!sb.isEmpty() == false) {
                 sb.setLength(sb.length() - 1); // remove the last "\n"
             }
-            return new MessageSeed(WARN, MessageKeys.COMMON_RAW, sb.toString());
+            return new MessageSeed(WARN, MessageKeys.RUNNER_RUN_ARCHIVE_FAIL_NOTES, sb.toString());
         }
     }
 }

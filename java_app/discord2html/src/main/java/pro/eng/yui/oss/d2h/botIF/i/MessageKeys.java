@@ -2,8 +2,8 @@ package pro.eng.yui.oss.d2h.botIF.i;
 
 public interface MessageKeys {
 
-    MessageKey COMMON_RAW = new MessageKey("{0}");
-    
+    MessageKey COMMON_INFO_ARCHIVE_TARGET_START = new MessageKey("common.info.archive_target_start");
+    MessageKey COMMON_INFO_ARCHIVE_CREATED_END = new MessageKey("common.info.archive_created_end");
     MessageKey COMMON_ERROR_GUILD_CHANNEL_ONLY = new MessageKey("common.error.guild_channel_only");
     MessageKey COMMON_ERROR_INVALID_CHANNEL = new MessageKey("common.error.invalid_channel");
     MessageKey COMMON_ERROR_NOT_SUPPORTED = new MessageKey("common.error.not_supported");
@@ -14,9 +14,14 @@ public interface MessageKeys {
     MessageKey COMMON_ERROR_INTERNAL_SERVER_ERROR = new MessageKey("common.error.internal_server_error");
 
     MessageKey RUNNER_ME_SUCCESS = new MessageKey("runner.me.success");
+    MessageKey RUNNER_HELP_VERSION_INFO = new MessageKey("runner.help.version_info");
+    MessageKey RUNNER_HELP_TOS_INFO = new MessageKey("runner.help.tos_info");
     MessageKey RUNNER_HELP_DM_SENT = new MessageKey("runner.help.dm_sent");
     MessageKey RUNNER_ANONYMOUS_SUCCESS = new MessageKey("runner.anonymous.success");
     MessageKey RUNNER_ARCHIVE_CONFIG_SUCCESS = new MessageKey("runner.archive_config.success");
+    MessageKey RUNNER_ARCHIVE_CONFIG_TARGETS = new MessageKey("runner.archive_config.targets");
+    MessageKey RUNNER_ARCHIVE_CONFIG_NONE = new MessageKey("runner.archive_config.none");
+    MessageKey RUNNER_ARCHIVE_CONFIG_GUILD_UNRESOLVED = new MessageKey("runner.archive_config.guild_unresolved");
     MessageKey RUNNER_AUTO_ARCHIVE_SUCCESS = new MessageKey("runner.auto_archive.success");
     MessageKey RUNNER_AUTO_ARCHIVE_CURRENT = new MessageKey("runner.auto_archive.current");
     MessageKey RUNNER_AUTO_ARCHIVE_NEW = new MessageKey("runner.auto_archive.new");
@@ -31,4 +36,5 @@ public interface MessageKeys {
     MessageKey RUNNER_RUN_ARCHIVE_SUCCESS = new MessageKey("runner.run_archive.success");
     MessageKey RUNNER_RUN_ARCHIVE_SUCCESS_PUSH = new MessageKey("runner.run_archive.success.push");
     MessageKey RUNNER_RUN_ARCHIVE_SUCCESS_LOCAL = new MessageKey("runner.run_archive.success.local");
+    MessageKey RUNNER_RUN_ARCHIVE_FAIL_NOTES = new MessageKey("runner.run_archive.fail_notes");
 }

@@ -111,14 +111,13 @@ public class ArchiveConfigRunner implements IRunner {
         }
         
         // 3) build response message
-        String list = buildArchiveTargetListMessage(guild);
-        afterMessage = new MessageSeed(INFO, MessageKeys.COMMON_RAW, list);
+        afterMessage = buildArchiveTargetListMessage(guild);
     }
 
     /** list channels archived for this guild grouped by category in Discord order */
-    private String buildArchiveTargetListMessage(Guild guild) {
+    private MessageSeed buildArchiveTargetListMessage(Guild guild) {
         if (guild == null) {
-            return "archive targets: (guild not resolved)";
+            return new MessageSeed(INFO, MessageKeys.RUNNER_ARCHIVE_CONFIG_GUILD_UNRESOLVED);
         }
         GuildId guildId = new GuildId(guild);
         List<Channels> targetRecords = new ArrayList<>();
@@ -126,7 +125,7 @@ public class ArchiveConfigRunner implements IRunner {
             targetRecords = channelDao.selectChannelArchiveDo(guildId);
         } catch (Exception ignore) { /* ignore */ }
         if (targetRecords == null || targetRecords.isEmpty()) {
-            return "archive targets: (none)";
+            return new MessageSeed(INFO, MessageKeys.RUNNER_ARCHIVE_CONFIG_NONE);
         }
         Set<ChannelId> targetChannels = new HashSet<>();
         for (Channels ch : targetRecords) {
@@ -178,7 +177,7 @@ public class ArchiveConfigRunner implements IRunner {
         }
 
         if (groups.isEmpty()) {
-            return "archive targets: (none)";
+            return new MessageSeed(INFO, MessageKeys.RUNNER_ARCHIVE_CONFIG_NONE);
         }
 
         // Render output
@@ -199,7 +198,7 @@ public class ArchiveConfigRunner implements IRunner {
         if (sb.isEmpty() == false) {
             sb.setLength(sb.length() - 1); // trim the last "\n"
         }
-        return sb.toString();
+        return new MessageSeed(INFO, MessageKeys.RUNNER_ARCHIVE_CONFIG_TARGETS, sb.toString());
     }
 
     private GuildId opChannelGuildId(List<OptionMapping> options) {

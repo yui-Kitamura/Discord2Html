@@ -36,8 +36,6 @@ public class HelpRunner implements IRunner {
 
     /** Overload for /d2h help with options: version or tos link */
     public void run(@NotNull Member member, List<OptionMapping> options){
-        String returnMessage = "";
-
         OptionMapping optVer = get(options, "version");
         boolean showVersion = (optVer != null) && optVer.getAsBoolean();
         OptionMapping optTos = get(options, "tos");
@@ -45,27 +43,20 @@ public class HelpRunner implements IRunner {
 
         if (showVersion) {
             final String ver = secrets.getBotVersion();
-            returnMessage +=
-                    "bot version: " + ver + "\n" +
-                    "GitHub: " + gitConfig.getRepo().getUrl();
+            final String url = gitConfig.getRepo().getUrl();
+            this.lastAfterRunMessage = new MessageSeed(INFO, MessageKeys.RUNNER_HELP_VERSION_INFO, ver, url);
             this.lastShouldDeferEphemeral = true;
-        }
-        if (showTos) {
+        } else if (showTos) {
             final String url = gitUtil.getPagesUrlSafe() + "/tos.html";
-            if(returnMessage.isEmpty() == false){ returnMessage += "\n"; }   
-            returnMessage += "アーカイブ運用ポリシー(TOS): " + url;
+            this.lastAfterRunMessage = new MessageSeed(INFO, MessageKeys.RUNNER_HELP_TOS_INFO, url);
             this.lastShouldDeferEphemeral = true;
-        }
-        
-        if (showVersion == false && showTos == false) {
+        } else {
             member.getUser().openPrivateChannel().queue(
                     ch -> ch.sendMessage(buildHelpText()).queue(),
                     err -> { /* nothing to do */ }
             );
             this.lastAfterRunMessage = new MessageSeed(INFO, MessageKeys.RUNNER_HELP_DM_SENT);
             this.lastShouldDeferEphemeral = true;
-        } else {
-            this.lastAfterRunMessage = new MessageSeed(INFO, MessageKeys.COMMON_RAW, returnMessage);
         }
     }
 
