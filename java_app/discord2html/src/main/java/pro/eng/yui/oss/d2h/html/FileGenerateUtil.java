@@ -236,8 +236,8 @@ public class FileGenerateUtil {
                     if (img == null) { continue; }
 
                     // Resize if too large
-                    int maxWidth = 600;
-                    int maxHeight = 600;
+                    int maxWidth = 400;
+                    int maxHeight = 400;
                     if (img.getWidth() > maxWidth || img.getHeight() > maxHeight) {
                         double scale = Math.min((double)maxWidth / img.getWidth(), (double)maxHeight / img.getHeight());
                         int newW = (int)(img.getWidth() * scale);
