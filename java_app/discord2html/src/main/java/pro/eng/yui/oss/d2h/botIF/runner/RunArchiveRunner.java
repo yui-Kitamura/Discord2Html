@@ -566,7 +566,7 @@ public class RunArchiveRunner implements IRunner {
 
     @Override
     public MessageSeed afterRunMessage() {
-        if (lastRunNotes.size() == 0) {
+        if (lastRunNotes.isEmpty()) {
             // success
             return new MessageSeed(SUCCESS, MessageKeys.RUNNER_RUN_ARCHIVE_SUCCESS,
                     config.getPushToGitHub() ?
@@ -578,7 +578,7 @@ public class RunArchiveRunner implements IRunner {
             for (String n : lastRunNotes) {
                 sb.append(n).append("\n");
             }
-            if (!sb.isEmpty() == false) {
+            if (sb.isEmpty() == false) {
                 sb.setLength(sb.length() - 1); // remove the last "\n"
             }
             return new MessageSeed(WARN, MessageKeys.RUNNER_RUN_ARCHIVE_FAIL_NOTES, sb.toString());
