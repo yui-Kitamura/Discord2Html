@@ -1,16 +1,19 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 
+import pro.eng.yui.oss.d2h.botIF.i.MessageKey;
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
+
+import java.awt.Color;
 import java.util.List;
 
 /**
@@ -22,15 +25,17 @@ import java.util.List;
 public class AutoArchiveScheduleRunner implements IRunner {
 
     private final GuildsDAO guildsDAO;
-    private final DiscordBotUtils discordBotUtils;
 
-    private MessageEmbed lastRunsOnListMessage;
+    private MessageKey lastMessageKey;
+    private Object[] lastMessageArgs;
+    private Color lastMessageColor;
 
     @Autowired
-    public AutoArchiveScheduleRunner(GuildsDAO guildsDAO, DiscordBotUtils discordBotUtils) {
+    public AutoArchiveScheduleRunner(GuildsDAO guildsDAO) {
         this.guildsDAO = guildsDAO;
-        this.discordBotUtils = discordBotUtils;
-        this.lastRunsOnListMessage = discordBotUtils.buildStatusEmbed(INFO, "auto archive schedule has changed");
+        this.lastMessageKey = MessageKeys.RUNNER_AUTO_ARCHIVE_SUCCESS;
+        this.lastMessageArgs = new Object[0];
+        this.lastMessageColor = INFO;
     }
 
     @Override
@@ -49,8 +54,9 @@ public class AutoArchiveScheduleRunner implements IRunner {
 
         if (cycle == null) {
             // 変更なし: 現在の設定を返答
-            lastRunsOnListMessage = discordBotUtils.buildStatusEmbed(
-                    INFO, "current scheduled hours are: " + buildRunsOnListString(current.getRunsOnList()));
+            this.lastMessageColor = INFO;
+            this.lastMessageKey = MessageKeys.RUNNER_AUTO_ARCHIVE_CURRENT;
+            this.lastMessageArgs = new Object[]{ buildRunsOnListString(current.getRunsOnList()) };
             return;
         }
         if (cycle < 0 || 23 < cycle) {
@@ -61,8 +67,9 @@ public class AutoArchiveScheduleRunner implements IRunner {
         guildsDAO.upsertGuildInfo(current);
 
         // 最新のスケジュールを作成
-        lastRunsOnListMessage = discordBotUtils.buildStatusEmbed(SUCCESS,
-                "new scheduled hours are: " + buildRunsOnListString(current.getRunsOnList()));
+        this.lastMessageColor = SUCCESS;
+        this.lastMessageKey = MessageKeys.RUNNER_AUTO_ARCHIVE_NEW;
+        this.lastMessageArgs = new Object[]{ buildRunsOnListString(current.getRunsOnList()) };
     }
 
     private String buildRunsOnListString(List<RunsOn> runsList) {
@@ -79,7 +86,7 @@ public class AutoArchiveScheduleRunner implements IRunner {
     }
 
     @Override
-    public MessageEmbed afterRunMessage() {
-        return lastRunsOnListMessage;
+    public MessageSeed afterRunMessage() {
+        return new MessageSeed(lastMessageColor, lastMessageKey, lastMessageArgs);
     }
 }

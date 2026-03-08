@@ -9,7 +9,10 @@ import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.i.MessageKey;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 import pro.eng.yui.oss.d2h.consts.StringConsts;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
@@ -22,6 +25,7 @@ import pro.eng.yui.oss.d2h.db.model.Users;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 public class DiscordBotUtils {
@@ -29,19 +33,36 @@ public class DiscordBotUtils {
     private final GuildsDAO guildsDao;
     private final ChannelsDAO channelsDao;
     private final UsersDAO usersDao;
+    private final MessageSource messageSource;
     
     @Autowired
-    public DiscordBotUtils(GuildsDAO g, ChannelsDAO c, UsersDAO u){
+    public DiscordBotUtils(GuildsDAO g, ChannelsDAO c, UsersDAO u, MessageSource messageSource){
         this.guildsDao = g;
         this.channelsDao = c;
         this.usersDao = u;
+        this.messageSource = messageSource;
     }
 
-    public MessageEmbed buildStatusEmbed(Color frameColor, String message) {
+    public MessageEmbed buildStatusEmbed(MessageSeed seed, Locale locale) {
         return new EmbedBuilder()
-                .setDescription(message)
-                .setColor(frameColor)
-                .build();
+            .setDescription(resolveMessage(seed, locale))
+            .setColor(seed.getStatsColor())
+            .build();
+    }
+    /** 再帰的メッセージ解決 */
+    private String resolveMessage(Object obj, Locale locale) {
+        if (obj instanceof MessageSeed seed) {
+            Object[] rawArgs = seed.getArgs();
+            Object[] resolvedArgs = new Object[rawArgs.length];
+            for (int i = 0; i < rawArgs.length; i++) {
+                resolvedArgs[i] = resolveMessage(rawArgs[i], locale);
+            }
+            return messageSource.getMessage(seed.getKey().getKey(), resolvedArgs, locale);
+        }
+        if (obj instanceof MessageKey key) {
+            return messageSource.getMessage(key.getKey(), null, locale);
+        } 
+        return String.valueOf(obj);
     }
 
     /* pkg-prv */ void upsertGuildInfoToDB(Guild guild){

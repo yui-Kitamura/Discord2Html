@@ -1,7 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.concrete.Category;
 import net.dv8tion.jda.api.entities.channel.attribute.ICategorizableChannel;
@@ -10,12 +9,14 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Channels;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
+
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 
 import java.util.*;
 
@@ -24,15 +25,13 @@ public class ArchiveConfigRunner implements IRunner {
     
     private final ChannelsDAO channelDao;
     private final GuildsDAO guildsDao;
-    private final DiscordBotUtils discordBotUtils;
 
-    private String afterMessage = "";
+    private MessageSeed afterMessage = null;
     
     @Autowired
-    public ArchiveConfigRunner(ChannelsDAO c, GuildsDAO g, DiscordBotUtils discordBotUtils){
+    public ArchiveConfigRunner(ChannelsDAO c, GuildsDAO g){
         this.channelDao = c;
         this.guildsDao = g;
-        this.discordBotUtils = discordBotUtils;
     }
     
     @Override
@@ -44,7 +43,7 @@ public class ArchiveConfigRunner implements IRunner {
     }
     
     public void run(@NotNull Guild guild, List<OptionMapping> options){
-        afterMessage = "";
+        afterMessage = null;
         GuildChannel targetCh = null;
         Status newMode = null;
         String onRunMessageStr = null;
@@ -116,9 +115,9 @@ public class ArchiveConfigRunner implements IRunner {
     }
 
     /** list channels archived for this guild grouped by category in Discord order */
-    private String buildArchiveTargetListMessage(Guild guild) {
+    private MessageSeed buildArchiveTargetListMessage(Guild guild) {
         if (guild == null) {
-            return "archive targets: (guild not resolved)";
+            return new MessageSeed(INFO, MessageKeys.RUNNER_ARCHIVE_CONFIG_GUILD_UNRESOLVED);
         }
         GuildId guildId = new GuildId(guild);
         List<Channels> targetRecords = new ArrayList<>();
@@ -126,7 +125,7 @@ public class ArchiveConfigRunner implements IRunner {
             targetRecords = channelDao.selectChannelArchiveDo(guildId);
         } catch (Exception ignore) { /* ignore */ }
         if (targetRecords == null || targetRecords.isEmpty()) {
-            return "archive targets: (none)";
+            return new MessageSeed(INFO, MessageKeys.RUNNER_ARCHIVE_CONFIG_NONE);
         }
         Set<ChannelId> targetChannels = new HashSet<>();
         for (Channels ch : targetRecords) {
@@ -178,7 +177,7 @@ public class ArchiveConfigRunner implements IRunner {
         }
 
         if (groups.isEmpty()) {
-            return "archive targets: (none)";
+            return new MessageSeed(INFO, MessageKeys.RUNNER_ARCHIVE_CONFIG_NONE);
         }
 
         // Render output
@@ -199,7 +198,7 @@ public class ArchiveConfigRunner implements IRunner {
         if (sb.isEmpty() == false) {
             sb.setLength(sb.length() - 1); // trim the last "\n"
         }
-        return sb.toString();
+        return new MessageSeed(INFO, MessageKeys.RUNNER_ARCHIVE_CONFIG_TARGETS, sb.toString());
     }
 
     private GuildId opChannelGuildId(List<OptionMapping> options) {
@@ -211,10 +210,10 @@ public class ArchiveConfigRunner implements IRunner {
     }
 
     @Override
-    public MessageEmbed afterRunMessage() {
-        if (afterMessage == null || afterMessage.isEmpty()) {
-            afterMessage = "archive setting has changed";
+    public MessageSeed afterRunMessage() {
+        if (afterMessage == null) {
+            afterMessage = new MessageSeed(INFO, MessageKeys.RUNNER_ARCHIVE_CONFIG_SUCCESS);
         }
-        return discordBotUtils.buildStatusEmbed(INFO, afterMessage);
+        return afterMessage;
     }
 }

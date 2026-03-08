@@ -5,7 +5,6 @@ import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.consts.UserAnon;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.dao.RolesDAO;
@@ -14,18 +13,19 @@ import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RoleId;
 import pro.eng.yui.oss.d2h.db.model.Roles;
 
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
+
 import java.util.List;
 
 @Component
 public class RoleRunner implements IRunner {
     
     private final RolesDAO roleDao;
-    private final DiscordBotUtils discordBotUtils;
 
     @Autowired
-    public RoleRunner(RolesDAO rolesDao, DiscordBotUtils discordBotUtils){
+    public RoleRunner(RolesDAO rolesDao){
         this.roleDao = rolesDao;
-        this.discordBotUtils = discordBotUtils;
     }
     
     @Override
@@ -52,7 +52,7 @@ public class RoleRunner implements IRunner {
     }
 
     @Override
-    public MessageEmbed afterRunMessage() {
-        return discordBotUtils.buildStatusEmbed(SUCCESS, "role setting has changed");
+    public MessageSeed afterRunMessage() {
+        return new MessageSeed(SUCCESS, MessageKeys.RUNNER_ROLE_SUCCESS);
     }
 }

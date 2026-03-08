@@ -5,7 +5,8 @@ import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 import pro.eng.yui.oss.d2h.consts.UserAnon;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
@@ -17,12 +18,10 @@ import java.util.List;
 public class MeRunner implements IRunner {
 
     private final UsersDAO usersDao;
-    private final DiscordBotUtils discordBotUtils;
 
     @Autowired
-    public MeRunner(UsersDAO users, DiscordBotUtils discordBotUtils){
+    public MeRunner(UsersDAO users){
         this.usersDao = users;
-        this.discordBotUtils = discordBotUtils;
     }
 
     @Override
@@ -36,8 +35,8 @@ public class MeRunner implements IRunner {
     }
     
     @Override
-    public MessageEmbed afterRunMessage(){
-        return discordBotUtils.buildStatusEmbed(SUCCESS, "Your configuration has updated successfully");
+    public MessageSeed afterRunMessage() {
+        return new MessageSeed(SUCCESS, MessageKeys.RUNNER_ME_SUCCESS);
     }
     
     @Override

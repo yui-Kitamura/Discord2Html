@@ -11,12 +11,14 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 import pro.eng.yui.oss.d2h.botIF.runner.*;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 
-import java.awt.*;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 public class DiscordBotCommandListener extends ListenerAdapter {
@@ -117,27 +119,28 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         final String command = event.getName();
         final String sub = event.getSubcommandName();
+        final Locale locale = event.getGuildLocale().toLocale();
         
         if((event.getChannel() instanceof GuildChannel) == false) {
-            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.WARN, "commands is enabled only in server channel")).queue();
+            event.replyEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.WARN, MessageKeys.COMMON_ERROR_GUILD_CHANNEL_ONLY), locale)).queue();
             return;
         }
         if (isAcceptedChannel(event.getGuildChannel()) == false) {
-            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "you can NOT USE commands in this channel"))
+            event.replyEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_INVALID_CHANNEL), locale))
                     .setEphemeral(true) //visible=false
                     .queue();
             return;
         }
         
         if(commands.contains(command) == false) {
-            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "bot D2H has called but was not supported"))
+            event.replyEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_NOT_SUPPORTED), locale))
                     .setEphemeral(true)
                     .setSuppressedNotifications(true)
                     .queue();
             return;
         }
         if(sub == null) {
-            event.replyEmbeds(botUtils.buildStatusEmbed(IRunner.WARN, "command /D2H required more command message. Use `/d2h help`"))
+            event.replyEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.WARN, MessageKeys.COMMON_ERROR_MISSING_SUBCOMMAND), locale))
                     .setEphemeral(true)
                     .setSuppressedNotifications(true)
                     .queue();
@@ -150,8 +153,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         } else {
             event.deferReply(true).queue();
             event.getHook()
-                    .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.WARN, 
-                            "command runner not found. Please check your input. Use `/d2h help`"))
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.WARN, MessageKeys.COMMON_ERROR_RUNNER_NOT_FOUND), locale))
                     .queue();
             return;
         }
@@ -159,8 +161,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         // 権限チェック
         if(hasPermission(event, runner) == false) {
             event.getHook()
-                    .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, 
-                            "you do NOT have required permission(role) to do this"))
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_NO_PERMISSION), locale))
                     .queue();
             return;
         }
@@ -181,19 +182,19 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "optout" -> runOptout(event);
                 default -> {
                     event.getHook()
-                            .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "unknown subcommand. Use `/d2h help`"))
+                            .editOriginalEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_UNKNOWN_SUBCOMMAND), locale))
                             .queue();
                     return;
                 }
             }
 
             event.getHook()
-                    .editOriginalEmbeds(runner.afterRunMessage())
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(runner.afterRunMessage(), locale))
                     .queue();
             
         }catch(Exception unexpected) {
             event.getHook()
-                .editOriginalEmbeds(botUtils.buildStatusEmbed(IRunner.ERROR, "something wrong in bot server. >> `"+ unexpected.getMessage() +"`"))
+                .editOriginalEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_INTERNAL_SERVER_ERROR, unexpected.getMessage()), locale))
                 .queue();
             return;
         }
