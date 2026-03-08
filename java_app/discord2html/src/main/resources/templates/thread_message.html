@@ -50,16 +50,16 @@
           <div class="poll-end" th:if="${msg.pollEndTimeText != null}" th:text="${msg.pollEndTimeText}">2025/01/02 00:00:00 投票締切：</div>
         </div>
       </div>
-      <div class="attachments" th:if="${msg.attachments != null and !#lists.isEmpty(msg.attachments)}">
-        <div th:each="att : ${msg.attachments}">
-          <div th:if="${att.image}">
-            <a th:href="${att.url}" target="_blank" rel="noopener">
-              <img th:src="${att.url}" th:alt="${att.fileName}" />
+      <div class="attachments" th:if="${msg.attachmentViews != null and !#lists.isEmpty(msg.attachmentViews)}">
+        <div th:each="av : ${msg.attachmentViews}">
+          <div th:if="${av.image}">
+            <a th:href="${av.url}" target="_blank" rel="noopener">
+              <img th:src="${av.localPath != null ? basePrefix + '/' + av.localPath : av.url}" th:alt="${av.fileName}" />
             </a>
           </div>
-          <div th:if="${!att.image}">
-            <span class="attachment-text">📄<span th:text="${att.fileName}">ファイル名</span></span>
-            <span th:if="${att.size > 0}" th:text="' (' + ${att.size} + ' bytes)'"> サイズ </span>
+          <div th:if="${!av.image}">
+            <span class="attachment-text">📄<span th:text="${av.fileName}">ファイル名</span></span>
+            <span th:if="${av.size > 0}" th:text="' (' + ${av.size} + ' bytes)'"> サイズ </span>
           </div>
         </div>
       </div>

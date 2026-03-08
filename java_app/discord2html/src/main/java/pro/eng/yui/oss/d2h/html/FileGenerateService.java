@@ -72,6 +72,14 @@ public class FileGenerateService {
             System.out.println("[EmojiArchive] failed: " + ioe.getMessage());
         }
 
+        // Archive attachments to gh_pages resources
+        try {
+            fileUtil.archiveAttachments(appConfig.getOutputPath(), messages);
+        } catch (IOException ioe) {
+            // non-fatal
+            System.out.println("[AttachmentArchive] failed: " + ioe.getMessage());
+        }
+
         // Delegate the core archive generation and also generate related indexes.
         Path mainOut = archiveGenerator.generate(new GuildId(channel), channel, messages, begin, end, seq);
         if (mainOut != null){ outs.add(mainOut); }

@@ -159,12 +159,17 @@ public class ArchiveGenerator {
         }
 
         // Generate/refresh pinned messages page for this channel
-        try { generateChannelPinnedPage(guildId, channel); } catch (IOException ignore) { }
+        try {
+            List<MessageInfo> pins = generateChannelPinnedPage(guildId, channel);
+            if (pins != null && !pins.isEmpty()) {
+                fileUtil.archiveAttachments(appConfig.getOutputPath(), pins);
+            }
+        } catch (IOException ignore) { }
 
         return lastOutput;
     }
 
-    private void generateChannelPinnedPage(GuildId guildId, ChannelInfo channel) throws IOException {
+    private List<MessageInfo> generateChannelPinnedPage(GuildId guildId, ChannelInfo channel) throws IOException {
         List<PinnedMessagePaginationAction.PinnedMessage> pinnedMessages = jdaProvider.getJda()
                 .getChannelById(GuildMessageChannel.class, channel.getChannelId().getValue())
                 .retrievePinnedMessages().complete();
@@ -190,6 +195,7 @@ public class ArchiveGenerator {
         java.nio.file.Files.createDirectories(outDir);
         Path out = outDir.resolve("pin.html");
         fileUtil.writeIfChanged(out, html);
+        return pins;
     }
 
     private void generateThreadPinnedPage(GuildId guildId, ChannelInfo channel, List<MessageInfo> messages) throws IOException {
@@ -204,6 +210,11 @@ public class ArchiveGenerator {
                 pins.add(new MessageInfo(msg.getMessage()));
             } catch (Throwable ignore) { }
         }
+
+        if (!pins.isEmpty()) {
+            fileUtil.archiveAttachments(appConfig.getOutputPath(), pins);
+        }
+
         final String basePrefix = fileUtil.repoBaseWithPrefix();
         Context ctx = new Context();
         ctx.setVariable("title", (channel.getParentChannelName() != null ? (channel.getParentChannelName() + " / ") : "") + channel.getName() + " のピン留め");

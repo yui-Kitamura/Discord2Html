@@ -55,6 +55,23 @@ public class MessageInfo {
         public int getCount() { return count; }
     }
 
+    public static class AttachmentView {
+        private final Message.Attachment attachment;
+        private final String localPath;
+
+        public AttachmentView(Message.Attachment attachment, String localPath) {
+            this.attachment = attachment;
+            this.localPath = localPath;
+        }
+
+        public Message.Attachment getAttachment() { return attachment; }
+        public String getUrl() { return attachment.getUrl(); }
+        public String getFileName() { return attachment.getFileName(); }
+        public long getSize() { return attachment.getSize(); }
+        public boolean isImage() { return attachment.isImage(); }
+        public String getLocalPath() { return localPath; }
+    }
+
     private final String contentRaw;
     private final String contentProcessed;
     private final Map<String, String> msgLinkHtmlMap;
@@ -130,6 +147,21 @@ public class MessageInfo {
     private final List<Message.Attachment> attachments;
     public List<Message.Attachment> getAttachments(){
         return this.attachments;
+    }
+    public List<AttachmentView> getAttachmentViews() {
+        List<AttachmentView> views = new ArrayList<>();
+        if (attachments == null) {
+            return views;
+        }
+        for (Message.Attachment a : attachments) {
+            String localPath = null;
+            if (a.isImage()) {
+                // archives/figs/{originId}.jpg
+                localPath = "archives/figs/" + a.getId() + ".jpg";
+            }
+            views.add(new AttachmentView(a, localPath));
+        }
+        return views;
     }
 
     private final List<MessageReaction> reactions;

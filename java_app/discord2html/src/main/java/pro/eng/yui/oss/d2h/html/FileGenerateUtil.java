@@ -19,6 +19,11 @@ import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.db.model.Users;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 
+import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
+
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -198,6 +203,66 @@ public class FileGenerateUtil {
             }
         } catch (Exception ignore) { }
         return null;
+    }
+
+    public void archiveAttachments(Path outputPath, List<MessageInfo> messages) throws IOException {
+        if (messages == null || messages.isEmpty()) {
+            return; 
+        }
+        
+        Path figsDir = outputPath.resolve("archives").resolve("figs");
+        Files.createDirectories(figsDir);
+
+        Set<String> processed = new HashSet<>();
+        for (MessageInfo mi : messages) {
+            List<MessageInfo.AttachmentView> avs = mi.getAttachmentViews();
+            if (avs == null) { continue; }
+            for (MessageInfo.AttachmentView av : avs) {
+                if (av == null || av.isImage() == false) {
+                    continue; 
+                }
+                final String id = av.getAttachment().getId();
+                final String url = av.getUrl();
+                final String key = id + ".jpg";
+                
+                if (processed.contains(key)) { continue; }
+                
+                processed.add(key);
+                Path target = figsDir.resolve(key);
+                if (Files.exists(target)) { continue; }
+
+                try (var in = new URL(url).openStream()) {
+                    BufferedImage img = ImageIO.read(in);
+                    if (img == null) { continue; }
+
+                    // Resize if too large
+                    int maxWidth = 600;
+                    int maxHeight = 600;
+                    if (img.getWidth() > maxWidth || img.getHeight() > maxHeight) {
+                        double scale = Math.min((double)maxWidth / img.getWidth(), (double)maxHeight / img.getHeight());
+                        int newW = (int)(img.getWidth() * scale);
+                        int newH = (int)(img.getHeight() * scale);
+                        Image scaled = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+                        BufferedImage resized = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
+                        Graphics2D g = resized.createGraphics();
+                        g.drawImage(scaled, 0, 0, null);
+                        g.dispose();
+                        img = resized;
+                    } else if (img.getType() != BufferedImage.TYPE_INT_RGB) {
+                        // Ensure RGB for JPG
+                        BufferedImage rgbImg = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
+                        Graphics2D g = rgbImg.createGraphics();
+                        g.drawImage(img, 0, 0, null);
+                        g.dispose();
+                        img = rgbImg;
+                    }
+
+                    ImageIO.write(img, "jpg", target.toFile());
+                } catch (Exception e) {
+                    System.err.println("[AttachmentArchive] Failed to archive " + url + ": " + e.getMessage());
+                }
+            }
+        }
     }
     
     public void archiveCustomEmojis(Path outputPath, List<MessageInfo> messages) throws IOException {
