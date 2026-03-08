@@ -13,7 +13,7 @@ import pro.eng.yui.oss.d2h.botIF.i.MessageKey;
 import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
 import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 
-import java.awt.*;
+import java.awt.Color;
 import java.util.List;
 
 /**

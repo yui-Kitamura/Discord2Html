@@ -1,6 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF.i;
 
-import java.awt.*;
+import java.awt.Color;
 
 public class MessageSeed {
     

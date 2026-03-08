@@ -1,7 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -14,7 +13,7 @@ import pro.eng.yui.oss.d2h.botIF.i.MessageKey;
 import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
 import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 
-import java.awt.*;
+import java.awt.Color;
 import java.util.List;
 
 /**
