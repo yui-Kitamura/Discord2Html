@@ -1,14 +1,15 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
-import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.github.GitConfig;
 import pro.eng.yui.oss.d2h.github.GitUtil;
+
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 
 import java.util.List;
 
@@ -18,16 +19,14 @@ public class HelpRunner implements IRunner {
     private final GitConfig gitConfig;
     private final Secrets secrets;
     private final GitUtil gitUtil;
-    private final DiscordBotUtils discordBotUtils;
 
-    private String lastAfterRunMessage = "bot sent you help guid to DM";
+    private MessageSeed lastAfterRunMessage = null;
     private boolean lastShouldDeferEphemeral = true;
     
-    public HelpRunner(GitConfig gitConfig, Secrets secrets, GitUtil gitUtil, DiscordBotUtils discordBotUtils){
+    public HelpRunner(GitConfig gitConfig, Secrets secrets, GitUtil gitUtil){
         this.gitConfig = gitConfig;
         this.secrets = secrets;
         this.gitUtil = gitUtil;
-        this.discordBotUtils = discordBotUtils;
     }
     
     @Override
@@ -63,11 +62,11 @@ public class HelpRunner implements IRunner {
                     ch -> ch.sendMessage(buildHelpText()).queue(),
                     err -> { /* nothing to do */ }
             );
-            returnMessage = "bot sent you help guid to DM";
+            this.lastAfterRunMessage = new MessageSeed(INFO, MessageKeys.RUNNER_HELP_DM_SENT);
             this.lastShouldDeferEphemeral = true;
+        } else {
+            this.lastAfterRunMessage = new MessageSeed(INFO, MessageKeys.COMMON_RAW, returnMessage);
         }
-        
-        this.lastAfterRunMessage = returnMessage;
     }
 
     private String buildHelpText(){
@@ -136,8 +135,8 @@ public class HelpRunner implements IRunner {
     }
 
     @Override
-    public MessageEmbed afterRunMessage() {
-        return discordBotUtils.buildStatusEmbed(INFO, lastAfterRunMessage);
+    public MessageSeed afterRunMessage() {
+        return lastAfterRunMessage;
     }
     
     @Override

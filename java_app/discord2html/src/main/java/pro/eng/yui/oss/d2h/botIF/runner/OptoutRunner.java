@@ -6,11 +6,15 @@ import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.db.dao.OptoutDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Optout;
 
+import pro.eng.yui.oss.d2h.botIF.i.MessageKey;
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
+
+import java.awt.*;
 import java.util.List;
 
 /**
@@ -23,15 +27,19 @@ import java.util.List;
 public class OptoutRunner implements IRunner {
 
     private final OptoutDAO optoutDAO;
-    private final DiscordBotUtils discordBotUtils;
 
-    private MessageEmbed afterMessage;
+    private MessageKey lastMessageKey;
+    private Object[] lastMessageArgs;
+    private Color lastMessageColor;
+    private boolean lastHasNote;
 
     @Autowired
-    public OptoutRunner(OptoutDAO optoutDAO, DiscordBotUtils discordBotUtils) {
+    public OptoutRunner(OptoutDAO optoutDAO) {
         this.optoutDAO = optoutDAO;
-        this.discordBotUtils = discordBotUtils;
-        afterMessage = discordBotUtils.buildStatusEmbed(INFO, "you can opt-out from archive");
+        this.lastMessageKey = MessageKeys.RUNNER_OPTOUT_SUCCESS;
+        this.lastMessageArgs = new Object[0];
+        this.lastMessageColor = INFO;
+        this.lastHasNote = false;
     }
 
     @Override
@@ -44,7 +52,9 @@ public class OptoutRunner implements IRunner {
         OptionMapping chOpt = get(options, "channel");
         OptionMapping optinOpt = get(options, "opt-in");
         if (optinOpt == null) {
-            afterMessage = discordBotUtils.buildStatusEmbed(ERROR, "opt-in option is required (True/False)");
+            this.lastMessageColor = ERROR;
+            this.lastMessageKey = MessageKeys.RUNNER_OPTOUT_ERROR_OPTIN_REQUIRED;
+            this.lastMessageArgs = new Object[0];
             return;
         }
         boolean optIn = optinOpt.getAsBoolean();
@@ -52,19 +62,28 @@ public class OptoutRunner implements IRunner {
         UserId userId = new UserId(member.getUser());
         GuildId guildId = new GuildId(member.getGuild());
         ChannelId channelId = null;
-        String scopeLabel;
+        MessageKey scopeKey;
+        Object[] scopeArgs;
         if (chOpt != null) {
             GuildChannel ch = chOpt.getAsChannel();
             channelId = new ChannelId(ch.getIdLong());
-            scopeLabel = "channel:#" + ch.getName();
+            scopeKey = MessageKeys.RUNNER_OPTOUT_SCOPE_CHANNEL;
+            scopeArgs = new Object[]{ ch.getName() };
         } else {
-            scopeLabel = "this guild (all channels)";
+            scopeKey = MessageKeys.RUNNER_OPTOUT_SCOPE_GUILD;
+            scopeArgs = new Object[0];
         }
 
+        this.lastMessageColor = SUCCESS;
         if (optIn) {
             // clear opt-out by setting optin timestamp
             optoutDAO.optin(userId, guildId, channelId, null);
-            String successMsg = "Opt-in recorded for " + scopeLabel;
+            this.lastMessageKey = MessageKeys.RUNNER_OPTOUT_OPTIN_SUCCESS;
+            this.lastMessageArgs = new Object[]{ scopeKey }; 
+            if (scopeArgs.length > 0) {
+                this.lastMessageArgs = new Object[]{ scopeKey, scopeArgs[0] };
+            }
+            this.lastHasNote = false;
             
             // look issue#127
             // though out-IN, warn that OUT channels still exclude
@@ -73,10 +92,9 @@ public class OptoutRunner implements IRunner {
                 boolean hasSpecificOptout = allRecs.stream()
                         .anyMatch(r -> r.getChannelId() != null && r.getOptinTimestamp() == null);
                 if (hasSpecificOptout) {
-                    successMsg += "\n**Note**: 一部のチャンネルで個別にオプトアウト設定が残っています。これらは引き続きアーカイブから除外されます。";
+                    this.lastHasNote = true;
                 }
             }
-            afterMessage = discordBotUtils.buildStatusEmbed(SUCCESS, successMsg);
         } else {
             // set opt-out (insert if not exists; if exists, clear optin timestamp to null)
             Optout rec = new Optout();
@@ -92,13 +110,18 @@ public class OptoutRunner implements IRunner {
                     optoutDAO.update(rec);
                 } catch (Throwable ignored) { /* no-op */ }
             }
-            afterMessage = discordBotUtils.buildStatusEmbed(SUCCESS, "Opt-out recorded for " + scopeLabel);
+            this.lastMessageKey = MessageKeys.RUNNER_OPTOUT_OPTOUT_SUCCESS;
+            this.lastMessageArgs = new Object[]{ scopeKey };
+            if (scopeArgs.length > 0) {
+                this.lastMessageArgs = new Object[]{ scopeKey, scopeArgs[0] };
+            }
+            this.lastHasNote = false;
         }
     }
 
     @Override
-    public MessageEmbed afterRunMessage() {
-        return afterMessage;
+    public MessageSeed afterRunMessage() {
+        return new MessageSeed(lastMessageColor, lastMessageKey, lastMessageArgs);
     }
 
     @Override
