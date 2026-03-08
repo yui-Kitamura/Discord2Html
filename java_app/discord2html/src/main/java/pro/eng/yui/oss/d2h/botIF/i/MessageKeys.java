@@ -68,7 +68,7 @@ public interface MessageKeys {
     MessageKey RUNNER_OPTOUT_OPTOUT_SUCCESS = new MessageKey("runner.optout.optout.success");
     /** ロール設定が正常に更新されました */
     MessageKey RUNNER_ROLE_SUCCESS = new MessageKey("runner.role.success");
-    /** アーカイブ作成を開始しました。{0} */
+    /** アーカイブを作成しました。{0} */
     MessageKey RUNNER_RUN_ARCHIVE_SUCCESS = new MessageKey("runner.run_archive.success");
     /** GitHubへプッシュされます。 */
     MessageKey RUNNER_RUN_ARCHIVE_SUCCESS_PUSH = new MessageKey("runner.run_archive.success.push");
