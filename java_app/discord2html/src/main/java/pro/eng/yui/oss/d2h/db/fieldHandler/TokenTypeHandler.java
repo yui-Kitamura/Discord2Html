@@ -5,7 +5,6 @@ import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedJdbcTypes;
 import org.apache.ibatis.type.MappedTypes;
 import pro.eng.yui.oss.d2h.db.field.TokenType;
-import pro.eng.yui.oss.d2h.db.field.UserName;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
