@@ -322,7 +322,7 @@ public class RunArchiveRunner implements IRunner {
      */
     private void run(final GuildChannel channel, final Calendar beginDate, final Calendar endDate, final boolean scheduled) {
         //validate
-        Locale locale = channel.getGuild().getLocale().toLocale();
+        Locale locale = discordBotUtils.getLocale(channel.getGuild());
         boolean isThread = channel.getType().isThread();
         
         if (scheduled) {
@@ -516,7 +516,7 @@ public class RunArchiveRunner implements IRunner {
                     urlMsg = buildChannelArchiveUrl(msgCh, DateTimeUtil.formatDate8(urlCal));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
-            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(new MessageSeed( SUCCESS, MessageKeys.COMMON_INFO_ARCHIVE_CREATED_END, urlMsg), locale)).queue();
+            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(new MessageSeed(SUCCESS, MessageKeys.COMMON_INFO_ARCHIVE_CREATED_END, urlMsg), locale)).queue();
         }
     }
     private void runActiveThreadsUnder(IThreadContainer parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
