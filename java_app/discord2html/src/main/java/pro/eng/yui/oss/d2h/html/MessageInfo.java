@@ -67,6 +67,7 @@ public class MessageInfo {
         public Message.Attachment getAttachment() { return attachment; }
         public String getUrl() { return attachment.getUrl(); }
         public String getFileName() { return attachment.getFileName(); }
+        public String getDescription() { return attachment.getDescription(); }
         public long getSize() { return attachment.getSize(); }
         public boolean isImage() { return attachment.isImage(); }
         public String getLocalPath() { return localPath; }
