@@ -64,6 +64,18 @@ public class DiscordBotUtils {
         } 
         return String.valueOf(obj);
     }
+    
+    public Locale getLocale(Guild guild) {
+        try {
+            Guilds g = guildsDao.selectGuildInfo(new GuildId(guild));
+            if (g.getLang() != null) {
+                return g.getLang().toLocale();
+            }
+        } catch (Exception e) {
+            // ignore
+        }
+        return Lang.DEFAULT.toLocale();
+    }
 
     /* pkg-prv */ void upsertGuildInfoToDB(Guild guild){
         Guilds newRecord = new Guilds();

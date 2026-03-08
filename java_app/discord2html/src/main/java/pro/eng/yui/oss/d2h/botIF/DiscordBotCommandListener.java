@@ -83,6 +83,12 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             new SubcommandData("schedule", "change auto-archive cycle hours (start at 0:00JST)")
                     .addOption(OptionType.INTEGER, "cycle", "execute every N hours (1-23), starting at 0:00, if 0 then only midnight", false)
             ,
+            new SubcommandData("guild", "change guild settings")
+                    .addOptions(new OptionData(OptionType.STRING, "lang", "change bot language", false)
+                            .addChoice("ja-JP", "ja-JP")
+                            .addChoice("en-US", "en-US")
+                    )
+            ,
             new SubcommandData("help", "send you about this bots command help")
                     .addOption(OptionType.BOOLEAN, "version", "show bot version", false)
                     .addOption(OptionType.BOOLEAN, "tos", "show archive policy (TOS) link", false)
@@ -97,13 +103,14 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private final ArchiveConfigRunner archiveConfigRunner;
     private final AutoArchiveScheduleRunner autoArchiveScheduleRunner;
     private final OptoutRunner optoutRunner;
+    private final GuildSettingRunner guildSettingRunner;
 
     @Autowired
     public DiscordBotCommandListener(DiscordBotUtils botUtils,
                                      HelpRunner help, MeRunner me, RoleRunner role,
                                      AnonymousSettingRunner anon, RunArchiveRunner run,
                                      ArchiveConfigRunner archive, AutoArchiveScheduleRunner schedule,
-                                     OptoutRunner optoutRunner){
+                                     OptoutRunner optoutRunner, GuildSettingRunner guildSettingRunner){
         this.botUtils = botUtils;
         this.roleRunner = role;
         this.anonymousSettingRunner = anon;
@@ -113,13 +120,14 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         this.archiveConfigRunner = archive;
         this.autoArchiveScheduleRunner = schedule;
         this.optoutRunner = optoutRunner;
+        this.guildSettingRunner = guildSettingRunner;
     }
 
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         final String command = event.getName();
         final String sub = event.getSubcommandName();
-        final Locale locale = event.getGuildLocale().toLocale();
+        final Locale locale = botUtils.getLocale(event.getGuild());
         
         if((event.getChannel() instanceof GuildChannel) == false) {
             event.replyEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.WARN, MessageKeys.COMMON_ERROR_GUILD_CHANNEL_ONLY), locale)).queue();
@@ -180,6 +188,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "help" -> runHelp(event);
                 case "schedule" -> runSchedule(event);
                 case "optout" -> runOptout(event);
+                case "guild" -> runGuild(event);
                 default -> {
                     event.getHook()
                             .editOriginalEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_UNKNOWN_SUBCOMMAND), locale))
@@ -261,6 +270,10 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private void runSchedule(SlashCommandInteractionEvent event){
         autoArchiveScheduleRunner.run(event.getGuild(), event.getOptions());
     }
+
+    private void runGuild(SlashCommandInteractionEvent event){
+        guildSettingRunner.run(event.getGuild(), event.getOptions());
+    }
     
     private IRunner getRunnerBySub(String sub) {
         return switch (sub) {
@@ -272,6 +285,7 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             case "help" -> helpRunner;
             case "schedule" -> autoArchiveScheduleRunner;
             case "optout" -> optoutRunner;
+            case "guild" -> guildSettingRunner;
             default -> null;
         };
     }

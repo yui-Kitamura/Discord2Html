@@ -7,7 +7,8 @@ CREATE TABLE guilds
     last_anon_changed TIMESTAMP,
     runs_on     INT DEFAULT 12 NOT NULL,
     on_run_message VARCHAR(10) DEFAULT 'on' NOT NULL,
-    on_run_url VARCHAR(10) DEFAULT 'deny' NOT NULL
+    on_run_url VARCHAR(10) DEFAULT 'deny' NOT NULL,
+    lang VARCHAR(10) DEFAULT 'ja-JP' NOT NULL
 );
 
 CREATE TABLE channels

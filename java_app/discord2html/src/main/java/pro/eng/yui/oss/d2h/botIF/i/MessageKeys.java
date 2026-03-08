@@ -46,6 +46,8 @@ public interface MessageKeys {
     MessageKey RUNNER_ARCHIVE_CONFIG_GUILD_UNRESOLVED = new MessageKey("runner.archive_config.guild_unresolved");
     /** 自動アーカイブスケジュールが正常に更新されました */
     MessageKey RUNNER_AUTO_ARCHIVE_SUCCESS = new MessageKey("runner.auto_archive.success");
+    /** サーバー設定が正常に更新されました */
+    MessageKey RUNNER_GUILD_SUCCESS = new MessageKey("runner.guild.success");
     /** 現在の実行予定時刻： {0} */
     MessageKey RUNNER_AUTO_ARCHIVE_CURRENT = new MessageKey("runner.auto_archive.current");
     /** 新しい実行予定時刻： {0} */

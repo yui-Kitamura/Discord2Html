@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.field.AnonCycle;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
+import pro.eng.yui.oss.d2h.db.field.Lang;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
 import pro.eng.yui.oss.d2h.db.mapper.GuildsMapper;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
@@ -64,6 +65,9 @@ public class GuildsDAO {
             }
             if (newRecord.getRunsOn() == null) {
                 newRecord.setRunsOn(new RunsOn(12));
+            }
+            if (newRecord.getLang() == null) {
+                newRecord.setLang(Lang.DEFAULT);
             }
             mapper.register(newRecord);
         }
