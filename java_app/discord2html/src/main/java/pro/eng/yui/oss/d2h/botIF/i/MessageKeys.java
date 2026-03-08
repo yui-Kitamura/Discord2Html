@@ -58,7 +58,7 @@ public interface MessageKeys {
     MessageKey RUNNER_OPTOUT_SCOPE_GUILD = new MessageKey("runner.optout.scope.guild");
     /** チャンネル：#{0} */
     MessageKey RUNNER_OPTOUT_SCOPE_CHANNEL = new MessageKey("runner.optout.scope.channel");
-    /** {0} のオプトインを記録しました */
+    /** {0} のオプトインを記録しました{1} */
     MessageKey RUNNER_OPTOUT_OPTIN_SUCCESS = new MessageKey("runner.optout.optin.success");
     /** \n【補足】：個別チャンネルのオプトアウト設定は残っています。そのチャンネルはアーカイブから除外されます。 */
     MessageKey RUNNER_OPTOUT_OPTIN_NOTE = new MessageKey("runner.optout.optin.note");

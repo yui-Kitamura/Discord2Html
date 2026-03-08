@@ -1,7 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,15 +74,11 @@ public class OptoutRunner implements IRunner {
         }
 
         this.lastMessageColor = SUCCESS;
+        this.lastHasNote = false;
         if (optIn) {
             // clear opt-out by setting optin timestamp
             optoutDAO.optin(userId, guildId, channelId, null);
             this.lastMessageKey = MessageKeys.RUNNER_OPTOUT_OPTIN_SUCCESS;
-            this.lastMessageArgs = new Object[]{ scopeKey }; 
-            if (scopeArgs.length > 0) {
-                this.lastMessageArgs = new Object[]{ scopeKey, scopeArgs[0] };
-            }
-            this.lastHasNote = false;
             
             // look issue#127
             // though out-IN, warn that OUT channels still exclude
@@ -111,11 +106,12 @@ public class OptoutRunner implements IRunner {
                 } catch (Throwable ignored) { /* no-op */ }
             }
             this.lastMessageKey = MessageKeys.RUNNER_OPTOUT_OPTOUT_SUCCESS;
-            this.lastMessageArgs = new Object[]{ scopeKey };
-            if (scopeArgs.length > 0) {
-                this.lastMessageArgs = new Object[]{ scopeKey, scopeArgs[0] };
-            }
-            this.lastHasNote = false;
+        }
+
+        Object note = this.lastHasNote ? MessageKeys.RUNNER_OPTOUT_OPTIN_NOTE : "";
+        this.lastMessageArgs = new Object[]{ scopeKey, note };
+        if (scopeArgs.length > 0) {
+            this.lastMessageArgs = new Object[]{ new MessageSeed(SUCCESS, scopeKey, scopeArgs[0]), note };
         }
     }
 
