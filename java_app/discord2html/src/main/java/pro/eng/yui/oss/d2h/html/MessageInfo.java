@@ -13,7 +13,6 @@ import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Users;
 
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
-import pro.eng.yui.oss.d2h.db.field.AbstName;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 
