@@ -147,9 +147,6 @@ public class ArchiveConfigRunner implements IRunner {
                 continue;
             }
             ChannelId id = new ChannelId(ch);
-            if (targetChannels.contains(id)) {
-                continue;
-            }
             CategoryId catId = CategoryId.NO_CATEGORY;
             CategoryName catName = CategoryName.EMPTY;
             if (ch instanceof ICategorizableChannel cc && cc.getParentCategory() != null) {
