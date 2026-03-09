@@ -55,9 +55,7 @@
       <div class="attachments" th:if="${msg.attachmentViews != null and !#lists.isEmpty(msg.attachmentViews)}">
         <div th:each="av : ${msg.attachmentViews}">
           <figure th:if="${av.image}">
-            <a th:href="${av.url}" target="_blank" rel="noopener">
-              <img th:src="${av.localPath != null ? basePrefix + '/' + av.localPath : av.url}" alt="" />
-            </a>
+            <img th:src="${av.localPath != null ? basePrefix + '/' + av.localPath : av.url}" alt="" />
             <figcaption th:text="${av.description != null and !av.description.isEmpty() ? av.description : av.fileName}"></figcaption>
           </figure>
           <div th:if="${!av.image}">
