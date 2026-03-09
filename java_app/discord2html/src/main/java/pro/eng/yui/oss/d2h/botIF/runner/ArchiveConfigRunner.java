@@ -186,9 +186,8 @@ public class ArchiveConfigRunner implements IRunner {
             }
         }
         if (!remaining.isEmpty()) {
-            CategoryId deletedCatId = new CategoryId(-1L);
-            groups.put(deletedCatId, remaining);
-            categoryNames.put(deletedCatId, new CategoryName(AbstName.SUFFIX_DELETED));
+            groups.put(CategoryId.DELETED, remaining);
+            categoryNames.put(CategoryId.DELETED, new CategoryName(AbstName.SUFFIX_DELETED));
         }
 
         if (groups.isEmpty()) {
@@ -205,9 +204,13 @@ public class ArchiveConfigRunner implements IRunner {
             for (int i = 0; i < chIds.size(); i++) {
                 ChannelId cid = chIds.get(i);
                 boolean last = (i == chIds.size() - 1);
-                sb.append(last ? "└ " : "├ ")
-                  .append("<#").append(Objects.toString(cid.getValue())).append(">")
-                  .append("\n");
+                sb.append(last ? "└ " : "├ ");
+                if (catId.equals(CategoryId.DELETED)) {
+                    sb.append("#").append(channelDao.selectChannelInfo(cid).getChannelName().getValue());
+                } else {
+                    sb.append("<#").append(Objects.toString(cid.getValue())).append(">");
+                }
+                sb.append("\n");
             }
         }
         if (sb.isEmpty() == false) {
