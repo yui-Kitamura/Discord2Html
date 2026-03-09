@@ -38,7 +38,7 @@ public interface MessageKeys {
     MessageKey RUNNER_ANONYMOUS_SUCCESS = new MessageKey("runner.anonymous.success");
     /** アーカイブ設定が正常に更新されました */
     MessageKey RUNNER_ARCHIVE_CONFIG_SUCCESS = new MessageKey("runner.archive_config.success");
-    /** アーカイブ対象： */
+    /** アーカイブ対象： {0} */
     MessageKey RUNNER_ARCHIVE_CONFIG_TARGETS = new MessageKey("runner.archive_config.targets");
     /** アーカイブ対象： （なし） */
     MessageKey RUNNER_ARCHIVE_CONFIG_NONE = new MessageKey("runner.archive_config.none");
