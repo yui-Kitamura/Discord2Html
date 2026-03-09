@@ -6,7 +6,7 @@
 
     <groupId>pro.eng.yui.oss.d2h</groupId>
     <artifactId>discord2html</artifactId>
-    <version>3.0.4</version>
+    <version>3.0.5</version>
     <description>create archive HTML file from Discord</description>
     <developers>
         <developer>
