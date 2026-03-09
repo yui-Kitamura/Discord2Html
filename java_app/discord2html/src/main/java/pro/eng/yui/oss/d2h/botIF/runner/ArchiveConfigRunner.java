@@ -140,13 +140,16 @@ public class ArchiveConfigRunner implements IRunner {
         for (GuildChannel ch : all) {
             if (ch instanceof ThreadChannel) { continue; }
             if (ch instanceof Category cat) {
-                // Ensure category key exists (even if no archived channels under it yet)
+                // Ensure category key exists
                 CategoryId catId = new CategoryId(cat);
                 groups.putIfAbsent(catId, new ArrayList<>());
                 categoryNames.putIfAbsent(catId, new CategoryName(cat));
                 continue;
             }
             ChannelId id = new ChannelId(ch);
+            if (targetChannels.contains(id) == false) {
+                continue;
+            }
             CategoryId catId = CategoryId.NO_CATEGORY;
             CategoryName catName = CategoryName.EMPTY;
             if (ch instanceof ICategorizableChannel cc && cc.getParentCategory() != null) {
@@ -157,23 +160,34 @@ public class ArchiveConfigRunner implements IRunner {
             categoryNames.putIfAbsent(catId, catName);
             groups.get(catId).add(id);
         }
-        // ギルドに現存しないチャンネル（remaining）は無視する
 
-        // Remove non-target channels and empty groups
+        // Remove empty groups
         List<CategoryId> emptyKeys = new ArrayList<>();
         for (Map.Entry<CategoryId, List<ChannelId>> e : groups.entrySet()) {
             if (e.getValue() == null || e.getValue().isEmpty()) {
-                emptyKeys.add(e.getKey());
-                continue;
-            }
-            e.getValue().removeIf(ch -> !targetChannels.contains(ch));
-            if (e.getValue().isEmpty()) {
                 emptyKeys.add(e.getKey());
             }
         }
         for (CategoryId k : emptyKeys) {
             groups.remove(k);
             categoryNames.remove(k);
+        }
+
+        // Add channels that are in DB but NOT in the current Guild (possibly deleted or invisible)
+        Set<ChannelId> guildChannelIds = new HashSet<>();
+        for (GuildChannel ch : all) {
+            guildChannelIds.add(new ChannelId(ch));
+        }
+        List<ChannelId> remaining = new ArrayList<>();
+        for (ChannelId tid : targetChannels) {
+            if (!guildChannelIds.contains(tid)) {
+                remaining.add(tid);
+            }
+        }
+        if (!remaining.isEmpty()) {
+            CategoryId deletedCatId = new CategoryId(-1L);
+            groups.put(deletedCatId, remaining);
+            categoryNames.put(deletedCatId, new CategoryName(AbstName.SUFFIX_DELETED));
         }
 
         if (groups.isEmpty()) {
