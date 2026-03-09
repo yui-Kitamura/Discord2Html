@@ -11,6 +11,7 @@ public class CategoryId extends AbstIds{
     }
 
     public static CategoryId NO_CATEGORY = new CategoryId(NO_ID);
+    public static CategoryId DELETED = new CategoryId(-1);
 
     @Override
     public int hashCode() { return super.hashCode(); }
