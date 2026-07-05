@@ -131,4 +131,25 @@ class MessageInfoTest {
         String out = MessageInfo.toHtmlWithLinks(in);
         assertEquals("<blockquote>quoted message line</blockquote>normal line<br><blockquote>another quote</blockquote>", out);
     }
+
+    @Test
+    void discordTimeTagIsEscaped() {
+        String in = "<t:1767193198:d>";
+        String out = MessageInfo.toHtmlWithLinks(in);
+        assertEquals("<time datetime=\"2025-12-31T23:59:58\">2025/12/31</time>", out);
+    }
+
+    @Test
+    void discordTimeTagIsEscapedInline() {
+        String in = "Start <t:1767193198:F> end";
+        String out = MessageInfo.toHtmlWithLinks(in);
+        assertEquals("Start <time datetime=\"2025-12-31T23:59:58\">2025/12/31 23:59:58</time> end", out);
+    }
+
+    @Test
+    void discordTimeTagIsEscapedWithWrongFormat() {
+        String in = "<t:1767193198:X>";
+        String out = MessageInfo.toHtmlWithLinks(in);
+        assertEquals("&lt;t:1767193198:X&gt;", out);
+    }
 }

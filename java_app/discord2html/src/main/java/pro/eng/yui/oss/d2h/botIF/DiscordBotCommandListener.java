@@ -1,5 +1,7 @@
 package pro.eng.yui.oss.d2h.botIF;
 
+import net.dv8tion.jda.api.Permission;
+import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildChannel;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -9,11 +11,14 @@ import net.dv8tion.jda.api.interactions.commands.build.SubcommandData;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 import pro.eng.yui.oss.d2h.botIF.runner.*;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 @Component
 public class DiscordBotCommandListener extends ListenerAdapter {
@@ -71,14 +76,25 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                                     .addChoice("open", "open")
                     )
             ,
+            new SubcommandData("optout", "opt-out or re-consent your archive settings")
+                    .addOption(OptionType.BOOLEAN, "opt-in", "set True to re-consent (opt-in), False to opt-out", true)
+                    .addOption(OptionType.CHANNEL, "channel", "target channel (omit for guild-wide)", false)
+            ,
             new SubcommandData("schedule", "change auto-archive cycle hours (start at 0:00JST)")
                     .addOption(OptionType.INTEGER, "cycle", "execute every N hours (1-23), starting at 0:00, if 0 then only midnight", false)
             ,
+            new SubcommandData("guild", "change guild settings")
+                    .addOptions(new OptionData(OptionType.STRING, "lang", "change bot language", false)
+                            .addChoice("ja-JP", "ja-JP")
+                            .addChoice("en-US", "en-US")
+                    )
+            ,
             new SubcommandData("help", "send you about this bots command help")
                     .addOption(OptionType.BOOLEAN, "version", "show bot version", false)
+                    .addOption(OptionType.BOOLEAN, "tos", "show archive policy (TOS) link", false)
     );
 
-    private final DiscordBotUtils bot;
+    private final DiscordBotUtils botUtils;
     private final RoleRunner roleRunner;
     private final AnonymousSettingRunner anonymousSettingRunner;
     private final MeRunner meRunner;
@@ -86,13 +102,16 @@ public class DiscordBotCommandListener extends ListenerAdapter {
     private final RunArchiveRunner runArchiveRunner;
     private final ArchiveConfigRunner archiveConfigRunner;
     private final AutoArchiveScheduleRunner autoArchiveScheduleRunner;
+    private final OptoutRunner optoutRunner;
+    private final GuildSettingRunner guildSettingRunner;
 
     @Autowired
-    public DiscordBotCommandListener(DiscordBotUtils bot,
+    public DiscordBotCommandListener(DiscordBotUtils botUtils,
                                      HelpRunner help, MeRunner me, RoleRunner role,
                                      AnonymousSettingRunner anon, RunArchiveRunner run,
-                                     ArchiveConfigRunner archive, AutoArchiveScheduleRunner schedule){
-        this.bot = bot;
+                                     ArchiveConfigRunner archive, AutoArchiveScheduleRunner schedule,
+                                     OptoutRunner optoutRunner, GuildSettingRunner guildSettingRunner){
+        this.botUtils = botUtils;
         this.roleRunner = role;
         this.anonymousSettingRunner = anon;
         this.meRunner = me;
@@ -100,32 +119,37 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         this.runArchiveRunner = run;
         this.archiveConfigRunner = archive;
         this.autoArchiveScheduleRunner = schedule;
+        this.optoutRunner = optoutRunner;
+        this.guildSettingRunner = guildSettingRunner;
     }
 
     @Override
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         final String command = event.getName();
         final String sub = event.getSubcommandName();
+        final Locale locale = botUtils.getLocale(event.getGuild());
         
         if((event.getChannel() instanceof GuildChannel) == false) {
-            event.reply("commands is enabled only in server channel").queue();
+            event.replyEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.WARN, MessageKeys.COMMON_ERROR_GUILD_CHANNEL_ONLY), locale)).queue();
             return;
         }
         if (isAcceptedChannel(event.getGuildChannel()) == false) {
-            event.reply("you can NOT USE commands in this channel")
+            event.replyEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_INVALID_CHANNEL), locale))
                     .setEphemeral(true) //visible=false
                     .queue();
             return;
         }
         
         if(commands.contains(command) == false) {
-            event.reply("bot D2H has called but was not supported")
+            event.replyEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_NOT_SUPPORTED), locale))
+                    .setEphemeral(true)
                     .setSuppressedNotifications(true)
                     .queue();
             return;
         }
         if(sub == null) {
-            event.reply("command /D2H required more command message. Use `/d2h help`")
+            event.replyEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.WARN, MessageKeys.COMMON_ERROR_MISSING_SUBCOMMAND), locale))
+                    .setEphemeral(true)
                     .setSuppressedNotifications(true)
                     .queue();
             return;
@@ -135,12 +159,25 @@ public class DiscordBotCommandListener extends ListenerAdapter {
         if (runner != null) {
             event.deferReply(runner.shouldDeferEphemeral()).queue();
         } else {
-            event.deferReply().queue();
+            event.deferReply(true).queue();
+            event.getHook()
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.WARN, MessageKeys.COMMON_ERROR_RUNNER_NOT_FOUND), locale))
+                    .queue();
+            return;
         }
+        
+        // 権限チェック
+        if(hasPermission(event, runner) == false) {
+            event.getHook()
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_NO_PERMISSION), locale))
+                    .queue();
+            return;
+        }
+        
+        // 処理実行
         try {
-
-            bot.upsertGuildInfoToDB(event.getGuild());
-            bot.upsertGuildChannelToDB(event.getGuild());
+            botUtils.upsertGuildInfoToDB(event.getGuild());
+            botUtils.upsertGuildChannelToDB(event.getGuild());
 
             switch (sub) {
                 case "archive" -> runArchive(event);
@@ -150,101 +187,92 @@ public class DiscordBotCommandListener extends ListenerAdapter {
                 case "me" -> runMe(event);
                 case "help" -> runHelp(event);
                 case "schedule" -> runSchedule(event);
+                case "optout" -> runOptout(event);
+                case "guild" -> runGuild(event);
                 default -> {
                     event.getHook()
-                            .sendMessage("unknown subcommand. Use `/d2h help`")
-                            .setSuppressedNotifications(true)
+                            .editOriginalEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_UNKNOWN_SUBCOMMAND), locale))
                             .queue();
+                    return;
                 }
             }
+
+            event.getHook()
+                    .editOriginalEmbeds(botUtils.buildStatusEmbed(runner.afterRunMessage(), locale))
+                    .queue();
+            
         }catch(Exception unexpected) {
             event.getHook()
-                .sendMessage("something wrong in bot server. >> `"+ unexpected.getMessage() +"`")
+                .editOriginalEmbeds(botUtils.buildStatusEmbed(new MessageSeed(IRunner.ERROR, MessageKeys.COMMON_ERROR_INTERNAL_SERVER_ERROR, unexpected.getMessage()), locale))
                 .queue();
             return;
         }
     }
     
-    /** 汎用Admin権限チェック。エラーメッセージのレスポンスつき */
-    protected boolean hasAdminPermission(SlashCommandInteractionEvent event){
-        if(bot.isD2hAdmin(event.getMember()) == false) {
-            event.getHook()
-                    .editOriginal("you do NOT have required permission(role) to do this")
-                    .queue();
-            return false;
-        }
-        return true;
-    }
     /** コマンド実行チャンネルの確認 */
     protected boolean isAcceptedChannel(GuildChannel channel){
-        return bot.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
+        return botUtils.getAdminTaggedChannelList(channel.getGuild()).contains(channel);
+    }
+    protected boolean hasPermission(@NotNull SlashCommandInteractionEvent event, @NotNull IRunner runner){
+        IRunner.RequiredPermissionType required = runner.requiredPermissionType(event.getOptions());
+        switch (required) {
+            case DENY -> {
+                return false;
+            }
+            case ANY -> {
+                return true;
+            }
+            case D2H_ADMIN -> {
+                return botUtils.isD2hAdmin(event.getMember());
+            }
+            case SERVER_ADMIN -> {
+                try{
+                    for(Role r : event.getMember().getRoles()) {
+                        if (r.hasPermission(Permission.ADMINISTRATOR)) {
+                            return true;
+                        }
+                    }
+                    return false; 
+                }catch(NullPointerException e){ return false; }
+            }
+        }
+        return false;
     }
     
     private void runArchive(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
-        if(isAcceptedChannel(event.getGuildChannel()) == false) {
-            return;
-        }
         archiveConfigRunner.run(event.getGuild(), event.getOptions());
-        event.getHook().sendMessage(archiveConfigRunner.afterRunMessage()).queue();
     }
     
     private void runRun(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
-        if(isAcceptedChannel(event.getGuildChannel()) == false) {
-            return;
-        }
         runArchiveRunner.run(new GuildId(event.getGuild()), event.getOptions());
-        event.getHook().sendMessage(runArchiveRunner.afterRunMessage()).queue();
     }
     
     private void runRole(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
-        roleRunner.run(event.getMember(), event.getOptions());
-        event.getHook().sendMessage(roleRunner.afterRunMessage()).queue();
+        roleRunner.run(event.getOptions());
     }
     
     private void runMe(SlashCommandInteractionEvent event){
-        //do not need to check //if(hasAdminPermission(event) == false) == false)
         meRunner.run(event.getMember(), event.getOptions());
-        event.getHook().sendMessage(meRunner.afterRunMessage()).queue();
     }
     
+    private void runOptout(SlashCommandInteractionEvent event){
+        optoutRunner.run(event.getMember(), event.getOptions());
+    }
+    /** 匿名周期の変更 */
     private void runAnonymous(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
         anonymousSettingRunner.run(event.getGuild(), event.getOptions());
-        event.getHook().sendMessage(anonymousSettingRunner.afterRunMessage()).queue();
     }
     
     private void runHelp(SlashCommandInteractionEvent event){
-        // do not need to check admin for help
-        var opt = event.getOption("version");
-        boolean showVersion = (opt != null) && opt.getAsBoolean();
-        // delegate main processing to HelpRunner
-        helpRunner.run(event.getMember(), bot.isD2hAdmin(event.getMember()), showVersion);
-        event.getHook()
-                .sendMessage(helpRunner.afterRunMessage())
-                .setEphemeral(helpRunner.shouldDeferEphemeral())
-                .queue();
+        helpRunner.run(event.getMember(), event.getOptions());
     }
 
     private void runSchedule(SlashCommandInteractionEvent event){
-        if(hasAdminPermission(event) == false) {
-            return;
-        }
-        if(isAcceptedChannel(event.getGuildChannel()) == false) {
-            return;
-        }
         autoArchiveScheduleRunner.run(event.getGuild(), event.getOptions());
-        event.getHook().sendMessage(autoArchiveScheduleRunner.afterRunMessage()).queue();
+    }
+
+    private void runGuild(SlashCommandInteractionEvent event){
+        guildSettingRunner.run(event.getGuild(), event.getOptions());
     }
     
     private IRunner getRunnerBySub(String sub) {
@@ -256,6 +284,8 @@ public class DiscordBotCommandListener extends ListenerAdapter {
             case "me" -> meRunner;
             case "help" -> helpRunner;
             case "schedule" -> autoArchiveScheduleRunner;
+            case "optout" -> optoutRunner;
+            case "guild" -> guildSettingRunner;
             default -> null;
         };
     }

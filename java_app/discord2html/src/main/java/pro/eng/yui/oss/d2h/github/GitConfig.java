@@ -39,6 +39,14 @@ public class GitConfig {
         public String getMain() {
             return main;
         }
+        
+        private String ghPage;
+        public void setGhPage(String ghPage){
+            this.ghPage = ghPage;
+        }
+        public String getGhPage(){
+            return ghPage;
+        }
 
         public String getUrl() {
             return "https://github.com/" + owner + "/" + name;

@@ -1,6 +1,6 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
-import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,19 +13,27 @@ import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RoleId;
 import pro.eng.yui.oss.d2h.db.model.Roles;
 
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
+
 import java.util.List;
 
 @Component
 public class RoleRunner implements IRunner {
     
     private final RolesDAO roleDao;
-    
+
     @Autowired
     public RoleRunner(RolesDAO rolesDao){
         this.roleDao = rolesDao;
     }
     
-    public void run(Member member, List<OptionMapping> options){
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.D2H_ADMIN;
+    }
+    
+    public void run(List<OptionMapping> options){
         Role targetRole = get(options, "role").getAsRole();
         UserAnon newValue = UserAnon.get(get(options, "anonymous").getAsString());
         
@@ -44,7 +52,7 @@ public class RoleRunner implements IRunner {
     }
 
     @Override
-    public String afterRunMessage() {
-        return "role setting has changed";
+    public MessageSeed afterRunMessage() {
+        return new MessageSeed(SUCCESS, MessageKeys.RUNNER_ROLE_SUCCESS);
     }
 }

@@ -1,7 +1,5 @@
 package pro.eng.yui.oss.d2h.html;
 
-import java.net.URL;
-
 /**
  * Contains user information for display in messages.
  * Used to encapsulate either original or anonymized user data.

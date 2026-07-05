@@ -9,6 +9,11 @@ import pro.eng.yui.oss.d2h.db.field.GuildId;
 import pro.eng.yui.oss.d2h.db.field.RunsOn;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 
+import pro.eng.yui.oss.d2h.botIF.i.MessageKey;
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
+
+import java.awt.Color;
 import java.util.List;
 
 /**
@@ -20,13 +25,24 @@ import java.util.List;
 public class AutoArchiveScheduleRunner implements IRunner {
 
     private final GuildsDAO guildsDAO;
-    private volatile String lastRunsOnListMessage = "auto archive schedule has changed";
+
+    private MessageKey lastMessageKey;
+    private Object[] lastMessageArgs;
+    private Color lastMessageColor;
 
     @Autowired
     public AutoArchiveScheduleRunner(GuildsDAO guildsDAO) {
         this.guildsDAO = guildsDAO;
+        this.lastMessageKey = MessageKeys.RUNNER_AUTO_ARCHIVE_SUCCESS;
+        this.lastMessageArgs = new Object[0];
+        this.lastMessageColor = INFO;
     }
 
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.D2H_ADMIN;
+    }
+    
     public void run(Guild guild, List<OptionMapping> options) {
         Integer cycle = null;
         for (OptionMapping op : options) {
@@ -38,7 +54,9 @@ public class AutoArchiveScheduleRunner implements IRunner {
 
         if (cycle == null) {
             // 変更なし: 現在の設定を返答
-            lastRunsOnListMessage = "current scheduled hours are: " + buildRunsOnListString(current.getRunsOnList());
+            this.lastMessageColor = INFO;
+            this.lastMessageKey = MessageKeys.RUNNER_AUTO_ARCHIVE_CURRENT;
+            this.lastMessageArgs = new Object[]{ buildRunsOnListString(current.getRunsOnList()) };
             return;
         }
         if (cycle < 0 || 23 < cycle) {
@@ -49,7 +67,9 @@ public class AutoArchiveScheduleRunner implements IRunner {
         guildsDAO.upsertGuildInfo(current);
 
         // 最新のスケジュールを作成
-        lastRunsOnListMessage = "new scheduled hours are: " + buildRunsOnListString(current.getRunsOnList());
+        this.lastMessageColor = SUCCESS;
+        this.lastMessageKey = MessageKeys.RUNNER_AUTO_ARCHIVE_NEW;
+        this.lastMessageArgs = new Object[]{ buildRunsOnListString(current.getRunsOnList()) };
     }
 
     private String buildRunsOnListString(List<RunsOn> runsList) {
@@ -66,7 +86,7 @@ public class AutoArchiveScheduleRunner implements IRunner {
     }
 
     @Override
-    public String afterRunMessage() {
-        return lastRunsOnListMessage;
+    public MessageSeed afterRunMessage() {
+        return new MessageSeed(lastMessageColor, lastMessageKey, lastMessageArgs);
     }
 }

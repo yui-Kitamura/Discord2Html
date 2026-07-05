@@ -2,7 +2,7 @@ package pro.eng.yui.oss.d2h.db.field;
 
 import net.dv8tion.jda.api.entities.User;
 
-public class UserName extends AbstVarChar {
+public class UserName extends AbstName {
     
     public static int LIMIT = 255;
     
@@ -10,7 +10,17 @@ public class UserName extends AbstVarChar {
         super(value, LIMIT);
     }
     public UserName(User user){
-        this(user.getName());
+        super(safeUserName(user), LIMIT);
+    }
+
+    private static String safeUserName(User user) {
+        try {
+            String gn = null;
+            try { gn = user.getGlobalName(); } catch (Throwable ignore) { }
+            return (gn != null && !gn.isBlank()) ? gn : user.getName();
+        } catch (Throwable t) {
+            try { return user.getName(); } catch (Throwable ignore) { return ""; }
+        }
     }
 
     @Override

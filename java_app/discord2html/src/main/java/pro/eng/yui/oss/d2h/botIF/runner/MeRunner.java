@@ -1,9 +1,12 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 import pro.eng.yui.oss.d2h.consts.UserAnon;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
 import pro.eng.yui.oss.d2h.db.field.*;
@@ -21,14 +24,24 @@ public class MeRunner implements IRunner {
         this.usersDao = users;
     }
 
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.ANY;
+    }
+    
     public void run(Member member, List<OptionMapping> options){
         UserAnon newValue = UserAnon.get(get(options, "anonymous").getAsString());
         runSetAnonymous(member, newValue);
     }
     
     @Override
-    public String afterRunMessage(){
-        return "Your configuration has updated successfully";
+    public MessageSeed afterRunMessage() {
+        return new MessageSeed(SUCCESS, MessageKeys.RUNNER_ME_SUCCESS);
+    }
+    
+    @Override
+    public boolean shouldDeferEphemeral(){
+        return true;
     }
     
     private void runSetAnonymous(Member member, UserAnon newValue){

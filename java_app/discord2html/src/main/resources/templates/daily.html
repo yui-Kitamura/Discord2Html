@@ -43,7 +43,7 @@
         <span class="timestamp" th:text="${msg.createdTimestamp}">日付</span>
       </div>
       <blockquote class="forwarded" th:if="${msg.forwarded}" th:utext="${msg.forwardedHtml}"></blockquote>
-      <div class="content" th:utext="${msg.contentHtml}">メッセージ</div>
+      <div class="content" th:classappend="${msg.userInfo.optedOut} ? ' optout' : ''" th:utext="${msg.contentHtml}">メッセージ</div>
       <div class="poll" th:if="${msg.pollAnswersHtml != null}">
         <div class="poll-q" th:text="${msg.pollQuestion}"></div>
         <ul class="poll-list" th:utext="${msg.pollAnswersHtml}"></ul>
@@ -52,16 +52,15 @@
           <div class="poll-end" th:if="${msg.pollEndTimeText != null}" th:text="${msg.pollEndTimeText}">2025/01/02 00:00:00 投票締切：</div>
         </div>
       </div>
-      <div class="attachments" th:if="${msg.attachments != null and !#lists.isEmpty(msg.attachments)}">
-        <div th:each="att : ${msg.attachments}">
-          <div th:if="${att.image}">
-            <a th:href="${att.url}" target="_blank" rel="noopener">
-              <img th:src="${att.url}" th:alt="${att.fileName}" />
-            </a>
-          </div>
-          <div th:if="${!att.image}">
-            <a class="attachment-link" th:href="${att.url}" th:text="${att.fileName}" target="_blank" rel="noopener"></a>
-            <span th:if="${att.size > 0}" th:text="' (' + att.size + ' bytes)'"> サイズ </span>
+      <div class="attachments" th:if="${msg.attachmentViews != null and !#lists.isEmpty(msg.attachmentViews)}">
+        <div th:each="av : ${msg.attachmentViews}">
+          <figure th:if="${av.image}">
+            <img th:src="${av.localPath != null ? basePrefix + '/' + av.localPath : av.url}" alt="" />
+            <figcaption th:text="${av.description != null and !av.description.isEmpty() ? av.description : av.fileName}"></figcaption>
+          </figure>
+          <div th:if="${!av.image}">
+            <span class="attachment-text">📄<span th:text="${av.fileName}">ファイル名</span></span>
+            <span th:if="${av.size > 0}" th:text="' (' + ${av.size} + ' bytes)'"> サイズ </span>
           </div>
         </div>
       </div>

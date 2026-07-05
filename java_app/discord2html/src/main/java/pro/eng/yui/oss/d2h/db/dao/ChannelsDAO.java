@@ -6,7 +6,6 @@ import pro.eng.yui.oss.d2h.consts.ChannelStatus;
 import pro.eng.yui.oss.d2h.consts.exception.DbRecordNotFoundException;
 import pro.eng.yui.oss.d2h.db.field.ChannelId;
 import pro.eng.yui.oss.d2h.db.field.GuildId;
-import pro.eng.yui.oss.d2h.db.field.IsChanged;
 import pro.eng.yui.oss.d2h.db.field.Status;
 import pro.eng.yui.oss.d2h.db.mapper.ChannelsMapper;
 import pro.eng.yui.oss.d2h.db.model.ChannelLog;

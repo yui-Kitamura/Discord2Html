@@ -6,7 +6,7 @@ Discord2Htmlは、Discordサーバーの会話内容を定期的にHTMLファイ
 1botにつき1repo用意が必要です
 
 ## fork and develop
-新規bot開発に際しては、ディレクトリ`gh_pages`の内容を削除してください
+新規bot運用に際しては、ブランチ`ghPage`を作成のうえ、ディレクトリ`gh_pages`の内容を削除してください
 
 ## run
 - docs/deployに基づきDB（mariadb）を構築してください

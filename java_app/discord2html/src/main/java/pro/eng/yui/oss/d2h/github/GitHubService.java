@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.DirectoryStream;
-import java.nio.file.Paths;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -71,12 +70,17 @@ public class GitHubService {
         ensureStaticAssetsInRepo(repoDirFile, filesToAdd);
         // Also ensure custom emoji resources are staged
         ensureEmojisInRepo(repoDirFile, filesToAdd);
+        // Ensure image resources are staged
+        ensureFigsInRepo(repoDirFile, filesToAdd);
         for (Path htmlFilePath : htmlFilePaths) {
             String fileName = htmlFilePath.getFileName().toString();
             File targetFile;
             // Normalize path for checks
             String normalized = htmlFilePath.toString().replace('\\', '/');
-            boolean isTopLevelIndexOrHelp = ("index.html".equalsIgnoreCase(fileName) || "help.html".equalsIgnoreCase(fileName))
+            boolean isTopLevelIndexOrHelp = 
+                    ("index.html".equalsIgnoreCase(fileName) 
+                     || "help.html".equalsIgnoreCase(fileName) 
+                     || "tos.html".equalsIgnoreCase(fileName))
                     && !normalized.contains("/archives/");
             if (isTopLevelIndexOrHelp) {
                 // Place top-level index.html and help.html at gh_pages root
@@ -107,7 +111,7 @@ public class GitHubService {
             gitUtil.add(filesToAdd);
             gitUtil.commit(GitHubConsts.COMMIT_PREFIX + "multiple files");
 
-            gitUtil.pullRebase();
+            gitUtil.pullRebaseGhPage();
             gitUtil.push();
         } catch (Exception e) {
             throw new Exception("Failed to push HTML files to GitHub", e);
@@ -205,6 +209,30 @@ public class GitHubService {
             for (Path p : stream) {
                 if (!Files.isRegularFile(p)) continue;
                 File targetFile = new File(targetEmojiDir, p.getFileName().toString());
+                Files.copy(p, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                filesToAdd.add(getRelativePath(repoDirFile, targetFile));
+            }
+        }
+    }
+
+    /**
+     * Copy custom image files from outputPath/archives/figs into gh_pages/archives/figs in the repo
+     * and add them to filesToAdd for staging. Best-effort: silently return if none exist.
+     */
+    private void ensureFigsInRepo(File repoDirFile, List<String> filesToAdd) throws IOException {
+        if (appConfig == null) return;
+        Path sourceFigsDir = appConfig.getOutputPath().resolve("archives").resolve("figs");
+        if (!Files.exists(sourceFigsDir) || !Files.isDirectory(sourceFigsDir)) {
+            return;
+        }
+        File ghPagesRoot = new File(repoDirFile, "gh_pages");
+        File targetFigsDir = new File(new File(ghPagesRoot, "archives"), "figs");
+        targetFigsDir.mkdirs();
+
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(sourceFigsDir)) {
+            for (Path p : stream) {
+                if (!Files.isRegularFile(p)) continue;
+                File targetFile = new File(targetFigsDir, p.getFileName().toString());
                 Files.copy(p, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
                 filesToAdd.add(getRelativePath(repoDirFile, targetFile));
             }

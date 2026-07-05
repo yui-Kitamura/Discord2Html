@@ -14,6 +14,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.botIF.DiscordBot;
+import pro.eng.yui.oss.d2h.botIF.DiscordBotUtils;
 import pro.eng.yui.oss.d2h.botIF.DiscordJdaProvider;
 import pro.eng.yui.oss.d2h.config.ApplicationConfig;
 import pro.eng.yui.oss.d2h.db.dao.ChannelsDAO;
@@ -27,17 +28,17 @@ import pro.eng.yui.oss.d2h.html.ChannelInfo;
 import pro.eng.yui.oss.d2h.html.FileGenerateService;
 import pro.eng.yui.oss.d2h.html.MessageInfo;
 import pro.eng.yui.oss.d2h.consts.OnRunMessageMode;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Comparator;
-import java.util.Date;
+import java.util.*;
 import java.util.List;
 import java.io.IOException;
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
 
 @Component
 public class RunArchiveRunner implements IRunner {
@@ -52,6 +53,7 @@ public class RunArchiveRunner implements IRunner {
     private final FileGenerateUtil fileUtil;
     private final GitHubService gitHubService;
     private final GitConfig gitConfig;
+    private final DiscordBotUtils discordBotUtils;
     private final List<Path> generatedFiles = new ArrayList<>();
     // private final IndexGenerator indexGenerator;
 
@@ -60,7 +62,8 @@ public class RunArchiveRunner implements IRunner {
             ApplicationConfig c,
             GuildsDAO g, ChannelsDAO ch,
             DiscordJdaProvider j, FileGenerateService fileGenerator, FileGenerateUtil fileUtil,
-            GitHubService gitHubService, GitConfig gitConfig){
+            GitHubService gitHubService, GitConfig gitConfig,
+            DiscordBotUtils discordBotUtils){
         this.config = c;
         this.guildDao = g;
         this.channelDao = ch;
@@ -69,6 +72,12 @@ public class RunArchiveRunner implements IRunner {
         this.fileUtil = fileUtil;
         this.gitHubService = gitHubService;
         this.gitConfig = gitConfig;
+        this.discordBotUtils = discordBotUtils;
+    }
+
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.D2H_ADMIN;
     }
     
     public void run(GuildId target, List<OptionMapping> options){
@@ -158,12 +167,15 @@ public class RunArchiveRunner implements IRunner {
                 }
             }
 
-            // Generate help page only once per run
+            // Generate root page only once per run
             try {
                 fileGenerator.regenerateHelpPage(target);
-                Path help = config.getOutputPath().resolve("help.html");
-                if (!generatedFiles.contains(help) && Files.exists(help)) {
-                    generatedFiles.add(help);
+                Path base = config.getOutputPath();
+                for (String topPage : List.of("help.html", "index.html", "tos.html")) {
+                    Path p = base.resolve(topPage);
+                    if (!generatedFiles.contains(p) && Files.exists(p)) {
+                        generatedFiles.add(p);
+                    }
                 }
             } catch (IOException ignore) { }
 
@@ -185,6 +197,7 @@ public class RunArchiveRunner implements IRunner {
         jda.getJda().getPresence().setPresence(OnlineStatus.IDLE, DiscordBot.idle);
     }
     
+    /** バッチ実行用I/F */
     public void run(){
         try {
             jda.getJda().getPresence().setPresence(OnlineStatus.ONLINE, DiscordBot.working);
@@ -235,12 +248,15 @@ public class RunArchiveRunner implements IRunner {
                         }
                     }
                     
-                    // Generate help page once per scheduled guild run
+                    // Generate root page once per scheduled guild run
                     try {
                         fileGenerator.regenerateHelpPage(guilds.getGuildId());
-                        Path help = config.getOutputPath().resolve("help.html");
-                        if (!generatedFiles.contains(help) && Files.exists(help)) {
-                            generatedFiles.add(help);
+                        Path base = config.getOutputPath();
+                        for (String topPage : List.of("help.html", "index.html", "tos.html")) {
+                            Path p = base.resolve(topPage);
+                            if (!generatedFiles.contains(p) && Files.exists(p)) {
+                                generatedFiles.add(p);
+                            }
                         }
                     } catch (IOException ignore) { }
                     
@@ -306,6 +322,7 @@ public class RunArchiveRunner implements IRunner {
      */
     private void run(final GuildChannel channel, final Calendar beginDate, final Calendar endDate, final boolean scheduled) {
         //validate
+        Locale locale = discordBotUtils.getLocale(channel.getGuild());
         boolean isThread = channel.getType().isThread();
         
         if (scheduled) {
@@ -348,7 +365,7 @@ public class RunArchiveRunner implements IRunner {
         OnRunMessageMode msgMode = guildSettings.getOnRunMessage().get();
         
         if ((!isThread) && !isVoiceText(channel) && channel instanceof GuildMessageChannel msgCh && (msgMode.isStart() || msgMode.isBoth())) {
-            msgCh.sendMessage("This channel is archive target. Start >>>").queue();
+            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(new MessageSeed(INFO, MessageKeys.COMMON_INFO_ARCHIVE_TARGET_START), locale)).queue();
         }
 
         // Retrieve messages differently for normal channels vs threads
@@ -365,13 +382,13 @@ public class RunArchiveRunner implements IRunner {
         Calendar endForOutput = (Calendar) endDate.clone();
         if (isThread && !messages.isEmpty()) {
             try {
-                Date first = DateTimeUtil.time().parse(messages.get(0).getCreatedTimestamp());
+                Date first = DateTimeUtil.full().parse(messages.get(0).getCreatedTimestamp());
                 Calendar calBegin = Calendar.getInstance(DateTimeUtil.JST);
                 calBegin.setTime(first);
                 beginForOutput = calBegin;
             } catch (Exception ignore) { /* keep prior beginForOutput */ }
             try {
-                Date last = DateTimeUtil.time().parse(messages.get(messages.size() - 1).getCreatedTimestamp());
+                Date last = DateTimeUtil.full().parse(messages.get(messages.size() - 1).getCreatedTimestamp());
                 Calendar calEnd = Calendar.getInstance(DateTimeUtil.JST);
                 calEnd.setTime(last);
                 endForOutput = calEnd;
@@ -489,17 +506,17 @@ public class RunArchiveRunner implements IRunner {
         }
 
         if ((!isThread) && !isVoiceText(channel) && channel instanceof GuildMessageChannel msgCh && (msgMode.isEnd() || msgMode.isBoth())) {
-            String endMsg = "archive created. task end <<<";
+            String urlMsg = "";
             if (guildSettings.getOnRunUrl().get().isShare()) {
                 try {
                     Calendar urlCal = (Calendar) endDate.clone();
                     if (scheduled && urlCal.get(Calendar.HOUR_OF_DAY) == 0) {
                         urlCal.add(Calendar.DAY_OF_MONTH, -1);
                     }
-                    endMsg += "\n" + buildChannelArchiveUrl(msgCh, DateTimeUtil.formatDate8(urlCal));
+                    urlMsg = buildChannelArchiveUrl(msgCh, DateTimeUtil.formatDate8(urlCal));
                 } catch (Exception ignore) { /* ignore URL build failures */ }
             }
-            msgCh.sendMessage(endMsg).queue();
+            msgCh.sendMessageEmbeds(discordBotUtils.buildStatusEmbed(new MessageSeed(SUCCESS, MessageKeys.COMMON_INFO_ARCHIVE_CREATED_END, urlMsg), locale)).queue();
         }
     }
     private void runActiveThreadsUnder(IThreadContainer parent, Calendar beginDate, Calendar endDate, boolean scheduled) {
@@ -548,22 +565,23 @@ public class RunArchiveRunner implements IRunner {
     }
 
     @Override
-    public String afterRunMessage() {
-        if (lastRunNotes.size() == 0) {
+    public MessageSeed afterRunMessage() {
+        if (lastRunNotes.isEmpty()) {
             // success
-            if (config.getPushToGitHub()) {
-                return "bot completed making archive and pushing all files to GitHub repository";
-            } else {
-                return "bot completed making archive";
-            }
+            return new MessageSeed(SUCCESS, MessageKeys.RUNNER_RUN_ARCHIVE_SUCCESS,
+                    config.getPushToGitHub() ?
+                            MessageKeys.RUNNER_RUN_ARCHIVE_SUCCESS_PUSH :
+                            MessageKeys.RUNNER_RUN_ARCHIVE_SUCCESS_LOCAL);
         } else {
             // fail
             StringBuilder sb = new StringBuilder();
             for (String n : lastRunNotes) {
                 sb.append(n).append("\n");
             }
-            sb.setLength(sb.length() - 1); // remove the last "\n"
-            return sb.toString();
+            if (sb.isEmpty() == false) {
+                sb.setLength(sb.length() - 1); // remove the last "\n"
+            }
+            return new MessageSeed(WARN, MessageKeys.RUNNER_RUN_ARCHIVE_FAIL_NOTES, sb.toString());
         }
     }
 }

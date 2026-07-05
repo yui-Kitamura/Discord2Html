@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="pro.eng.yui.oss.d2h.db.mapper.OptoutMapper">
+
+    <insert id="insert" parameterType="Optout">
+        INSERT INTO optout (
+            user_id, guild_id, channel_id, optin_timestamp
+        ) VALUES (
+            #{user_id}, #{guild_id}, #{channel_id}, #{optin_timestamp}
+        )
+    </insert>
+
+    <update id="update" parameterType="Optout">
+        UPDATE optout
+        <set>
+            <if test="optin_timestamp != null">
+                optin_timestamp = #{optin_timestamp},
+            </if>
+        </set>
+        WHERE user_id = #{user_id}
+          AND guild_id = #{guild_id}
+          AND ((channel_id IS NULL AND #{channel_id} IS NULL) OR channel_id = #{channel_id})
+    </update>
+
+    <update id="optin" parameterType="Optout">
+        UPDATE optout
+        SET optin_timestamp = COALESCE(#{optin_timestamp}, CURRENT_TIMESTAMP)
+        WHERE user_id = #{user_id}
+          AND guild_id = #{guild_id}
+          AND ((channel_id IS NULL AND #{channel_id} IS NULL) OR channel_id = #{channel_id})
+    </update>
+
+    <select id="selectOne" parameterType="Optout" resultType="Optout">
+        SELECT id as seq_id, user_id, guild_id, channel_id, optin_timestamp
+        FROM optout
+        WHERE user_id = #{user_id}
+          AND guild_id = #{guild_id}
+          AND ((channel_id IS NULL AND #{channel_id} IS NULL) OR channel_id = #{channel_id})
+    </select>
+
+    <select id="selectAllByUserGuild" parameterType="Optout" resultType="Optout">
+        SELECT id as seq_id, user_id, guild_id, channel_id, optin_timestamp
+        FROM optout
+        WHERE user_id = #{user_id}
+          AND guild_id = #{guild_id}
+        ORDER BY channel_id
+    </select>
+
+    <select id="countEffectiveOptout" parameterType="Optout" resultType="int">
+        SELECT COUNT(1)
+        FROM optout
+        WHERE user_id = #{user_id}
+          AND guild_id = #{guild_id}
+          AND (optin_timestamp IS NULL)
+          AND (
+            (channel_id IS NULL AND #{channel_id} IS NULL)
+            OR channel_id = #{channel_id}
+          )
+    </select>
+
+</mapper>

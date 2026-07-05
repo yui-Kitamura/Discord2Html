@@ -1,9 +1,7 @@
 package pro.eng.yui.oss.d2h.html;
 
-import net.dv8tion.jda.api.entities.Message;
-import net.dv8tion.jda.api.entities.channel.concrete.ThreadChannel;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
-import net.dv8tion.jda.api.requests.RestAction;
+import net.dv8tion.jda.api.requests.restaction.pagination.PinnedMessagePaginationAction;
 import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
@@ -89,7 +87,7 @@ public class ArchiveGenerator {
             Context context = new Context();
             context.setVariable("channelName", channel.getName());
             context.setVariable("humanDate", DateTimeUtil.dateOnly().format(cur.getTime()));
-            context.setVariable("endText", DateTimeUtil.time().format(segmentEnd.getTime()));
+            context.setVariable("endText", DateTimeUtil.full().format(segmentEnd.getTime()));
             context.setVariable("messages", segmentMessages);
             context.setVariable("backToTopHref", basePrefix + "/index.html");
             context.setVariable("backToChannelHref", basePrefix+ "/archives/" + channel.getChannelId().toString() + ".html#d-" + date8);
@@ -161,20 +159,25 @@ public class ArchiveGenerator {
         }
 
         // Generate/refresh pinned messages page for this channel
-        try { generateChannelPinnedPage(guildId, channel); } catch (IOException ignore) { }
+        try {
+            List<MessageInfo> pins = generateChannelPinnedPage(guildId, channel);
+            if (pins != null && !pins.isEmpty()) {
+                fileUtil.archiveAttachments(appConfig.getOutputPath(), pins);
+            }
+        } catch (IOException ignore) { }
 
         return lastOutput;
     }
 
-    private void generateChannelPinnedPage(GuildId guildId, ChannelInfo channel) throws IOException {
-        List<Message> pinnedMessages = jdaProvider.getJda()
+    private List<MessageInfo> generateChannelPinnedPage(GuildId guildId, ChannelInfo channel) throws IOException {
+        List<PinnedMessagePaginationAction.PinnedMessage> pinnedMessages = jdaProvider.getJda()
                 .getChannelById(GuildMessageChannel.class, channel.getChannelId().getValue())
                 .retrievePinnedMessages().complete();
 
         List<MessageInfo> pins = new ArrayList<>();
-        for (Message msg : pinnedMessages) {
+        for (PinnedMessagePaginationAction.PinnedMessage msg : pinnedMessages) {
             try {
-                pins.add(new MessageInfo(msg));
+                pins.add(new MessageInfo(msg.getMessage()));
             } catch (Throwable ignore) { }
         }
         final String basePrefix = fileUtil.repoBaseWithPrefix();
@@ -186,26 +189,32 @@ public class ArchiveGenerator {
         ctx.setVariable("basePrefix", basePrefix);
         ctx.setVariable("backToTopHref", basePrefix + "/index.html");
         ctx.setVariable("backToChannelArchivesHref", basePrefix + "/archives/" + channel.getChannelId().toString() + ".html");
-        ctx.setVariable("lastUpdated", DateTimeUtil.time().format(Calendar.getInstance(DateTimeUtil.JST).getTime()));
+        ctx.setVariable("lastUpdated", DateTimeUtil.full().format(Calendar.getInstance(DateTimeUtil.JST).getTime()));
         String html = templateEngine.process("pin", ctx);
         Path outDir = appConfig.getOutputPath().resolve("archives").resolve(channel.getChannelId().toString());
         java.nio.file.Files.createDirectories(outDir);
         Path out = outDir.resolve("pin.html");
         fileUtil.writeIfChanged(out, html);
+        return pins;
     }
 
     private void generateThreadPinnedPage(GuildId guildId, ChannelInfo channel, List<MessageInfo> messages) throws IOException {
         // Retrieve pinned messages from the thread using the same approach as channels
-        List<Message> pinnedMessages = jdaProvider.getJda()
+        List<PinnedMessagePaginationAction.PinnedMessage> pinnedMessages = jdaProvider.getJda()
                 .getThreadChannelById(channel.getChannelId().getValue())
                 .retrievePinnedMessages().complete();
         
         List<MessageInfo> pins = new ArrayList<>();
-        for (Message msg : pinnedMessages) {
+        for (PinnedMessagePaginationAction.PinnedMessage msg : pinnedMessages) {
             try { 
-                pins.add(new MessageInfo(msg));
+                pins.add(new MessageInfo(msg.getMessage()));
             } catch (Throwable ignore) { }
         }
+
+        if (!pins.isEmpty()) {
+            fileUtil.archiveAttachments(appConfig.getOutputPath(), pins);
+        }
+
         final String basePrefix = fileUtil.repoBaseWithPrefix();
         Context ctx = new Context();
         ctx.setVariable("title", (channel.getParentChannelName() != null ? (channel.getParentChannelName() + " / ") : "") + channel.getName() + " のピン留め");
@@ -219,7 +228,7 @@ public class ArchiveGenerator {
             ctx.setVariable("backToChannelArchivesHref", String.format(basePrefix + "/archives/%s.html", channel.getParentChannelId().toString()));
             ctx.setVariable("backToThreadHref", String.format(basePrefix + "/archives/%s/threads/t-%s.html", channel.getParentChannelId().toString(), channel.getChannelId().toString()));
         }
-        ctx.setVariable("lastUpdated", DateTimeUtil.time().format(Calendar.getInstance(DateTimeUtil.JST).getTime()));
+        ctx.setVariable("lastUpdated", DateTimeUtil.full().format(Calendar.getInstance(DateTimeUtil.JST).getTime()));
         String html = templateEngine.process("pin", ctx);
         Path outDir = appConfig.getOutputPath().resolve("archives")
                 .resolve(channel.getParentChannelId() == null ? "unknown" : channel.getParentChannelId().toString())
@@ -235,8 +244,8 @@ public class ArchiveGenerator {
         Context ctx = new Context();
         ctx.setVariable("channel", channel);
         ctx.setVariable("messages", messages);
-        ctx.setVariable("begin", DateTimeUtil.time().format(begin.getTime()));
-        ctx.setVariable("end", DateTimeUtil.time().format(end.getTime()));
+        ctx.setVariable("begin", DateTimeUtil.full().format(begin.getTime()));
+        ctx.setVariable("end", DateTimeUtil.full().format(end.getTime()));
         // Provide machine-readable epoch millis to template
         try {
             ctx.setVariable("beginEpochMillis", begin.getTimeInMillis());
@@ -285,7 +294,7 @@ public class ArchiveGenerator {
         List<MessageInfo> result = new ArrayList<>();
         for (MessageInfo m : messages) {
             try {
-                Date d = DateTimeUtil.time().parse(m.getCreatedTimestamp());
+                Date d = DateTimeUtil.full().parse(m.getCreatedTimestamp());
                 if (!d.before(start.getTime()) && !d.after(end.getTime())) {
                     result.add(m);
                 }

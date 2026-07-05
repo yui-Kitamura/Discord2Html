@@ -26,6 +26,11 @@
   <h2>/d2h コマンド一覧</h2>
   <ul>
     <li>
+      <div class="cmd">/d2h archive</div>
+      <div class="perm">権限: だれでも</div>
+      <div>サーバーのアーカイブ対象チャンネルを確認します。</div>
+    </li>
+    <li>
       <div class="cmd">/d2h archive <span class="args">channel:&lt;チャンネル&gt; mode:(ignore|monitor)</span></div>
       <div class="perm">権限: 管理者のみ</div>
       <div>対象チャンネルのアーカイブ対象設定を変更します。</div>
@@ -55,6 +60,15 @@
       <div class="cmd">/d2h me <span class="args">anonymous:(anonymous|open)</span></div>
       <div class="perm">権限: だれでも</div>
       <div>自分の匿名設定を変更します。</div>
+    </li>
+    <li>
+      <div class="cmd">/d2h optout <span class="args">opt-in:(True|False) [channel:&lt;#チャンネル&gt;]</span></div>
+      <div class="perm">権限: だれでも</div>
+      <div>個人のアーカイブ同意設定を変更します。</div>
+      <ul class="desc">
+        <li>opt-in=<code>True</code>: 再同意(オプトイン)として記録します。<code>False</code>: オプトアウトを記録します。</li>
+        <li>channel を省略するとサーバー全体(ギルド)に対する設定、指定するとそのチャンネルにのみ適用されます。</li>
+      </ul>
     </li>
     <li>
       <div class="cmd">/d2h help</div>

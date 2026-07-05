@@ -1,47 +1,62 @@
 package pro.eng.yui.oss.d2h.botIF.runner;
 
 import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Component;
 import pro.eng.yui.oss.d2h.config.Secrets;
 import pro.eng.yui.oss.d2h.github.GitConfig;
+import pro.eng.yui.oss.d2h.github.GitUtil;
+
+import pro.eng.yui.oss.d2h.botIF.i.MessageKeys;
+import pro.eng.yui.oss.d2h.botIF.i.MessageSeed;
+
+import java.util.List;
 
 @Component
 public class HelpRunner implements IRunner {
     
     private final GitConfig gitConfig;
     private final Secrets secrets;
-    
-    private String lastAfterRunMessage = "bot sent you help guid to DM";
+    private final GitUtil gitUtil;
+
+    private MessageSeed lastAfterRunMessage = null;
     private boolean lastShouldDeferEphemeral = true;
     
-    public HelpRunner(GitConfig gitConfig, Secrets secrets){
+    public HelpRunner(GitConfig gitConfig, Secrets secrets, GitUtil gitUtil){
         this.gitConfig = gitConfig;
         this.secrets = secrets;
+        this.gitUtil = gitUtil;
     }
     
-    /** default behavior: DM help to user */
-    public void run(@NotNull Member member, boolean isAdmin){
-        final User user = member.getUser();
-        final String helpText = buildHelpText();
-        user.openPrivateChannel().queue(
-                ch -> ch.sendMessage(helpText).queue(),
-                err -> { /* nothing to do */ }
-        );
-        this.lastAfterRunMessage = "bot sent you help guid to DM";
-        this.lastShouldDeferEphemeral = true;
+    @Override
+    public RequiredPermissionType requiredPermissionType(List<OptionMapping> options){
+        return RequiredPermissionType.ANY;
     }
-    
-    /** Overload for /d2h help with options */
-    public void run(@NotNull Member member, boolean isAdmin, boolean showVersion){
+
+    /** Overload for /d2h help with options: version or tos link */
+    public void run(@NotNull Member member, List<OptionMapping> options){
+        OptionMapping optVer = get(options, "version");
+        boolean showVersion = (optVer != null) && optVer.getAsBoolean();
+        OptionMapping optTos = get(options, "tos");
+        boolean showTos = (optTos != null) && optTos.getAsBoolean();
+
         if (showVersion) {
-            String ver = secrets.getBotVersion();
-            this.lastAfterRunMessage = 
-                    "bot version: " + ver + "\n" +
-                    "GitHub: " + gitConfig.getRepo().getUrl();
+            final String ver = secrets.getBotVersion();
+            final String url = gitConfig.getRepo().getUrl();
+            this.lastAfterRunMessage = new MessageSeed(INFO, MessageKeys.RUNNER_HELP_VERSION_INFO, ver, url);
             this.lastShouldDeferEphemeral = true;
-            return;
+        } else if (showTos) {
+            final String url = gitUtil.getPagesUrlSafe() + "/tos.html";
+            this.lastAfterRunMessage = new MessageSeed(INFO, MessageKeys.RUNNER_HELP_TOS_INFO, url);
+            this.lastShouldDeferEphemeral = true;
+        } else {
+            member.getUser().openPrivateChannel().queue(
+                    ch -> ch.sendMessage(buildHelpText()).queue(),
+                    err -> { /* nothing to do */ }
+            );
+            this.lastAfterRunMessage = new MessageSeed(INFO, MessageKeys.RUNNER_HELP_DM_SENT);
+            this.lastShouldDeferEphemeral = true;
         }
     }
 
@@ -55,6 +70,9 @@ public class HelpRunner implements IRunner {
         sb.append("- ほとんどのコマンドは 管理者権限(D2H Admin) が必要です。\n");
         sb.append("\n");
         sb.append("/d2h コマンド一覧\n");
+        sb.append("- /d2h archive\n");
+        sb.append("  権限: だれでも\n");
+        sb.append("  アーカイブ対象のチャンネル一覧を表示します。\n");
         sb.append("- /d2h archive channel:<チャンネル> mode:(ignore|monitor)\n");
         sb.append("  権限: 管理者のみ\n");
         sb.append("  対象チャンネルのアーカイブ対象設定を変更します。\n");
@@ -79,6 +97,12 @@ public class HelpRunner implements IRunner {
         sb.append("  権限: だれでも\n");
         sb.append("  自分の匿名設定を変更します。\n");
         sb.append("\n");
+        sb.append("- /d2h optout opt-in:(True|False) [channel:<チャンネル>] \n");
+        sb.append("  権限: だれでも\n");
+        sb.append("  個人のアーカイブ同意設定を変更します。\n");
+        sb.append("  - opt-in=True: 再同意(オプトイン)として記録します。False: オプトアウトを記録します。\n");
+        sb.append("  - channel を省略するとサーバー全体(ギルド)に対する設定、指定するとそのチャンネルにのみ適用されます。\n");
+        sb.append("\n");
         sb.append("- /d2h help\n");
         sb.append("  権限: だれでも\n");
         sb.append("  このヘルプを表示します。\n");
@@ -93,12 +117,16 @@ public class HelpRunner implements IRunner {
         sb.append("- 上記が「許可」になっているチャンネルのみがコマンド実行可能な「管理タグ付きチャンネル」として扱われます（カテゴリーは対象外）。\n");
         sb.append("\n");
         sb.append("[GitHub]\n");
-        sb.append("リポジトリ: https://github.com/yui-Kitamura/Discord2Html\n");
+        sb.append("リポジトリ: ").append(gitConfig.getRepo().getUrl()).append("\n");
+        sb.append("\n");
+        sb.append("[TOS]\n");
+        sb.append("アーカイブ運用ポリシー: ").append(gitUtil.getPagesUrlSafe()).append("/tos.html\n");
+
         return sb.toString();
     }
 
     @Override
-    public String afterRunMessage() {
+    public MessageSeed afterRunMessage() {
         return lastAfterRunMessage;
     }
     

@@ -77,6 +77,15 @@ public class Guilds {
     public OnRunUrl getOnRunUrl() {
         return on_run_url;
     }
+
+    /** 言語設定 */
+    private Lang lang;
+    public void setLang(Lang newValue) {
+        this.lang = newValue;
+    }
+    public Lang getLang() {
+        return lang;
+    }
     
     public List<RunsOn> getRunsOnList(){
         List<RunsOn> result = new ArrayList<>();
@@ -106,6 +115,7 @@ public class Guilds {
         hash = hash * 31 + (runs_on == null ? 0 : runs_on.hashCode());
         hash = hash * 31 + (on_run_message == null ? 0 : on_run_message.hashCode());
         hash = hash * 31 + (on_run_url == null ? 0 : on_run_url.hashCode());
+        hash = hash * 31 + (lang == null ? 0 : lang.hashCode());
         return hash;
     }
     
@@ -137,6 +147,9 @@ public class Guilds {
             return false;
         }
         if(!Objects.equals(on_run_url, other.on_run_url)){
+            return false;
+        }
+        if(!Objects.equals(lang, other.lang)){
             return false;
         }
         return true;

@@ -1,7 +1,10 @@
 package pro.eng.yui.oss.d2h.html;
 
 import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.MessageHistory;
+import net.dv8tion.jda.api.entities.Message;
+import net.dv8tion.jda.api.entities.MessageReference;
 import net.dv8tion.jda.api.entities.channel.middleman.GuildMessageChannel;
 import org.jetbrains.annotations.Contract;
 import org.springframework.stereotype.Component;
@@ -10,12 +13,16 @@ import pro.eng.yui.oss.d2h.consts.DateTimeUtil;
 import pro.eng.yui.oss.d2h.db.dao.AnonStatsDAO;
 import pro.eng.yui.oss.d2h.db.dao.GuildsDAO;
 import pro.eng.yui.oss.d2h.db.dao.UsersDAO;
-import pro.eng.yui.oss.d2h.db.field.CategoryId;
-import pro.eng.yui.oss.d2h.db.field.CategoryName;
-import pro.eng.yui.oss.d2h.db.field.GuildId;
+import pro.eng.yui.oss.d2h.db.dao.OptoutDAO;
+import pro.eng.yui.oss.d2h.db.field.*;
 import pro.eng.yui.oss.d2h.db.model.Guilds;
 import pro.eng.yui.oss.d2h.db.model.Users;
 import pro.eng.yui.oss.d2h.github.GitConfig;
+
+import javax.imageio.ImageIO;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -83,20 +90,48 @@ public class FileGenerateUtil {
     }
 
     private final GuildsDAO guildsDao;
-    private final AnonStatsDAO anonStatsDao;
     private final UsersDAO usersDao;
     private final GitConfig gitConfig;
     private final DiscordJdaProvider jdaProvider;
+    private static OptoutDAO staticOptoutDao;
+    private static AnonStatsDAO staticAnonStatsDao;
     
     public FileGenerateUtil(
-            GuildsDAO guildsDAO, AnonStatsDAO anonStatsDAO, UsersDAO usersDAO,
+            GuildsDAO guildsDAO, AnonStatsDAO anonStatsDAO, UsersDAO usersDAO, OptoutDAO optoutDao,
             DiscordJdaProvider jdaProvider,
             GitConfig gitConfig) {
         this.guildsDao = guildsDAO;
-        this.jdaProvider = jdaProvider;
-        this.anonStatsDao = anonStatsDAO;
         this.usersDao = usersDAO;
+        this.jdaProvider = jdaProvider;
         this.gitConfig = gitConfig;
+        FileGenerateUtil.staticOptoutDao = optoutDao;
+        FileGenerateUtil.staticAnonStatsDao = anonStatsDAO;
+    }
+
+    public static boolean isUserOptedOut(UserId userId, GuildId guildId, ChannelId channelId) {
+        try {
+            return staticOptoutDao.isOptedOut(userId, guildId, channelId);
+        } catch (Throwable throwable) {
+            throwable.printStackTrace();
+            return true;
+        }
+    }
+
+    /**
+     * Check if the target user should be displayed anonymously in the given guild context
+     * using the same rule as message authors (role and user settings; bots are OPEN).
+     * Defaults to true (anonymous) on any error to avoid leaking names.
+     */
+    public static boolean isUserAnonymous(UserId userId, Guild guild) {
+        try {
+            if (guild == null || userId == null) { return true; }
+            Member member = null;
+            try { member = guild.getMemberById(userId.getValue()); } catch (Throwable ignore) { }
+            if (member == null) { return true; }
+            return staticAnonStatsDao.extractAnonStats(member).isAnon();
+        } catch (Throwable ignore) {
+            return true;
+        }
     }
 
     /**
@@ -140,7 +175,7 @@ public class FileGenerateUtil {
         return "/" + repoBase();
     }
     
-    @Contract("_,_ -> !null")
+    @Contract("_ -> !null")
     public String normalizeHref(String href) {
         if (href == null) { return ""; }
         String val = href;
@@ -168,6 +203,66 @@ public class FileGenerateUtil {
             }
         } catch (Exception ignore) { }
         return null;
+    }
+
+    public void archiveAttachments(Path outputPath, List<MessageInfo> messages) throws IOException {
+        if (messages == null || messages.isEmpty()) {
+            return; 
+        }
+        
+        Path figsDir = outputPath.resolve("archives").resolve("figs");
+        Files.createDirectories(figsDir);
+
+        Set<String> processed = new HashSet<>();
+        for (MessageInfo mi : messages) {
+            List<MessageInfo.AttachmentView> avs = mi.getAttachmentViews();
+            if (avs == null) { continue; }
+            for (MessageInfo.AttachmentView av : avs) {
+                if (av == null || av.isImage() == false) {
+                    continue; 
+                }
+                final String id = av.getAttachment().getId();
+                final String url = av.getUrl();
+                final String key = id + ".jpg";
+                
+                if (processed.contains(key)) { continue; }
+                
+                processed.add(key);
+                Path target = figsDir.resolve(key);
+                if (Files.exists(target)) { continue; }
+
+                try (var in = new URL(url).openStream()) {
+                    BufferedImage img = ImageIO.read(in);
+                    if (img == null) { continue; }
+
+                    // Resize if too large
+                    int maxWidth = 400;
+                    int maxHeight = 400;
+                    if (img.getWidth() > maxWidth || img.getHeight() > maxHeight) {
+                        double scale = Math.min((double)maxWidth / img.getWidth(), (double)maxHeight / img.getHeight());
+                        int newW = (int)(img.getWidth() * scale);
+                        int newH = (int)(img.getHeight() * scale);
+                        Image scaled = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+                        BufferedImage resized = new BufferedImage(newW, newH, BufferedImage.TYPE_INT_RGB);
+                        Graphics2D g = resized.createGraphics();
+                        g.drawImage(scaled, 0, 0, null);
+                        g.dispose();
+                        img = resized;
+                    } else if (img.getType() != BufferedImage.TYPE_INT_RGB) {
+                        // Ensure RGB for JPG
+                        BufferedImage rgbImg = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_RGB);
+                        Graphics2D g = rgbImg.createGraphics();
+                        g.drawImage(img, 0, 0, null);
+                        g.dispose();
+                        img = rgbImg;
+                    }
+
+                    ImageIO.write(img, "jpg", target.toFile());
+                } catch (Exception e) {
+                    System.err.println("[AttachmentArchive] Failed to archive " + url + ": " + e.getMessage());
+                }
+            }
+        }
     }
     
     public void archiveCustomEmojis(Path outputPath, List<MessageInfo> messages) throws IOException {
@@ -337,6 +432,56 @@ public class FileGenerateUtil {
         return safe.replaceAll("[^A-Za-z0-9_-]", "_");
     }
 
+
+    /**
+     * Discordのタイムスタンプ記法の文字列を人間可読な文字列に変換します
+     *
+     * @param tag Discordのタイムスタンプ文字列
+     * @return 変換された日時文字列。変換に失敗した場合は入力された文字列をそのまま返します。
+     */
+    public static String convertUnixTime(String tag) {
+        if (tag == null || tag.isEmpty()) {
+            return tag;
+        }
+        try {
+            Matcher m = DateTimeUtil.DISCORD_TIME_PATTERN.matcher(tag);
+            if (!m.matches()) {
+                return tag;
+            }
+            return convertUnixTime(DateTimeUtil.getFromUnix(m.group(1)), m.group(2));
+        } catch (IllegalArgumentException e) {
+            throw e;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return tag;
+        }
+    }
+
+    /**
+     * カレンダーオブジェクトを指定されたフォーマットの日時文字列に変換します。
+     *
+     * @param time   変換対象のカレンダーオブジェクト
+     * @param format 変換フォーマット (d/D: 日付のみ, t/T: 時刻のみ, f/F/R: 完全な日時)
+     * @return フォーマットされた日時文字列
+     */
+    public static String convertUnixTime(final Calendar time, final String format) {
+        final Date timestamp = time.getTime();
+        return switch (format) {
+            case "d", "D" -> DateTimeUtil.dateOnly().format(timestamp);
+            case "t", "T" -> DateTimeUtil.time().format(timestamp);
+            case "f", "F", "R" -> DateTimeUtil.full().format(timestamp);
+            default -> throw new IllegalArgumentException();
+        };
+    }
+
+    /**
+     * 指定されたチャンネルから特定期間のメッセージを取得します。
+     *
+     * @param channel   対象のDiscordチャンネル
+     * @param beginDate 取得開始日時
+     * @param endDate   取得終了日時
+     * @return 取得されたメッセージ情報のリスト
+     */
     public List<MessageInfo> fetchMessagesForDaily(GuildMessageChannel channel, Calendar beginDate, Calendar endDate) {
         List<MessageInfo> messages = new ArrayList<>();
         List<Users> marked = new ArrayList<>();
@@ -365,21 +510,8 @@ public class FileGenerateUtil {
                         .filter(msg -> !msg.getTimeCreated().toInstant().isBefore(beginInstant)
                                 && !msg.getTimeCreated().toInstant().isAfter(endInstant))
                         .forEach(msg -> {
-                            Users author = Users.get(msg, anonStatsDao);
-                            try {
-                                if (!marked.contains(author)) {
-                                    usersDao.upsertUserInfo(author);
-                                    marked.add(author);
-                                }
-                            } catch (Exception ignore) { /* ignore DB issues */ }
-                            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
-                            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
-                            calJst.setTime(msgDate);
-                            int hour = calJst.get(Calendar.HOUR_OF_DAY);
-                            int cycleIndex = hour / finalAnonCycle;
-                            String dateStr = DateTimeUtil.date8().format(msgDate);
-                            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + finalAnonCycle;
-                            messages.add(new MessageInfo(msg, author, scopeKey));
+                            MessageInfo mi = buildMessageInfo(msg, guildId, finalAnonCycle, marked);
+                            if (mi != null) { messages.add(mi); }
                         });
                 if (!oldestInstant.isAfter(beginInstant)) {
                     more = false;
@@ -389,6 +521,65 @@ public class FileGenerateUtil {
             // best-effort: return what we have
         }
         return messages;
+    }
+
+
+    /**
+     * 単一のDiscordメッセージからMessageInfo オブジェクトを構築します。
+     *
+     * @param msg       Discordメッセージ
+     * @param guildId   サーバーID
+     * @param anonCycle 匿名化サイクル時間（時間単位）
+     * @param marked    処理済みユーザーリスト
+     * @return 構築されたMessageInfoオブジェクト。失敗時はnull
+     */
+    private MessageInfo buildMessageInfo(Message msg, GuildId guildId, final int anonCycle, List<Users> marked) {
+        try {
+            Users author = Users.get(msg, staticAnonStatsDao, staticOptoutDao);
+            try {
+                if (!marked.contains(author)) {
+                    usersDao.upsertUserInfo(author);
+                    marked.add(author);
+                }
+            } catch (Exception ignore) { /* ignore DB issues */ }
+            Date msgDate = Date.from(msg.getTimeCreated().toInstant());
+            Calendar calJst = Calendar.getInstance(DateTimeUtil.JST);
+            calJst.setTime(msgDate);
+            int hour = calJst.get(Calendar.HOUR_OF_DAY);
+            int cycleIndex = hour / anonCycle;
+            String dateStr = DateTimeUtil.date8().format(msgDate);
+            String scopeKey = guildId.toString() + "-" + dateStr + "-c" + cycleIndex + "-n" + anonCycle + "-m" + msg.getId();
+
+            // forwarded block should be shown
+            MessageInfo.ForwardMask maskForward = MessageInfo.ForwardMask.UNKNOWN;
+            try {
+                MessageReference ref = msg.getMessageReference();
+                if (ref != null && ref.getType() == MessageReference.MessageReferenceType.FORWARD) {
+                    // 転送メッセージは、同サーバー内で元ユーザがオプトアウトしてない場合のみ表示
+                    if (author.isOptedOut()) {
+                        maskForward = MessageInfo.ForwardMask.OPTOUT;
+                    }else {
+                        try {
+                            GuildMessageChannel refCh = msg.getJDA().getChannelById(GuildMessageChannel.class, ref.getChannelIdLong());
+                            Message src = refCh.retrieveMessageById(ref.getMessageIdLong()).complete();
+                            boolean sameGuild = (src.getGuild().getIdLong() == msg.getGuild().getIdLong());
+                            if (sameGuild) {
+                                boolean sourceOptout = staticOptoutDao.isOptedOut(new UserId(src.getAuthor()), new GuildId(msg.getGuild()), new ChannelId(ref.getChannelIdLong()));
+                                if (sourceOptout) {
+                                    maskForward = MessageInfo.ForwardMask.OPTOUT;
+                                }else{
+                                    maskForward = MessageInfo.ForwardMask.ARCHIVE;
+                                } 
+                            }
+                        } catch (NullPointerException ignore) { /* best-effort */ }
+                    }
+                }
+            } catch (Throwable ignore) { /* best-effort */ }
+
+            return new MessageInfo(msg, author, scopeKey, author.isOptedOut(), maskForward);
+        } catch (Throwable ignore) {
+            return null;
+        }
     }
 
 }
